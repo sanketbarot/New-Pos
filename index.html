@@ -22,7 +22,7 @@
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=17.0">
+  <link rel="stylesheet" href="style.css?v=21.0">
 </head>
 
 <body>
@@ -79,62 +79,64 @@
   <div id="app-container" style="display: none;">
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
-      <div class="brand-section"
-        style="display: flex; align-items: center; gap: 10px; padding: 18px 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--bg-darker);">
-        <div class="brand-logo"
-          style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; border: 1px solid var(--border-color); background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <img src="logo.jpg" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
+      <div class="brand-section">
+        <div class="brand-logo-container">
+          <div class="brand-logo">
+            <img src="logo.jpg" alt="Logo">
+          </div>
+          <span class="brand-live-dot" title="Terminal Online"></span>
         </div>
-        <div style="display: flex; flex-direction: column;">
-          <span class="brand-title"
-            style="font-size: 14px; font-weight: 800; line-height: 1.2; color: var(--text-dark); letter-spacing: 0.2px;">CRUST
-            & CHILLY</span>
-          <span
-            style="font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px; margin-top: 2px;">POS
-            SYSTEM</span>
+        <div class="brand-text-block">
+          <div class="brand-title-row">
+            <span class="brand-title">CRUST & CHILLY</span>
+            <span class="brand-pos-tag">POS v2.0</span>
+          </div>
+          <span class="brand-terminal-subtitle">Executive Cloud Terminal</span>
         </div>
       </div>
 
       <nav style="flex-grow: 1; display: flex; flex-direction: column;">
         <ul class="nav-menu">
           <li class="nav-item active" data-view="dashboard">
-            <a href="#dashboard"><i class="fa-solid fa-chart-pie"></i>Dashboard</a>
+            <a href="#dashboard"><i class="fa-solid fa-chart-pie"></i><span>Executive Dashboard</span></a>
           </li>
           <li class="nav-item" data-view="pos">
-            <a href="#pos"><i class="fa-solid fa-receipt"></i>POS Terminal</a>
+            <a href="#pos"><i class="fa-solid fa-receipt"></i><span>POS Billing Terminal</span></a>
           </li>
           <li class="nav-item" data-view="orders">
-            <a href="#orders"><i class="fa-solid fa-kitchen-set"></i>KDS Kitchen</a>
+            <a href="#orders"><i class="fa-solid fa-kitchen-set"></i><span>Kitchen Display (KDS)</span></a>
           </li>
           <li class="nav-item" data-view="menu">
-            <a href="#menu"><i class="fa-solid fa-burger"></i>Menu Setup</a>
+            <a href="#menu"><i class="fa-solid fa-burger"></i><span>Menu Management</span></a>
           </li>
           <li class="nav-item" data-view="counter">
-            <a href="#counter"><i class="fa-solid fa-cash-register"></i>Daily Counter & Bills History</a>
+            <a href="#counter"><i class="fa-solid fa-cash-register"></i><span>Daily Counter & Bills</span></a>
           </li>
           <li class="nav-item" data-view="reports">
-            <a href="#reports"><i class="fa-solid fa-chart-line"></i>Analytics</a>
+            <a href="#reports"><i class="fa-solid fa-chart-line"></i><span>Sales & Profit Analytics</span></a>
           </li>
         </ul>
       </nav>
 
-      <!-- Today's Summary Card in Sidebar -->
+      <!-- Today's Live Pulse Summary Card in Sidebar -->
       <div class="sidebar-summary-card">
         <div class="sidebar-summary-header">
-          <span>Today's Summary</span>
-          <span class="summary-live-dot" title="Live Today Summary"><i class="fa-solid fa-circle"></i></span>
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Today's Register Pulse
+          </span>
+          <span class="summary-live-dot" title="Real-Time Active Tracking"><i class="fa-solid fa-circle"></i></span>
         </div>
         <div class="sidebar-summary-body">
           <div class="sidebar-summary-row">
-            <span class="summary-label">Total Orders</span>
+            <span class="summary-label">Total Bills</span>
             <span class="summary-val" id="sidebar-summary-orders">0</span>
           </div>
           <div class="sidebar-summary-row">
-            <span class="summary-label">Total Sales</span>
+            <span class="summary-label">Gross Sales</span>
             <span class="summary-val" id="sidebar-summary-sales">₹0</span>
           </div>
           <div class="sidebar-summary-row">
-            <span class="summary-label">Avg. Order Value</span>
+            <span class="summary-label">Avg Ticket (AOV)</span>
             <span class="summary-val" id="sidebar-summary-avg">₹0</span>
           </div>
           <div class="sidebar-summary-growth" id="sidebar-summary-growth">
@@ -146,10 +148,13 @@
       <!-- USER INFO BAR FOOTER -->
       <div class="user-profile-section">
         <div class="user-info">
-          <div class="user-avatar" id="header-avatar-letter">A</div>
+          <div class="user-avatar-wrap">
+            <div class="user-avatar" id="header-avatar-letter">S</div>
+            <span class="user-online-pip" title="Active On Duty"></span>
+          </div>
           <div class="user-details">
             <span class="user-name" id="header-username">Sanket Barot</span>
-            <span class="user-role" id="header-role">Admin</span>
+            <span class="user-role" id="header-role">Store Administrator</span>
           </div>
         </div>
         <button class="btn-logout" id="logout-button" title="Log Out Session">
@@ -163,21 +168,19 @@
       <!-- TOP NAVIGATION BAR -->
       <header class="top-header">
         <div class="header-title-area">
-          <h2 id="current-view-title">Dashboard</h2>
+          <h2 id="current-view-title">Executive Dashboard</h2>
+          <span class="header-view-badge" id="header-view-badge">Real-Time Operations</span>
         </div>
         <div class="header-actions" style="display: flex; align-items: center; gap: 12px;">
-          <button id="btn-pwa-install" class="btn-pwa-install" title="Install as Desktop or Mobile App"
-            style="display: none; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 14px; font-size: 12px; font-weight: 800; border: 1.5px solid #2563eb; background: #eff6ff; color: #2563eb; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn);">
-            <i class="fa-solid fa-download"></i> <span>Install App</span>
+          <button id="btn-pwa-install" class="btn-pwa-install" title="Install as Desktop or Mobile App">
+            <i class="fa-solid fa-download"></i> <span>Install POS App</span>
           </button>
-          <button id="cloud-sync-pill" class="cloud-sync-pill connecting" title="Click to view Cloud Sync details"
-            style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn); color: var(--text-dark);">
-            <i class="fa-solid fa-circle-notch fa-spin" id="cloud-sync-icon"
-              style="font-size: 10px; color: #f59e0b;"></i>
-            <span id="cloud-sync-text">Syncing...</span>
+          <button id="cloud-sync-pill" class="cloud-sync-pill connected" title="Click to view Cloud Sync details">
+            <i class="fa-solid fa-cloud-arrow-up" id="cloud-sync-icon"></i>
+            <span id="cloud-sync-text">Cloud Sync: Active</span>
           </button>
           <div class="date-time-widget" id="header-date-time">
-            Loading Date & Time...
+            <i class="fa-regular fa-clock"></i> Loading Date & Time...
           </div>
         </div>
       </header>
@@ -193,13 +196,17 @@
           <i class="fa-solid fa-chart-pie"></i>
           <span>Dashboard</span>
         </a>
-        <a href="#reports" class="mobile-nav-item" data-view="reports">
-          <i class="fa-solid fa-chart-line"></i>
-          <span>Analytics</span>
+        <a href="#pos" class="mobile-nav-item" data-view="pos">
+          <i class="fa-solid fa-receipt"></i>
+          <span>POS</span>
         </a>
         <a href="#counter" class="mobile-nav-item" data-view="counter">
           <i class="fa-solid fa-cash-register"></i>
-          <span>Counter & Bills</span>
+          <span>Counter</span>
+        </a>
+        <a href="#reports" class="mobile-nav-item" data-view="reports">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics</span>
         </a>
       </nav>
     </main>
@@ -231,15 +238,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <!-- App JS & DB files -->
-  <script src="js/qrcode.min.js?v=16.0"></script>
-  <script src="js/db.js?v=16.0"></script>
-  <script src="js/dashboard.js?v=16.0"></script>
-  <script src="js/counter.js?v=17.0"></script>
-  <script src="js/pos.js?v=16.0"></script>
-  <script src="js/orders.js?v=17.0"></script>
-  <script src="js/menu.js?v=17.0"></script>
-  <script src="js/reports.js?v=17.0"></script>
-  <script src="app.js?v=16.0"></script>
+  <script src="js/qrcode.min.js?v=21.0"></script>
+  <script src="js/db.js?v=21.0"></script>
+  <script src="js/dashboard.js?v=21.0"></script>
+  <script src="js/counter.js?v=21.0"></script>
+  <script src="js/pos.js?v=21.0"></script>
+  <script src="js/orders.js?v=21.0"></script>
+  <script src="js/menu.js?v=21.0"></script>
+  <script src="js/reports.js?v=21.0"></script>
+  <script src="app.js?v=21.0"></script>
 </body>
 
 </html>

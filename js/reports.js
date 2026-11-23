@@ -447,10 +447,13 @@ window.views.reports = {
     const netSales = grossSales;
     const totalOperatingExpenses = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     
-    // COGS & Profit Benchmarking
-    const cogsRate = this.cogsPercent / 100;
-    const estimatedCOGS = grossSales * cogsRate;
-    const grossProfit = Math.max(0, grossSales - estimatedCOGS);
+    // Dynamic item-level COGS based on exact dish cost prices from Menu Management
+    const financials = (window.db && typeof window.db.calculateOrdersFinancials === "function")
+      ? window.db.calculateOrdersFinancials(validOrders)
+      : null;
+
+    const estimatedCOGS = financials ? financials.totalCOGS : (grossSales * (this.cogsPercent / 100));
+    const grossProfit = financials ? financials.grossProfit : Math.max(0, grossSales - estimatedCOGS);
     const grossMarginPct = grossSales > 0 ? Math.round((grossProfit / grossSales) * 100) : (100 - this.cogsPercent);
     
     const netProfit = grossProfit - totalOperatingExpenses;
@@ -556,7 +559,7 @@ window.views.reports = {
     if (aovBadge) aovBadge.textContent = `AOV: ${currency}${Math.round(aov)}`;
 
     if (cogsValEl) cogsValEl.textContent = `${currency}${Math.round(estimatedCOGS).toLocaleString("en-IN")}`;
-    if (cogsSubEl) cogsSubEl.textContent = `Benchmarked at ${this.cogsPercent}% food cost`;
+    if (cogsSubEl) cogsSubEl.textContent = financials ? `Exact menu dish ingredients cost (${Math.round(100 - grossMarginPct)}% COGS)` : `Benchmarked at ${this.cogsPercent}% food cost`;
     if (grossMarginBadge) grossMarginBadge.innerHTML = `<i class="fa-solid fa-percent"></i> ${grossMarginPct}% Gross Margin`;
 
     if (expenseValEl) expenseValEl.textContent = `${currency}${Math.round(totalOperatingExpenses).toLocaleString("en-IN")}`;
@@ -1383,16 +1386,21 @@ window.views.reports = {
       }
     });
 
+    const costMap = (window.db && typeof window.db.getProductCostMap === "function") ? window.db.getProductCostMap() : {};
+
     let itemList = Object.values(itemMap).map(i => {
       const prod = products.find(p => p.id === i.productId || p.name === i.name);
+      const cleanKey = String(i.name).trim().toLowerCase();
+      const costInfo = (i.productId && costMap[i.productId]) || costMap[cleanKey];
       const unitCost = (prod && prod.costPrice !== undefined && prod.costPrice !== null && !isNaN(prod.costPrice) && Number(prod.costPrice) > 0)
         ? Number(prod.costPrice)
-        : (i.price * cogsRate);
+        : (costInfo ? Number(costInfo.costPrice) : (i.price * cogsRate));
       const estimatedCost = unitCost * i.unitsSold;
       const profitContributed = Math.max(0, i.grossSales - estimatedCost);
       const marginPct = i.grossSales > 0 ? Math.round((profitContributed / i.grossSales) * 100) : (100 - this.cogsPercent);
       return {
         ...i,
+        unitCost,
         estimatedCost,
         profitContributed,
         marginPct
@@ -1537,7 +1545,10 @@ window.views.reports = {
 
       const dayRevenue = dayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
       const dayExpenseTotal = dayExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-      const dayCOGS = dayRevenue * cogsRate;
+      const dayFin = (window.db && typeof window.db.calculateOrdersFinancials === "function")
+        ? window.db.calculateOrdersFinancials(dayOrders)
+        : null;
+      const dayCOGS = dayFin ? dayFin.totalCOGS : (dayRevenue * cogsRate);
       const dayTotalCost = dayCOGS + dayExpenseTotal;
       const dayNetProfit = dayRevenue - dayTotalCost;
 
@@ -2192,7 +2203,7 @@ window.views.reports = {
         <div style="border-bottom: 1.5px dashed #000; padding-bottom: 8px; margin-bottom: 10px;">
           <div style="font-weight: 800; text-decoration: underline; margin-bottom: 4px;">COST OF GOODS & OPERATING EXPENSES:</div>
           <div style="display: flex; justify-content: space-between;">
-            <span>(-) Cost of Goods Sold (COGS @ ${this.cogsPercent}%):</span>
+            <span>(-) Cost of Goods Sold (Menu Ingredients COGS):</span>
             <span>-${currency}${estimatedCOGS.toFixed(2)}</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-weight: 800; margin-top: 2px;">
@@ -2271,11 +2282,28 @@ window.views.reports = {
       return;
     }
 
-    let csv = "Order ID,Date,Customer,Phone,Order Type,Payment Method,Subtotal,Discount,Net Total,Estimated COGS,Net Profit Contributed,Status\r\n";
+    const costMap = (window.db && typeof window.db.getProductCostMap === "function") ? window.db.getProductCostMap() : {};
+
+    let csv = "Order ID,Date,Customer,Phone,Order Type,Payment Method,Subtotal,Discount,Net Total,COGS,Gross Profit,Status\r\n";
     validOrders.forEach(o => {
       const net = Number(o.total) || 0;
-      const cogs = net * cogsRate;
-      const profit = net - cogs;
+      let cogs = 0;
+      if (o.totalCOGS !== undefined && o.totalCOGS !== null) {
+        cogs = Number(o.totalCOGS);
+      } else if (Array.isArray(o.items)) {
+        o.items.forEach(it => {
+          const qty = Number(it.quantity) || 1;
+          const cleanKey = String(it.name || "").trim().toLowerCase();
+          const costInfo = (it.productId && costMap[it.productId]) || costMap[cleanKey];
+          const uCost = (it.costPrice !== undefined && it.costPrice !== null && !isNaN(it.costPrice))
+            ? Number(it.costPrice)
+            : (costInfo ? costInfo.costPrice : (Number(it.price) || 0) * cogsRate);
+          cogs += uCost * qty;
+        });
+      } else {
+        cogs = net * cogsRate;
+      }
+      const profit = Math.max(0, net - cogs);
       csv += `ORD-${o.orderNumber || o.id},"${o.createdAt}",` +
              `"${(o.customerName || 'Walk-in').replace(/"/g, '""')}",` +
              `"${(o.customerPhone || '').replace(/"/g, '""')}",` +

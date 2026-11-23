@@ -217,6 +217,7 @@ window.views.pos = {
           productId: it.productId,
           name: it.name,
           price: it.price,
+          costPrice: it.costPrice || 0,
           quantity: it.quantity,
           category: it.category || "cat1",
           note: it.note || "",
@@ -1730,11 +1731,16 @@ window.views.pos = {
     if (existing) {
       existing.quantity = targetQty;
     } else {
+      const unitCost = (product.costPrice !== undefined && product.costPrice !== null && !isNaN(product.costPrice))
+        ? Number(product.costPrice)
+        : Math.round((Number(product.price) || 0) * 0.32 * 100) / 100;
+
       this.cart.push({
         cartItemId: "item_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
         productId: product.id,
         name: product.name,
         price: Number(product.price) || 0,
+        costPrice: unitCost,
         quantity: 1,
         category: product.category,
         addons: [],
@@ -1834,17 +1840,17 @@ window.views.pos = {
       ` : "";
 
       return `
-        <div class="cart-item-row" style="background: var(--bg-darkest); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 16px; padding: 10px 12px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; width: 100%; box-shadow: 4px 4px 10px #cad5e2, -4px -4px 10px #ffffff;">
+        <div class="cart-item-row" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 10px 12px; margin-bottom: 7px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; width: 100%; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03); transition: all 0.2s ease;">
           
           <!-- Top Row: Veg Icon + Full Item Name + Remove Button -->
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
             <div style="display: flex; align-items: flex-start; gap: 6px; flex-grow: 1; min-width: 0;">
               <!-- Veg Dot -->
-              <span style="display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1.2px solid #0f8a4f; padding: 1px; border-radius: 3px; background: #fff; flex-shrink: 0; margin-top: 2px;">
-                <span style="width: 5px; height: 5px; border-radius: 50%; background: #0f8a4f;"></span>
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border: 1.5px solid #10b981; padding: 1px; border-radius: 3px; background: #fff; flex-shrink: 0; margin-top: 2px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
               </span>
               <div>
-                <span style="font-size: 12.5px; font-weight: 700; color: #1e293b; line-height: 1.35; word-break: break-word; text-align: left;">
+                <span style="font-size: 13px; font-weight: 750; color: #0f172a; line-height: 1.35; word-break: break-word; text-align: left;">
                   ${item.name}
                 </span>
                 ${comboPillsHtml}
@@ -1852,13 +1858,13 @@ window.views.pos = {
               </div>
             </div>
             <!-- Remove Item Button -->
-            <button onclick="views.pos.removeFromCart('${itemId}')" style="background: var(--bg-darkest); border: 1px solid rgba(255, 255, 255, 0.8); color: #ef4444; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; box-shadow: 2px 2px 5px #cad5e2, -2px -2px 5px #ffffff;" title="Remove Item">
+            <button onclick="views.pos.removeFromCart('${itemId}')" style="background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s ease;" title="Remove Item">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
 
           <!-- Bottom Row: Addons / Note button & Controls + Line Total -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed rgba(200, 214, 229, 0.6); padding-top: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">
             <div style="display: flex; gap: 6px; align-items: center;">
               <button class="btn-add-note" onclick="views.pos.openItemAddonModal('${itemId}')" style="background: transparent; border: none; color: #2563eb; font-size: 10.5px; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 3px;" title="${item.comboChoices ? 'Change Combo Selections' : 'Add Cheese, Extra Patty or Toppings'}">
                 <i class="fa-solid ${item.comboChoices ? 'fa-layer-group' : 'fa-sliders'}"></i> ${item.comboChoices ? 'Change Combo' : 'Customize'}
@@ -1869,19 +1875,19 @@ window.views.pos = {
             </div>
 
             <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0;">
-              <span style="font-size: 11px; color: #d97706; font-weight: 700;">₹${unitPriceWithAddons}</span>
+              <span style="font-size: 11.5px; color: #64748b; font-weight: 600;">₹${unitPriceWithAddons}</span>
               <!-- Qty Stepper Pill -->
-              <div style="display: flex; align-items: center; background: var(--bg-darkest); border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 12px; height: 24px; padding: 0 3px; box-shadow: inset 2px 2px 4px #cad5e2, inset -2px -2px 4px #ffffff;" onclick="event.stopPropagation();">
-                <button onclick="views.pos.modifyQty('${itemId}', -1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-minus"></i></button>
+              <div style="display: flex; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; height: 26px; padding: 0 4px;" onclick="event.stopPropagation();">
+                <button onclick="views.pos.modifyQty('${itemId}', -1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 11px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-minus"></i></button>
                 <input type="number" class="cart-qty-input" value="${item.quantity}" 
                        onchange="views.pos.setQty('${itemId}', parseInt(this.value) || 0)"
                        onclick="this.select();" 
                        onkeydown="if(event.key==='Enter') { event.preventDefault(); this.blur(); }"
-                       style="background: transparent; border: none; font-size: 11px; font-weight: 800; width: 28px; text-align: center; color: var(--text-dark); outline: none; padding: 0;">
-                <button onclick="views.pos.modifyQty('${itemId}', 1)" style="background: transparent; border: none; width: 18px; height: 100%; cursor: pointer; font-size: 10px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-plus"></i></button>
+                       style="background: transparent; border: none; font-size: 12px; font-weight: 800; width: 28px; text-align: center; color: #1e40af; outline: none; padding: 0;">
+                <button onclick="views.pos.modifyQty('${itemId}', 1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 11px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-plus"></i></button>
               </div>
               <!-- Line Total -->
-              <span style="font-size: 13px; font-weight: 800; color: #d97706; min-width: 44px; text-align: right;">₹${lineTotal}</span>
+              <span style="font-size: 13.5px; font-weight: 850; color: #d97706; min-width: 44px; text-align: right;">₹${lineTotal}</span>
             </div>
           </div>
         </div>
@@ -2384,10 +2390,12 @@ window.views.pos = {
         }
 
         const customId = "custom-" + Date.now();
+        const estCost = Math.round(price * 0.32 * 100) / 100;
         this.cart.push({
           productId: customId,
           name: name,
           price: price,
+          costPrice: estCost,
           quantity: qty,
           category: "custom",
           addons: [],
@@ -2606,6 +2614,9 @@ window.views.pos = {
     const gstEnabled = document.getElementById("tax-enable-checkbox").checked;
 
     let subtotal = 0;
+    const productsList = window.db ? (window.db.get("products") || []) : [];
+    const costMap = (window.db && typeof window.db.getProductCostMap === "function") ? window.db.getProductCostMap() : {};
+
     const formattedItems = this.cart.map(item => {
       const addonsCost = (item.addons || []).reduce((sum, a) => sum + (Number(a.price) || 0), 0);
       const unitPriceWithAddons = item.price + addonsCost;
@@ -2620,10 +2631,18 @@ window.views.pos = {
         displayName += ` (+ ${item.addons.map(a => a.name).join(", ")})`;
       }
 
+      const prod = productsList.find(p => p.id === item.productId || p.name === item.name);
+      const cleanKey = String(item.name || "").trim().toLowerCase();
+      const costInfo = (item.productId && costMap[item.productId]) || costMap[cleanKey];
+      const unitCost = (item.costPrice !== undefined && item.costPrice !== null && !isNaN(item.costPrice) && Number(item.costPrice) >= 0)
+        ? Number(item.costPrice)
+        : (prod && prod.costPrice !== undefined && prod.costPrice !== null ? Number(prod.costPrice) : (costInfo ? costInfo.costPrice : Math.round(unitPriceWithAddons * 0.32 * 100) / 100));
+
       return {
         productId: item.productId,
         name: displayName,
         price: unitPriceWithAddons,
+        costPrice: unitCost,
         quantity: item.quantity,
         category: item.category,
         lineTotal: lineTotal,

@@ -446,6 +446,7 @@ window.views.dashboard = {
               <div style="display: flex; align-items: center; gap: 6px;">
                 <button class="dash-chart-toggle-btn active dash-leader-sort-btn" data-sort="qty" onclick="views.dashboard.setBestSellerSort('qty')">By Qty</button>
                 <button class="dash-chart-toggle-btn dash-leader-sort-btn" data-sort="rev" onclick="views.dashboard.setBestSellerSort('rev')">By Revenue</button>
+                <button class="dash-chart-toggle-btn dash-leader-sort-btn" data-sort="profit" onclick="views.dashboard.setBestSellerSort('profit')">By Profit</button>
               </div>
             </div>
             <div id="dash-best-sellers-list" style="display: flex; flex-direction: column; gap: 8px;">
@@ -816,8 +817,13 @@ window.views.dashboard = {
 
     const totalPeriodExpense = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     const cashExpenses = periodExpenses.filter(e => e.paymentMethod === "Cash").reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-    const estimatedCOGS = grossSales * 0.32; // Standard 32% food cost COGS
-    const netProfit = Math.max(0, grossSales - estimatedCOGS - totalPeriodExpense);
+    
+    // Dynamic item-level COGS based on exact dish cost prices from Menu Management
+    const fin = (window.db && window.db.calculateOrdersFinancials)
+      ? window.db.calculateOrdersFinancials(validOrders)
+      : null;
+    const actualCOGS = fin ? fin.totalCOGS : (grossSales * 0.32);
+    const netProfit = Math.max(0, grossSales - actualCOGS - totalPeriodExpense);
     const profitMargin = grossSales > 0 ? Math.round((netProfit / grossSales) * 100) : 0;
 
     const profitValEl = document.getElementById("dash-profit-val");
@@ -1275,30 +1281,58 @@ window.views.dashboard = {
 
   // Best Sellers Leaderboard
   renderBestSellers(orders, products, categories, currencySymbol) {
+    const costMap = (window.db && typeof window.db.getProductCostMap === "function")
+      ? window.db.getProductCostMap()
+      : {};
+
     const productSoldCounter = {};
     const productRevenueCounter = {};
+    const productProfitCounter = {};
 
     orders.forEach(o => {
       if (o.status === "Cancelled" || !Array.isArray(o.items)) return;
       o.items.forEach(item => {
-        productSoldCounter[item.name] = (productSoldCounter[item.name] || 0) + (item.quantity || 1);
-        productRevenueCounter[item.name] = (productRevenueCounter[item.name] || 0) + ((item.price || 0) * (item.quantity || 1));
+        const name = item.name || "Unknown Item";
+        const qty = Number(item.quantity) || 1;
+        const lineRev = (Number(item.price) || 0) * qty;
+
+        const cleanKey = String(name).trim().toLowerCase();
+        const costInfo = (item.productId && costMap[item.productId]) || costMap[cleanKey] || null;
+        const unitCost = (item.costPrice !== undefined && item.costPrice !== null && !isNaN(item.costPrice) && Number(item.costPrice) >= 0)
+          ? Number(item.costPrice)
+          : (costInfo ? Number(costInfo.costPrice) : ((Number(item.price) || 0) * 0.32));
+        const lineCost = unitCost * qty;
+        const lineProfit = Math.max(0, lineRev - lineCost);
+
+        productSoldCounter[name] = (productSoldCounter[name] || 0) + qty;
+        productRevenueCounter[name] = (productRevenueCounter[name] || 0) + lineRev;
+        productProfitCounter[name] = (productProfitCounter[name] || 0) + lineProfit;
       });
     });
 
     const bestSellersList = Object.keys(productSoldCounter)
       .map(name => {
-        const prod = products.find(p => p.name === name);
+        const prod = products.find(p => p.name === name || (p.name && name.startsWith(p.name)));
         const cat = prod ? categories.find(c => c.id === prod.category) : null;
+        const cleanKey = String(name).trim().toLowerCase();
+        const costInfo = costMap[cleanKey];
+        const qty = productSoldCounter[name];
+        const revenue = productRevenueCounter[name] || 0;
+        const profit = productProfitCounter[name] || 0;
+        const marginPct = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+
         return {
           name: name,
-          category: cat ? cat.name : "Menu Item",
-          quantity: productSoldCounter[name],
-          revenue: productRevenueCounter[name] || 0
+          category: cat ? cat.name : (costInfo ? costInfo.category : "Menu Item"),
+          quantity: qty,
+          revenue: revenue,
+          profit: profit,
+          marginPct: marginPct
         };
       })
       .sort((a, b) => {
         if (this.bestSellerSort === "rev") return b.revenue - a.revenue;
+        if (this.bestSellerSort === "profit") return b.profit - a.profit;
         return b.quantity - a.quantity;
       })
       .slice(0, 5);
@@ -1311,13 +1345,15 @@ window.views.dashboard = {
       return;
     }
 
-    const maxVal = this.bestSellerSort === "rev" ? (bestSellersList[0].revenue || 1) : (bestSellersList[0].quantity || 1);
+    const maxVal = this.bestSellerSort === "rev"
+      ? (bestSellersList[0].revenue || 1)
+      : (this.bestSellerSort === "profit" ? (bestSellersList[0].profit || 1) : (bestSellersList[0].quantity || 1));
     const rankBadges = ["rank-1", "rank-2", "rank-3", "rank-other", "rank-other"];
     const rankIcons = ["🥇", "🥈", "🥉", "4", "5"];
 
     container.innerHTML = bestSellersList.map((item, idx) => {
-      const curVal = this.bestSellerSort === "rev" ? item.revenue : item.quantity;
-      const pct = Math.round((curVal / maxVal) * 100);
+      const curVal = this.bestSellerSort === "rev" ? item.revenue : (this.bestSellerSort === "profit" ? item.profit : item.quantity);
+      const pct = Math.max(5, Math.min(100, Math.round((curVal / (maxVal || 1)) * 100)));
 
       return `
         <div style="padding: 8px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; gap: 4px;">
@@ -1328,12 +1364,14 @@ window.views.dashboard = {
                 <div style="font-weight: 800; font-size: 12.5px; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   ${item.name}
                 </div>
-                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">${item.category}</span>
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">${item.category} · <span style="color: #059669; font-weight: 700;">${item.marginPct}% Margin</span></span>
               </div>
             </div>
             <div style="text-align: right; flex-shrink: 0;">
               <div style="font-weight: 850; color: #2563eb; font-size: 12.5px;">${item.quantity} sold</div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">${currencySymbol}${Math.round(item.revenue).toLocaleString("en-IN")}</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">
+                ${currencySymbol}${Math.round(item.revenue).toLocaleString("en-IN")} · <strong style="color: #059669;">+${currencySymbol}${Math.round(item.profit).toLocaleString("en-IN")}</strong>
+              </div>
             </div>
           </div>
           <div class="dash-pacing-progress-bg" style="height: 5px;">

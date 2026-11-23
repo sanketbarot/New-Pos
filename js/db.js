@@ -167,7 +167,7 @@ const db = {
     this.syncToFirebase(key, val);
   },
 
-  // Normalize catalog items - ensure clean catalog without BOGO and correct category suffixes
+  // Normalize catalog items - ensure clean catalog without BOGO, correct category suffixes, and accurate food costing
   normalizeProducts(productsList) {
     if (!Array.isArray(productsList)) {
       return { updated: false, list: [] };
@@ -194,6 +194,29 @@ const db = {
         const cleanName = (p.name || "").trim();
         if (!cleanName.toLowerCase().includes("sandwich")) {
           p.name = `${cleanName} Sandwich`;
+          updated = true;
+        }
+      }
+
+      // Ensure costPrice, ingredientCost, packagingCost and grossProfit are accurately populated
+      const pPrice = Number(p.price) || 0;
+      if (p.costPrice === undefined || p.costPrice === null || isNaN(p.costPrice) || Number(p.costPrice) <= 0 || p.grossProfit === undefined) {
+        const seedMatch = INITIAL_PRODUCTS.find(sp => sp.id === p.id || (sp.name && p.name && sp.name.toLowerCase() === p.name.toLowerCase()));
+        if (seedMatch) {
+          p.costPrice = seedMatch.costPrice;
+          p.ingredientCost = seedMatch.ingredientCost;
+          p.packagingCost = seedMatch.packagingCost;
+          p.grossProfit = seedMatch.grossProfit;
+          updated = true;
+        } else {
+          const ingCost = Number(p.ingredientCost) || 0;
+          const pkgCost = Number(p.packagingCost) || 0;
+          if (ingCost + pkgCost > 0) {
+            p.costPrice = ingCost + pkgCost;
+          } else {
+            p.costPrice = Math.round(pPrice * 0.32 * 10) / 10;
+          }
+          p.grossProfit = Math.max(0, pPrice - p.costPrice);
           updated = true;
         }
       }
@@ -649,18 +672,44 @@ const db = {
     });
     const nextTokenNumber = maxTokenToday + 1;
 
+    // Enrich order items with exact costPrice, lineCost, lineProfit using getProductCostMap()
+    const costMap = typeof this.getProductCostMap === "function" ? this.getProductCostMap() : {};
+    const enrichedItems = (orderData.items || []).map(item => {
+      const cleanKey = String(item.name || "").trim().toLowerCase();
+      const costInfo = (item.productId && costMap[item.productId]) || costMap[cleanKey] || null;
+      const unitCost = (item.costPrice !== undefined && item.costPrice !== null && !isNaN(item.costPrice) && Number(item.costPrice) >= 0)
+        ? Number(item.costPrice)
+        : (costInfo ? Number(costInfo.costPrice) : Math.round((Number(item.price) || 0) * 0.32 * 100) / 100);
+      const qty = Number(item.quantity) || 1;
+      const lineTotal = Number(item.lineTotal) || ((Number(item.price) || 0) * qty);
+      const lineCost = Math.round(unitCost * qty * 100) / 100;
+      const lineProfit = Math.max(0, Math.round((lineTotal - lineCost) * 100) / 100);
+
+      return {
+        ...item,
+        costPrice: unitCost,
+        lineCost: lineCost,
+        lineProfit: lineProfit
+      };
+    });
+
+    const orderCOGS = enrichedItems.reduce((sum, it) => sum + (it.lineCost || 0), 0);
+    const orderGrossProfit = Math.max(0, Math.round(((Number(orderData.total) || 0) - orderCOGS) * 100) / 100);
+
     const newOrder = {
       id: `ORD-${nextCounter}`,
       orderNumber: nextCounter,
       tokenNumber: nextTokenNumber, // Save numeric token number
       customerName: orderData.customerName || "Walk-in Customer",
       customerPhone: orderData.customerPhone || "",
-      items: orderData.items,
+      items: enrichedItems,
       subtotal: orderData.subtotal,
       discount: orderData.discount || 0,
       bogoDiscount: 0,
       tax: orderData.tax || 0,
       total: orderData.total,
+      totalCOGS: orderCOGS,
+      grossProfit: orderGrossProfit,
       type: orderData.type || "Dine-in", // Dine-in or Takeaway
       tableNumber: orderData.tableNumber || "",
       notes: orderData.notes || "",
@@ -843,11 +892,24 @@ const db = {
 
   saveProduct(prodData) {
     const products = this.get("products") || [];
+    const pPrice = Number(prodData.price) || 0;
+    let pCost = (prodData.costPrice !== undefined && prodData.costPrice !== null && prodData.costPrice !== "" && !isNaN(prodData.costPrice))
+      ? Number(prodData.costPrice)
+      : ((Number(prodData.ingredientCost) || 0) + (Number(prodData.packagingCost) || 0));
+    if (pCost <= 0) pCost = Math.round(pPrice * 0.32 * 10) / 10;
+    const pProfit = Math.max(0, pPrice - pCost);
+
     if (prodData.id) {
       // Edit
       const index = products.findIndex(p => p.id === prodData.id);
       if (index !== -1) {
-        products[index] = { ...products[index], ...prodData };
+        products[index] = {
+          ...products[index],
+          ...prodData,
+          price: pPrice,
+          costPrice: pCost,
+          grossProfit: pProfit
+        };
       }
     } else {
       // Find max ID number to prevent key conflicts after deletions
@@ -858,11 +920,11 @@ const db = {
       const newProd = {
         id: `p${maxIdNum + 1}`,
         name: prodData.name,
-        price: Number(prodData.price),
+        price: pPrice,
         ingredientCost: prodData.ingredientCost !== undefined ? Number(prodData.ingredientCost) : null,
         packagingCost: prodData.packagingCost !== undefined ? Number(prodData.packagingCost) : null,
-        costPrice: prodData.costPrice !== undefined && prodData.costPrice !== null && prodData.costPrice !== "" ? Number(prodData.costPrice) : null,
-        grossProfit: prodData.grossProfit !== undefined ? Number(prodData.grossProfit) : null,
+        costPrice: pCost,
+        grossProfit: pProfit,
         category: prodData.category,
         subCategory: prodData.subCategory || "Regular",
         available: prodData.available !== undefined ? prodData.available : true,
@@ -873,6 +935,101 @@ const db = {
     }
     this.set("products", products);
     return { success: true };
+  },
+
+  // Fast Product Cost & Profit Lookup Engine
+  getProductCostMap() {
+    const products = this.get("products") || [];
+    const map = {};
+    products.forEach(p => {
+      const price = Number(p.price) || 0;
+      const cost = (p.costPrice !== undefined && p.costPrice !== null && !isNaN(p.costPrice) && Number(p.costPrice) > 0)
+        ? Number(p.costPrice)
+        : ((Number(p.ingredientCost) || 0) + (Number(p.packagingCost) || 0) > 0)
+          ? (Number(p.ingredientCost) || 0) + (Number(p.packagingCost) || 0)
+          : Math.round(price * 0.32 * 10) / 10;
+      const profit = Math.max(0, price - cost);
+      const margin = price > 0 ? Math.round((profit / price) * 100) : 68;
+      const info = { id: p.id, name: p.name, price, costPrice: cost, grossProfit: profit, marginPct: margin, category: p.category };
+      map[p.id] = info;
+      if (p.name) {
+        map[p.name.toLowerCase().trim()] = info;
+      }
+    });
+    return map;
+  },
+
+  // Centralized Dynamic Order & Item Cost Calculation Engine
+  calculateOrdersFinancials(ordersList, costMapInput = null) {
+    const costMap = costMapInput || this.getProductCostMap();
+    let grossSales = 0;
+    let totalCOGS = 0;
+    let totalItemsCount = 0;
+    const itemAggregates = {};
+
+    (ordersList || []).forEach(o => {
+      if (o.status === "Cancelled") return;
+      const orderTotal = Number(o.total) || 0;
+      grossSales += orderTotal;
+
+      if (Array.isArray(o.items)) {
+        o.items.forEach(it => {
+          const qty = Number(it.quantity) || 1;
+          const itPrice = Number(it.price) || 0;
+          const itRevenue = Number(it.lineTotal) || (itPrice * qty);
+          const name = (it.name || "").trim();
+          const key = it.productId || (name ? name.toLowerCase() : "");
+          
+          const costInfo = costMap[key] || {
+            price: itPrice,
+            costPrice: (it.costPrice !== undefined && it.costPrice !== null && Number(it.costPrice) > 0) ? Number(it.costPrice) : Math.round(itPrice * 0.32 * 10) / 10,
+            grossProfit: 0,
+            marginPct: 68
+          };
+
+          const unitCost = costInfo.costPrice;
+          const lineCost = unitCost * qty;
+          const lineProfit = Math.max(0, itRevenue - lineCost);
+
+          totalCOGS += lineCost;
+          totalItemsCount += qty;
+
+          if (!itemAggregates[name]) {
+            itemAggregates[name] = {
+              name,
+              productId: it.productId,
+              category: costInfo.category || it.category,
+              price: itPrice,
+              unitCost,
+              unitsSold: 0,
+              grossSales: 0,
+              totalCost: 0,
+              profitContributed: 0
+            };
+          }
+          itemAggregates[name].unitsSold += qty;
+          itemAggregates[name].grossSales += itRevenue;
+          itemAggregates[name].totalCost += lineCost;
+          itemAggregates[name].profitContributed += lineProfit;
+        });
+      }
+    });
+
+    if (totalCOGS === 0 && grossSales > 0) {
+      totalCOGS = Math.round(grossSales * 0.32 * 100) / 100;
+    }
+
+    const grossProfit = Math.max(0, grossSales - totalCOGS);
+    const grossMarginPct = grossSales > 0 ? Math.round((grossProfit / grossSales) * 100) : 68;
+
+    return {
+      grossSales,
+      totalCOGS: Math.round(totalCOGS * 100) / 100,
+      grossProfit: Math.round(grossProfit * 100) / 100,
+      grossMarginPct,
+      totalItemsCount,
+      itemAggregates
+    };
   },
 
   deleteProduct(prodId) {

@@ -616,19 +616,24 @@ service cloud.firestore {
       }
     });
 
-    // Update Header Title
-    const viewTitles = {
-      dashboard: "Executive Dashboard",
-      reports: "Sales & Profit Analytics",
-      counter: "Daily Counter & Bills History",
-      pos: "Point of Sale (POS)",
-      orders: "Kitchen Display System (KDS)",
-      menu: "Menu Management"
+    // Update Header Title & Subtitle Badge
+    const viewMeta = {
+      dashboard: { title: "Executive Dashboard", badge: "Real-Time Operations & Sales Intelligence" },
+      reports: { title: "Sales & Profit Analytics", badge: "P&L Intelligence & Recipe Margins" },
+      counter: { title: "Daily Counter & Bills", badge: "Shift Register & Physical Drawer Tally" },
+      pos: { title: "POS Billing Terminal", badge: "Express Order Punching & Token Dispense" },
+      orders: { title: "Kitchen Display (KDS)", badge: "Live Expediter & Prep Station Queue" },
+      menu: { title: "Menu Management", badge: "Catalog Pricing & Ingredients Cost Setup" }
     };
 
+    const currentMeta = viewMeta[hash] || { title: "POS Billing Terminal", badge: "Terminal Ready" };
     const titleElem = document.getElementById("current-view-title");
     if (titleElem) {
-      titleElem.textContent = viewTitles[hash] || "POS Terminal";
+      titleElem.textContent = currentMeta.title;
+    }
+    const badgeElem = document.getElementById("header-view-badge");
+    if (badgeElem) {
+      badgeElem.textContent = currentMeta.badge;
     }
 
     // Toggle global top header display based on active view (POS view has custom mockup header)
@@ -659,6 +664,7 @@ service cloud.firestore {
 
   startHeaderTimer() {
     const clock = document.getElementById("header-date-time");
+    if (!clock) return;
     const tick = () => {
       const date = new Date();
       const options = {
@@ -670,7 +676,7 @@ service cloud.firestore {
         minute: '2-digit',
         second: '2-digit'
       };
-      clock.textContent = date.toLocaleDateString('en-US', options);
+      clock.innerHTML = `<i class="fa-regular fa-calendar-days" style="color: #2563eb; font-size: 11px;"></i> ${date.toLocaleDateString('en-US', options)}`;
     };
     tick();
     setInterval(tick, 1000);
