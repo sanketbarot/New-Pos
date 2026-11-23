@@ -1,9 +1,12 @@
-// Crust & Chilly POS - Advanced Sales & Profit Analytics Engine
-// Comprehensive Profit & Loss (P&L) Analytics, Food Cost / COGS Benchmarking, Expense Overhead Tracking,
-// Itemized Margin Engineering, Multi-Stream Trajectories, Shift Rush Curves, and Executive Audit Reports.
+// Crust & Chilly POS - Advanced Executive Sales & Profit Analytics Suite
+// Features: Executive Financial Scorecard, Tabbed Analysis Architecture (P&L Trends, Menu Engineering, Speed & Customers),
+// Real-Time P&L Waterfall Ledger, Multi-Stream Trajectory Line Charts, Distribution Share Doughnut,
+// Hourly Rush Bar Chart, Day of Week Matrix, Menu Item Margin & Contribution Engineering,
+// Channel & Payment Breakdown, Customer Loyalty Tracking, Zero-Velocity Watchlist, Printable P&L Slip, and CSV Export.
 
 window.views = window.views || {};
 window.views.reports = {
+  activeTab: "financial", // 'financial' | 'menu' | 'insights'
   startDate: null,
   endDate: null,
   cogsPercent: 32, // Default 32% Food Cost / COGS benchmark
@@ -33,23 +36,24 @@ window.views.reports = {
     this.endDate = this.getLocalDateStr(today);
 
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 18px; max-width: 100%; width: 100%; overflow-x: hidden;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px; max-width: 100%; width: 100%; overflow-x: hidden;">
         
-        <!-- Executive Control Bar (Date Range, Quick Presets & Export Actions) -->
-        <div class="glass-card report-filter-bar" style="padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <!-- Top Executive Command Bar: Period Selector & Export Actions -->
+        <div class="glass-card report-filter-bar" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px;">
+          
           <div class="report-dates-group" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             <span style="font-size: 13.5px; font-weight: 800; color: var(--text-dark); white-space: nowrap; display: flex; align-items: center; gap: 7px;">
               <i class="fa-solid fa-chart-line" style="color: #2563eb; font-size: 15px;"></i> Analytics Period:
             </span>
             
             <!-- Quick Date Preset Pills -->
-            <div style="display: flex; gap: 5px; flex-wrap: wrap;" id="rep-preset-group">
-              <button type="button" class="btn-rep-preset" data-range="today" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-dark); transition: all 0.2s;">Today</button>
-              <button type="button" class="btn-rep-preset" data-range="yesterday" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-dark); transition: all 0.2s;">Yesterday</button>
-              <button type="button" class="btn-rep-preset active" data-range="last7" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer; color: #2563eb; transition: all 0.2s;">Last 7 Days</button>
-              <button type="button" class="btn-rep-preset" data-range="last30" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-dark); transition: all 0.2s;">Last 30 Days</button>
-              <button type="button" class="btn-rep-preset" data-range="thisMonth" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-dark); transition: all 0.2s;">This Month</button>
-              <button type="button" class="btn-rep-preset" data-range="lastMonth" style="background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text-dark); transition: all 0.2s;">Last Month</button>
+            <div class="rep-preset-pills" id="rep-preset-group">
+              <button type="button" class="btn-rep-preset" data-range="today">Today</button>
+              <button type="button" class="btn-rep-preset" data-range="yesterday">Yesterday</button>
+              <button type="button" class="btn-rep-preset active" data-range="last7">Last 7 Days</button>
+              <button type="button" class="btn-rep-preset" data-range="last30">Last 30 Days</button>
+              <button type="button" class="btn-rep-preset" data-range="thisMonth">This Month</button>
+              <button type="button" class="btn-rep-preset" data-range="lastMonth">Last Month</button>
             </div>
 
             <!-- Date Pickers -->
@@ -65,16 +69,16 @@ window.views.reports = {
 
           <!-- Utility Operations Toolbar -->
           <div class="report-actions-group" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <button class="btn btn-secondary" id="btn-report-export-csv" style="padding: 0 13px; height: 35px; font-size: 12px; border-radius: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="btn btn-secondary" id="btn-report-export-csv" style="padding: 0 13px; height: 35px; font-size: 12px; border-radius: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;" title="Export Detailed P&L CSV Sheet">
               <i class="fa-solid fa-file-csv" style="color: #2563eb;"></i> Export CSV
             </button>
-            <button class="btn btn-secondary" id="btn-report-print-summary" style="padding: 0 13px; height: 35px; font-size: 12px; border-radius: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="btn btn-secondary" id="btn-report-print-summary" style="padding: 0 13px; height: 35px; font-size: 12px; border-radius: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;" title="Print Official 80mm / A4 P&L Report">
               <i class="fa-solid fa-print" style="color: #059669;"></i> Print P&L Report
             </button>
           </div>
         </div>
 
-        <!-- 6-Card Executive Profit & Revenue Scorecard Grid -->
+        <!-- 5-Card Executive Financial Scorecard Grid -->
         <div class="rep-kpi-grid">
           
           <!-- Card 1: Gross Sales -->
@@ -86,8 +90,8 @@ window.views.reports = {
               </div>
             </div>
             <div>
-              <div class="rep-kpi-val" id="rep-gross-sales">₹0</div>
-              <div class="rep-kpi-sub" id="rep-orders-sub">0 valid orders placed</div>
+              <div class="rep-kpi-val" id="rep-gross-sales" style="color: #2563eb;">₹0</div>
+              <div class="rep-kpi-sub" id="rep-orders-sub">0 completed orders</div>
             </div>
             <div class="rep-kpi-badges">
               <span class="dash-sub-pill pill-neutral" id="rep-gross-orders-badge"><i class="fa-solid fa-receipt"></i> 0 Bills</span>
@@ -104,25 +108,25 @@ window.views.reports = {
               </div>
             </div>
             <div>
-              <div class="rep-kpi-val" id="rep-net-sales">₹0</div>
-              <div class="rep-kpi-sub" id="rep-net-sub">Customer billing after deductions</div>
+              <div class="rep-kpi-val" id="rep-net-sales" style="color: #4f46e5;">₹0</div>
+              <div class="rep-kpi-sub" id="rep-net-sub">Customer billing realized</div>
             </div>
             <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-cash" id="rep-discounts-badge"><i class="fa-solid fa-tag"></i> Total Discounts: -₹0</span>
+              <span class="dash-sub-pill pill-cash" id="rep-discounts-badge"><i class="fa-solid fa-tag"></i> Discounts: -₹0</span>
             </div>
           </div>
 
           <!-- Card 3: Food Cost / COGS Benchmarking -->
           <div class="rep-kpi-card accent-amber">
             <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Cost of Goods (COGS)</span>
+              <span class="rep-kpi-label">Food Cost (COGS)</span>
               <div class="rep-kpi-icon icon-amber">
                 <i class="fa-solid fa-boxes-stacked"></i>
               </div>
             </div>
             <div>
               <div class="rep-kpi-val" id="rep-cogs-val" style="color: #b45309;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-cogs-sub">Estimated 32% food cost benchmark</div>
+              <div class="rep-kpi-sub" id="rep-cogs-sub">Estimated food cost benchmark</div>
             </div>
             <div class="rep-kpi-badges">
               <span class="dash-sub-pill pill-neutral" id="rep-gross-margin-badge"><i class="fa-solid fa-percent"></i> 68% Gross Margin</span>
@@ -139,10 +143,10 @@ window.views.reports = {
             </div>
             <div>
               <div class="rep-kpi-val" id="rep-expense-val" style="color: #dc2626;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-expense-sub">Salaries, utilities & store overheads</div>
+              <div class="rep-kpi-sub" id="rep-expense-sub">Salaries, utilities & till payouts</div>
             </div>
             <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="rep-expense-entries-badge"><i class="fa-solid fa-list-check"></i> 0 Logged Expenses</span>
+              <span class="dash-sub-pill pill-neutral" id="rep-expense-entries-badge"><i class="fa-solid fa-list-check"></i> 0 Expenses</span>
             </div>
           </div>
 
@@ -155,7 +159,7 @@ window.views.reports = {
               </div>
             </div>
             <div>
-              <div class="rep-kpi-val" id="rep-net-profit-val" style="color: #059669; font-size: 28px;">₹0</div>
+              <div class="rep-kpi-val" id="rep-net-profit-val" style="color: #059669; font-size: 26px;">₹0</div>
               <div class="rep-kpi-sub" id="rep-profit-sub">Net Sales (-) COGS (-) Overheads</div>
             </div>
             <div class="rep-kpi-badges">
@@ -164,325 +168,29 @@ window.views.reports = {
             </div>
           </div>
 
-          <!-- Card 6: Average Order Value & Basket Velocity -->
-          <div class="rep-kpi-card accent-cyan">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Average Order (AOV)</span>
-              <div class="rep-kpi-icon" style="background: #ecfeff; border: 1px solid #a5f3fc; color: #0891b2;">
-                <i class="fa-solid fa-chart-pie"></i>
-              </div>
-            </div>
-            <div>
-              <div class="rep-kpi-val" id="rep-aov-val" style="color: #0891b2;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-aov-sub">Average ticket realized per guest</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="rep-items-per-order-badge"><i class="fa-solid fa-burger"></i> ~0 Items / Bill</span>
-              <span class="dash-sub-pill pill-upi" id="rep-cashless-badge"><i class="fa-solid fa-qrcode"></i> 0% Cashless</span>
-            </div>
-          </div>
-
         </div>
 
-        <!-- Executive Profit & Loss (P&L) Waterfall Ledger Banner -->
-        <div class="rep-pnl-waterfall-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 14.5px; font-weight: 900; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-file-invoice-dollar" style="color: #2563eb;"></i> Executive P&L Financial Waterfall
-              </span>
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(Real-time cashflow realization)</span>
-            </div>
-
-            <!-- Interactive Food Cost COGS Benchmark Calibrator -->
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">Food Cost COGS Benchmark:</span>
-              <div class="cogs-calibrator-pill" id="rep-cogs-calibrator">
-                <button type="button" class="cogs-btn" data-cogs="28">28%</button>
-                <button type="button" class="cogs-btn" data-cogs="30">30%</button>
-                <button type="button" class="cogs-btn active" data-cogs="32">32%</button>
-                <button type="button" class="cogs-btn" data-cogs="35">35%</button>
-              </div>
-            </div>
+        <!-- Sub-Tabs Navigation Strip -->
+        <div class="glass-card" style="padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-radius: 12px;">
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button class="btn ${this.activeTab === 'financial' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-financial" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-chart-line"></i> Financial P&L & Charts
+            </button>
+            <button class="btn ${this.activeTab === 'menu' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-menu" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-burger"></i> Menu Item Margins
+            </button>
+            <button class="btn ${this.activeTab === 'insights' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-insights" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-fire"></i> Shift Rush & Customers
+            </button>
           </div>
 
-          <!-- Step-by-Step Waterfall Flow -->
-          <div class="rep-pnl-steps-flow" id="rep-waterfall-steps">
-            <!-- Injected via JavaScript -->
+          <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); padding-right: 8px;" id="rep-subtab-indicator">
+            <!-- Dynamic context indicator -->
           </div>
         </div>
 
-        <!-- Charts Grid: Multi-Stream Trend + Dual Doughnut + Hourly Rush -->
-        <div class="dash-charts-row-triple">
-          
-          <!-- Chart 1: Interactive Multi-Stream Trend Chart -->
-          <div class="dash-chart-card" style="min-height: 340px;">
-            <div class="chart-header">
-              <div>
-                <div class="chart-title">
-                  <i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> Financial Trend Curve
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                  Daily revenue, cost baseline, and net operating profit trajectory
-                </div>
-              </div>
-
-              <!-- Stream Mode Switcher -->
-              <div class="dash-chart-toggle-group" id="rep-trend-mode-toggle">
-                <button type="button" class="dash-chart-toggle-btn active" data-mode="both">Revenue & Profit</button>
-                <button type="button" class="dash-chart-toggle-btn" data-mode="revenue">Revenue Only</button>
-                <button type="button" class="dash-chart-toggle-btn" data-mode="profit">Net Profit Curve</button>
-                <button type="button" class="dash-chart-toggle-btn" data-mode="cumulative">Cumulative Profit</button>
-              </div>
-            </div>
-            <div class="dash-chart-wrap" style="height: 250px;">
-              <canvas id="repMainTrendCanvas"></canvas>
-            </div>
-          </div>
-
-          <!-- Chart 2: Category Revenue / Operating Expense Breakdown Doughnut -->
-          <div class="dash-chart-card" style="min-height: 340px;">
-            <div class="chart-header">
-              <div>
-                <div class="chart-title">
-                  <i class="fa-solid fa-chart-pie" style="color: #10b981;"></i> Distribution Share
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                  Sales categories vs overhead expenses
-                </div>
-              </div>
-
-              <!-- Doughnut Mode Switcher -->
-              <div class="dash-chart-toggle-group" id="rep-donut-mode-toggle">
-                <button type="button" class="dash-chart-toggle-btn active" data-mode="categories">Menu Categories</button>
-                <button type="button" class="dash-chart-toggle-btn" data-mode="expenses">Operating Expenses</button>
-              </div>
-            </div>
-            <div class="dash-chart-wrap" style="height: 250px;">
-              <canvas id="repDonutCanvas"></canvas>
-            </div>
-          </div>
-
-          <!-- Chart 3: Peak Hourly Rush Curve (2 PM – 12 AM) -->
-          <div class="dash-chart-card" style="min-height: 340px;">
-            <div class="chart-header">
-              <div>
-                <div class="chart-title">
-                  <i class="fa-solid fa-stopwatch" style="color: #f59e0b;"></i> Hourly Rush (2 PM–12 AM)
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                  Sales density & orders by operational hour
-                </div>
-              </div>
-              <span id="rep-peak-hour-chip" class="dash-shift-live-pill shift-closing" style="font-size: 10.5px;">
-                Calculating...
-              </span>
-            </div>
-            <div class="dash-chart-wrap" style="height: 250px;">
-              <canvas id="repHourlyRushCanvas"></canvas>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Day of Week Performance Matrix (Sun - Sat) -->
-        <div class="glass-card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div>
-              <h3 style="font-size: 14.5px; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 7px;">
-                <i class="fa-solid fa-calendar-week" style="color: #2563eb;"></i> Day of Week Profitability & Sales Matrix
-              </h3>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                Aggregated sales volume, guest traffic, and average ticket size across days
-              </div>
-            </div>
-            <span id="rep-best-day-badge" class="badge-menu-star">Weekday vs Weekend</span>
-          </div>
-          <div id="rep-day-of-week-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;">
-            <!-- Injected via JS -->
-          </div>
-        </div>
-
-        <!-- Menu Item Margin & Profitability Engineering Matrix (Advanced Suite) -->
-        <div class="glass-card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div>
-              <h3 style="font-size: 15px; font-weight: 900; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-trophy" style="color: #eab308;"></i> Menu Item Profitability & Margin Engineering Matrix
-              </h3>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                Analyze unit sales, gross revenue, estimated food cost (COGS), and exact net profit contribution per dish
-              </div>
-            </div>
-
-            <!-- Search & Sort Controls -->
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-              <div style="position: relative; width: 190px;">
-                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; font-size: 11px; color: var(--text-muted);"></i>
-                <input type="text" id="rep-item-search-input" class="form-input" placeholder="Search menu item..." style="height: 34px; font-size: 12px; padding-left: 28px; border-radius: 10px; width: 100%;">
-              </div>
-              <select id="rep-item-sort-select" class="form-input" style="height: 34px; font-size: 11.5px; border-radius: 10px; padding: 2px 8px; font-weight: 700; width: 175px;">
-                <option value="profit">Sort: Highest Profit First</option>
-                <option value="gross">Sort: Highest Revenue</option>
-                <option value="qty">Sort: Most Units Sold</option>
-                <option value="margin">Sort: Highest Margin %</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Item Profitability Table -->
-          <div class="table-container" style="max-height: 360px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
-            <table class="premium-table" style="font-size: 12.5px;">
-              <thead>
-                <tr>
-                  <th>Menu Item Description</th>
-                  <th>Category</th>
-                  <th>Menu Price</th>
-                  <th>Units Sold</th>
-                  <th style="text-align: right;">Gross Sales</th>
-                  <th style="text-align: right;">Est. Food Cost</th>
-                  <th style="text-align: right;">Gross Profit Contributed</th>
-                  <th style="text-align: right;">Margin %</th>
-                  <th style="text-align: center;">Profit Role</th>
-                </tr>
-              </thead>
-              <tbody id="rep-item-profit-tbody">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- 4 Key Operational Insights Cards for Selected Period -->
-        <div class="dash-insights-grid">
-          
-          <!-- Insight Card 1: Fulfillment Channels -->
-          <div class="dash-insight-card">
-            <div class="insight-header">
-              <div class="insight-title">
-                <i class="fa-solid fa-utensils" style="color: #2563eb;"></i> Order Fulfillment Channels
-              </div>
-              <span class="insight-badge" id="rep-orders-channel-badge">0 Bills</span>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 10px;" id="rep-order-types-container">
-              <!-- Injected dynamically -->
-            </div>
-          </div>
-
-          <!-- Insight Card 2: Cash & Payment Reconciliation -->
-          <div class="dash-insight-card">
-            <div class="insight-header">
-              <div class="insight-title">
-                <i class="fa-solid fa-cash-register" style="color: #059669;"></i> Cash & Payment Reconciliation
-              </div>
-              <span class="insight-badge" id="rep-payment-summary-badge" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Period Total</span>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 8px;" id="rep-cash-reconcile-container">
-              <!-- Injected dynamically -->
-            </div>
-          </div>
-
-          <!-- Insight Card 3: Shift Rush & Peak Hours -->
-          <div class="dash-insight-card">
-            <div class="insight-header">
-              <div>
-                <div class="insight-title">
-                  <i class="fa-solid fa-stopwatch" style="color: #f59e0b;"></i> Operational Shift Breakdown
-                </div>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                  <i class="fa-regular fa-clock"></i> Timings: 2:00 PM – 12:00 AM
-                </div>
-              </div>
-              <span class="insight-badge" id="rep-peak-hour-badge" style="background: #fffbeb; color: #b45309; border-color: #fde68a;">Calculating...</span>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 8px;" id="rep-shifts-container">
-              <!-- Injected dynamically -->
-            </div>
-          </div>
-
-          <!-- Insight Card 4: Promotional Discounts Impact -->
-          <div class="dash-insight-card">
-            <div class="insight-header">
-              <div class="insight-title">
-                <i class="fa-solid fa-tags" style="color: #8b5cf6;"></i> Promotional Discounts Impact
-              </div>
-              <span class="insight-badge" id="rep-discount-rate-badge" style="background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe;">0% Discount</span>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 10px;" id="rep-discounts-container">
-              <!-- Injected dynamically -->
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Tables Row: Customer Loyalty & Regular VIPs + Low Velocity Menu Watchlist -->
-        <div class="dashboard-details-row">
-          
-          <!-- Customer Loyalty Card -->
-          <div class="glass-card" style="display: flex; flex-direction: column;">
-            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-              <div>
-                <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;">
-                  <i class="fa-solid fa-users" style="color: #10b981; margin-right: 6px;"></i> Customer Loyalty & Regular Guests
-                </h3>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;" id="rep-loyalty-subtext">
-                  Repeat customer visits and lifetime value in selected period
-                </div>
-              </div>
-              <span class="badge badge-completed" id="rep-repeat-rate-badge">0% Repeat Rate</span>
-            </div>
-            <div class="table-container" style="max-height: 280px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
-              <table class="premium-table" style="font-size: 12.5px;">
-                <thead>
-                  <tr>
-                    <th>Customer Name</th>
-                    <th>Phone / Contact</th>
-                    <th>Orders Placed</th>
-                    <th style="text-align: right;">Total Spent</th>
-                  </tr>
-                </thead>
-                <tbody id="rep-loyalty-tbody">
-                  <!-- Injected via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Slow Moving Menu Watchlist -->
-          <div class="glass-card" style="display: flex; flex-direction: column;">
-            <div class="flex-space mb-3" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-              <div>
-                <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0;">
-                  <i class="fa-solid fa-triangle-exclamation" style="color: #ea580c; margin-right: 6px;"></i> Zero Velocity Menu Watchlist
-                </h3>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;" id="rep-slow-items-subtext">
-                  Active items with 0 sales in selected period to optimize inventory
-                </div>
-              </div>
-              <span class="badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;" id="rep-slow-items-badge">0 Unsold Items</span>
-            </div>
-            <div class="table-container" style="max-height: 280px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; flex-grow: 1;">
-              <table class="premium-table" style="font-size: 12.5px;">
-                <thead>
-                  <tr>
-                    <th>Menu Item</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th style="text-align: right;">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="rep-slow-items-tbody">
-                  <!-- Injected via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
+        <!-- Sub-Tab Content Mount -->
+        <div id="rep-subtab-mount"></div>
 
       </div>
     `;
@@ -491,29 +199,36 @@ window.views.reports = {
     this.processDataAndRender();
   },
 
+  render() {
+    this.processDataAndRender();
+  },
+
   bindEvents() {
     const btnApply = document.getElementById("btn-reports-apply-filter");
     const btnExport = document.getElementById("btn-report-export-csv");
     const btnPrint = document.getElementById("btn-report-print-summary");
     const presetButtons = document.querySelectorAll(".btn-rep-preset");
-    const cogsButtons = document.querySelectorAll(".cogs-btn");
-    const searchInput = document.getElementById("rep-item-search-input");
-    const sortSelect = document.getElementById("rep-item-sort-select");
+
+    const tabFinancial = document.getElementById("subtab-rep-financial");
+    const tabMenu = document.getElementById("subtab-rep-menu");
+    const tabInsights = document.getElementById("subtab-rep-insights");
+
+    const switchSubTab = (tab) => {
+      this.activeTab = tab;
+      if (tabFinancial) tabFinancial.className = this.activeTab === "financial" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabMenu) tabMenu.className = this.activeTab === "menu" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabInsights) tabInsights.className = this.activeTab === "insights" ? "btn btn-primary" : "btn btn-secondary";
+      this.renderSubTab();
+    };
+
+    if (tabFinancial) tabFinancial.onclick = () => switchSubTab("financial");
+    if (tabMenu) tabMenu.onclick = () => switchSubTab("menu");
+    if (tabInsights) tabInsights.onclick = () => switchSubTab("insights");
 
     // Quick Date Preset Buttons
     const highlightPreset = (activeBtn) => {
-      presetButtons.forEach(b => {
-        b.style.background = "#f1f5f9";
-        b.style.borderColor = "var(--border-color)";
-        b.style.color = "var(--text-dark)";
-        b.style.fontWeight = "700";
-      });
-      if (activeBtn) {
-        activeBtn.style.background = "#eff6ff";
-        activeBtn.style.borderColor = "#bfdbfe";
-        activeBtn.style.color = "#2563eb";
-        activeBtn.style.fontWeight = "800";
-      }
+      presetButtons.forEach(b => b.classList.remove("active"));
+      if (activeBtn) activeBtn.classList.add("active");
     };
 
     presetButtons.forEach(btn => {
@@ -559,7 +274,7 @@ window.views.reports = {
 
         highlightPreset(btn);
         this.processDataAndRender();
-        window.showToast(`Analytics updated: ${this.startDate} to ${this.endDate}`, "info");
+        window.showToast(`Analytics period set: ${this.startDate} to ${this.endDate}`, "info");
       });
     });
 
@@ -586,54 +301,6 @@ window.views.reports = {
       };
     }
 
-    // COGS Calibrator Buttons
-    cogsButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        cogsButtons.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        this.cogsPercent = Number(btn.getAttribute("data-cogs")) || 32;
-        this.processDataAndRender();
-        window.showToast(`Food cost benchmark calibrated to ${this.cogsPercent}%`, "success");
-      });
-    });
-
-    // Chart 1 Stream Mode Switcher
-    const trendToggleBtns = document.querySelectorAll("#rep-trend-mode-toggle button");
-    trendToggleBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        trendToggleBtns.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        this.activeChartMode = btn.getAttribute("data-mode");
-        this.renderTrendChartOnly();
-      });
-    });
-
-    // Chart 2 Doughnut Mode Switcher
-    const donutToggleBtns = document.querySelectorAll("#rep-donut-mode-toggle button");
-    donutToggleBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        donutToggleBtns.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        this.activeDonutMode = btn.getAttribute("data-mode");
-        this.renderDonutChartOnly();
-      });
-    });
-
-    // Item Search & Sort Listeners
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        this.itemSearchQuery = e.target.value.toLowerCase().trim();
-        this.renderItemProfitTableOnly();
-      };
-    }
-
-    if (sortSelect) {
-      sortSelect.onchange = (e) => {
-        this.itemSortKey = e.target.value;
-        this.renderItemProfitTableOnly();
-      };
-    }
-
     // Export CSV & Print P&L Report
     if (btnExport) {
       btnExport.onclick = () => this.exportReportToCSV();
@@ -645,11 +312,11 @@ window.views.reports = {
   },
 
   processDataAndRender() {
-    const orders = window.db.get("orders") || [];
-    const products = window.db.get("products") || [];
-    const categories = window.db.get("categories") || [];
-    const expenses = window.db.get("expenses") || [];
-    const settings = window.db.get("settings") || {};
+    const orders = (window.db && window.db.get("orders")) || [];
+    const products = (window.db && window.db.get("products")) || [];
+    const categories = (window.db && window.db.get("categories")) || [];
+    const expenses = (window.db && window.db.get("expenses")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
 
     const startStr = this.startDate;
@@ -672,7 +339,7 @@ window.views.reports = {
       return dStr >= startStr && dStr <= endStr;
     });
 
-    // 3. Core P&L Financial Calculations
+    // 3. Core Financial Calculations
     let cashTotal = 0;
     let upiTotal = 0;
     let cardTotal = 0;
@@ -714,7 +381,7 @@ window.views.reports = {
     const cashlessAmt = upiTotal + cardTotal;
     const cashlessPercent = grossSales > 0 ? Math.round((cashlessAmt / grossSales) * 100) : 0;
 
-    // Cache calculations on instance for chart re-renders
+    // Cache calculations on instance
     this.currentData = {
       validOrders,
       periodExpenses,
@@ -739,7 +406,7 @@ window.views.reports = {
       cardTotal
     };
 
-    // 4. Update Top 6 Scorecard Elements
+    // 4. Update Top 5 Scorecard Elements
     const grossSalesEl = document.getElementById("rep-gross-sales");
     const ordersSubEl = document.getElementById("rep-orders-sub");
     const grossOrdersBadge = document.getElementById("rep-gross-orders-badge");
@@ -759,11 +426,6 @@ window.views.reports = {
     const profitMarginBadge = document.getElementById("rep-profit-margin-badge");
     const healthStatusBadge = document.getElementById("rep-health-status-badge");
     const profitCard = document.getElementById("rep-profit-card");
-
-    const aovValEl = document.getElementById("rep-aov-val");
-    const aovSubEl = document.getElementById("rep-aov-sub");
-    const itemsPerOrderBadge = document.getElementById("rep-items-per-order-badge");
-    const cashlessBadge = document.getElementById("rep-cashless-badge");
 
     if (grossSalesEl) grossSalesEl.textContent = `${currency}${Math.round(grossSales).toLocaleString("en-IN")}`;
     if (ordersSubEl) ordersSubEl.textContent = `${validOrders.length} completed transactions`;
@@ -816,34 +478,413 @@ window.views.reports = {
       }
     }
 
-    if (aovValEl) aovValEl.textContent = `${currency}${Math.round(aov).toLocaleString("en-IN")}`;
-    if (aovSubEl) aovSubEl.textContent = `Average spend per completed ticket`;
-    if (itemsPerOrderBadge) itemsPerOrderBadge.innerHTML = `<i class="fa-solid fa-burger"></i> ~${itemsPerOrder} Items / Order`;
-    if (cashlessBadge) cashlessBadge.innerHTML = `<i class="fa-solid fa-qrcode"></i> ${cashlessPercent}% Cashless`;
+    // 5. Render Active Sub-Tab
+    this.renderSubTab();
+  },
 
-    // 5. Render Executive P&L Waterfall Steps
-    this.renderWaterfallSteps(grossSales, totalDiscounts, netSales, estimatedCOGS, grossProfit, totalOperatingExpenses, netProfit, currency);
+  renderSubTab() {
+    const mount = document.getElementById("rep-subtab-mount");
+    if (!mount) return;
 
-    // 6. Render Item Profitability & Margin Engineering Matrix Table
+    const ind = document.getElementById("rep-subtab-indicator");
+    if (ind) {
+      if (this.activeTab === "financial") {
+        ind.innerHTML = `<i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> P&L & Trajectory Charts`;
+      } else if (this.activeTab === "menu") {
+        ind.innerHTML = `<i class="fa-solid fa-trophy" style="color: #eab308;"></i> Unit margins & sales role`;
+      } else if (this.activeTab === "insights") {
+        ind.innerHTML = `<i class="fa-solid fa-fire" style="color: #d97706;"></i> Rush, channels & loyalty`;
+      }
+    }
+
+    if (this.activeTab === "financial") {
+      this.renderFinancialTab(mount);
+    } else if (this.activeTab === "menu") {
+      this.renderMenuTab(mount);
+    } else if (this.activeTab === "insights") {
+      this.renderInsightsTab(mount);
+    }
+  },
+
+  // =========================================================================
+  // SUB-TAB 1: FINANCIAL P&L & CHARTS
+  // =========================================================================
+  renderFinancialTab(mount) {
+    mount.innerHTML = `
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Executive Profit & Loss (P&L) Waterfall Ledger Banner -->
+        <div class="rep-pnl-waterfall-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 14.5px; font-weight: 900; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-file-invoice-dollar" style="color: #2563eb;"></i> Executive P&L Financial Waterfall
+              </span>
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(Real-time cashflow realization)</span>
+            </div>
+
+            <!-- Interactive Food Cost COGS Benchmark Calibrator -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">COGS Benchmark:</span>
+              <div class="cogs-calibrator-pill" id="rep-cogs-calibrator">
+                <button type="button" class="cogs-btn ${this.cogsPercent === 28 ? 'active' : ''}" data-cogs="28">28%</button>
+                <button type="button" class="cogs-btn ${this.cogsPercent === 30 ? 'active' : ''}" data-cogs="30">30%</button>
+                <button type="button" class="cogs-btn ${this.cogsPercent === 32 ? 'active' : ''}" data-cogs="32">32%</button>
+                <button type="button" class="cogs-btn ${this.cogsPercent === 35 ? 'active' : ''}" data-cogs="35">35%</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step-by-Step Waterfall Flow -->
+          <div class="rep-pnl-steps-flow" id="rep-waterfall-steps">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+
+        <!-- Charts Grid: Multi-Stream Trend + Dual Doughnut -->
+        <div class="rep-charts-row">
+          
+          <!-- Chart 1: Interactive Multi-Stream Trend Chart -->
+          <div class="dash-chart-card" style="min-height: 350px;">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">
+                  <i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> Financial Trend Trajectory
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                  Daily revenue, cost baseline, and net operating profit
+                </div>
+              </div>
+
+              <!-- Stream Mode Switcher -->
+              <div class="dash-chart-toggle-group" id="rep-trend-mode-toggle">
+                <button type="button" class="dash-chart-toggle-btn ${this.activeChartMode === 'both' ? 'active' : ''}" data-mode="both">Revenue & Profit</button>
+                <button type="button" class="dash-chart-toggle-btn ${this.activeChartMode === 'revenue' ? 'active' : ''}" data-mode="revenue">Revenue Only</button>
+                <button type="button" class="dash-chart-toggle-btn ${this.activeChartMode === 'profit' ? 'active' : ''}" data-mode="profit">Net Profit</button>
+                <button type="button" class="dash-chart-toggle-btn ${this.activeChartMode === 'cumulative' ? 'active' : ''}" data-mode="cumulative">Cumulative</button>
+              </div>
+            </div>
+            <div class="dash-chart-wrap" style="height: 260px;">
+              <canvas id="repMainTrendCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Category Revenue / Operating Expense Breakdown Doughnut -->
+          <div class="dash-chart-card" style="min-height: 350px;">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">
+                  <i class="fa-solid fa-chart-pie" style="color: #10b981;"></i> Distribution Share
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                  Sales categories vs operating expenses
+                </div>
+              </div>
+
+              <!-- Doughnut Mode Switcher -->
+              <div class="dash-chart-toggle-group" id="rep-donut-mode-toggle">
+                <button type="button" class="dash-chart-toggle-btn ${this.activeDonutMode === 'categories' ? 'active' : ''}" data-mode="categories">Categories</button>
+                <button type="button" class="dash-chart-toggle-btn ${this.activeDonutMode === 'expenses' ? 'active' : ''}" data-mode="expenses">Expenses</button>
+              </div>
+            </div>
+            <div class="dash-chart-wrap" style="height: 260px;">
+              <canvas id="repDonutCanvas"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    // Bind COGS buttons
+    mount.querySelectorAll(".cogs-btn").forEach(btn => {
+      btn.onclick = () => {
+        mount.querySelectorAll(".cogs-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.cogsPercent = Number(btn.getAttribute("data-cogs")) || 32;
+        this.processDataAndRender();
+        window.showToast(`Food cost benchmark calibrated to ${this.cogsPercent}%`, "success");
+      };
+    });
+
+    // Bind Trend Toggle
+    mount.querySelectorAll("#rep-trend-mode-toggle button").forEach(btn => {
+      btn.onclick = () => {
+        mount.querySelectorAll("#rep-trend-mode-toggle button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.activeChartMode = btn.getAttribute("data-mode");
+        this.renderTrendChartOnly();
+      };
+    });
+
+    // Bind Donut Toggle
+    mount.querySelectorAll("#rep-donut-mode-toggle button").forEach(btn => {
+      btn.onclick = () => {
+        mount.querySelectorAll("#rep-donut-mode-toggle button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.activeDonutMode = btn.getAttribute("data-mode");
+        this.renderDonutChartOnly();
+      };
+    });
+
+    if (this.currentData) {
+      const { grossSales, totalDiscounts, netSales, estimatedCOGS, grossProfit, totalOperatingExpenses, netProfit, currency } = this.currentData;
+      this.renderWaterfallSteps(grossSales, totalDiscounts, netSales, estimatedCOGS, grossProfit, totalOperatingExpenses, netProfit, currency);
+      this.renderTrendChartOnly();
+      this.renderDonutChartOnly();
+    }
+  },
+
+  // =========================================================================
+  // SUB-TAB 2: MENU ITEM MARGINS & ENGINEERING
+  // =========================================================================
+  renderMenuTab(mount) {
+    const products = (window.db && window.db.get("products")) || [];
+    const categories = (window.db && window.db.get("categories")) || [];
+    const validOrders = (this.currentData && this.currentData.validOrders) || [];
+    const currency = (this.currentData && this.currentData.currency) || "₹";
+
+    mount.innerHTML = `
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Menu Item Margin & Profitability Engineering Matrix -->
+        <div class="glass-card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <h3 style="font-size: 15px; font-weight: 900; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-trophy" style="color: #eab308;"></i> Menu Item Profitability & Margin Engineering Matrix
+              </h3>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                Analyze unit sales, gross revenue, food cost (COGS), and net profit contribution per dish
+              </div>
+            </div>
+
+            <!-- Search & Sort Controls -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <div style="position: relative; width: 200px;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; font-size: 11px; color: var(--text-muted);"></i>
+                <input type="text" id="rep-item-search-input" class="form-input" placeholder="Search menu item..." value="${this.itemSearchQuery}" style="height: 35px; font-size: 12px; padding-left: 28px; border-radius: 10px; width: 100%;">
+              </div>
+              <select id="rep-item-sort-select" class="form-input" style="height: 35px; font-size: 11.5px; border-radius: 10px; padding: 2px 8px; font-weight: 700; width: 180px;">
+                <option value="profit" ${this.itemSortKey === 'profit' ? 'selected' : ''}>Sort: Highest Profit First</option>
+                <option value="gross" ${this.itemSortKey === 'gross' ? 'selected' : ''}>Sort: Highest Revenue</option>
+                <option value="qty" ${this.itemSortKey === 'qty' ? 'selected' : ''}>Sort: Most Units Sold</option>
+                <option value="margin" ${this.itemSortKey === 'margin' ? 'selected' : ''}>Sort: Highest Margin %</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Item Profitability Table -->
+          <div class="table-container" style="max-height: 480px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 10px;">
+            <table class="premium-table" style="font-size: 12.5px;">
+              <thead>
+                <tr>
+                  <th>Menu Item Description</th>
+                  <th>Category</th>
+                  <th>Menu Price</th>
+                  <th>Units Sold</th>
+                  <th style="text-align: right;">Gross Sales</th>
+                  <th style="text-align: right;">Food Cost</th>
+                  <th style="text-align: right;">Profit Contributed</th>
+                  <th style="text-align: right;">Margin %</th>
+                  <th style="text-align: center;">Sales Role</th>
+                </tr>
+              </thead>
+              <tbody id="rep-item-profit-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Slow Moving / Zero Velocity Watchlist Card -->
+        <div class="glass-card" style="padding: 18px 20px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark);">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ea580c; margin-right: 6px;"></i> Zero Velocity Menu Watchlist
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);">Active dishes with 0 sales in the selected period to optimize inventory.</p>
+            </div>
+            <span class="badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-weight: 800;" id="rep-slow-items-badge">0 Unsold Items</span>
+          </div>
+
+          <div class="table-container" style="max-height: 240px; overflow-y: auto;">
+            <table class="premium-table" style="font-size: 12.5px;">
+              <thead>
+                <tr>
+                  <th>Dish Name</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th style="text-align: right;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="rep-slow-items-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    const searchInput = mount.querySelector("#rep-item-search-input");
+    const sortSelect = mount.querySelector("#rep-item-sort-select");
+
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        this.itemSearchQuery = e.target.value.toLowerCase().trim();
+        this.renderItemProfitTableOnly();
+      };
+    }
+
+    if (sortSelect) {
+      sortSelect.onchange = (e) => {
+        this.itemSortKey = e.target.value;
+        this.renderItemProfitTableOnly();
+      };
+    }
+
     this.renderItemProfitTableOnly();
+    this.renderLowVelocityMenu(products, categories, validOrders, currency);
+  },
 
-    // 7. Render Operational Insights (Channels, Cash Reconcile, Shifts, Discounts)
+  // =========================================================================
+  // SUB-TAB 3: SHIFT RUSH, CHANNELS & CUSTOMER INSIGHTS
+  // =========================================================================
+  renderInsightsTab(mount) {
+    const validOrders = (this.currentData && this.currentData.validOrders) || [];
+    const currency = (this.currentData && this.currentData.currency) || "₹";
+    const grossSales = (this.currentData && this.currentData.grossSales) || 0;
+    const cashTotal = (this.currentData && this.currentData.cashTotal) || 0;
+    const upiTotal = (this.currentData && this.currentData.upiTotal) || 0;
+    const cardTotal = (this.currentData && this.currentData.cardTotal) || 0;
+
+    mount.innerHTML = `
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Chart 3: Peak Hourly Rush Curve (2 PM – 12 AM) -->
+        <div class="dash-chart-card" style="min-height: 330px; border-radius: 14px;">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">
+                <i class="fa-solid fa-stopwatch" style="color: #f59e0b;"></i> Hourly Rush Curve (2 PM – 12 AM)
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                Sales density and orders volume by operational business hour
+              </div>
+            </div>
+            <span id="rep-peak-hour-chip" class="dash-shift-live-pill shift-closing" style="font-size: 11px; font-weight: 800;">
+              Calculating...
+            </span>
+          </div>
+          <div class="dash-chart-wrap" style="height: 250px;">
+            <canvas id="repHourlyRushCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Day of Week Performance Matrix (Sun - Sat) -->
+        <div class="glass-card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h3 style="font-size: 14.5px; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 7px;">
+                <i class="fa-solid fa-calendar-week" style="color: #2563eb;"></i> Day of Week Profitability & Sales Matrix
+              </h3>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
+                Sales volume, customer traffic, and average ticket size across days
+              </div>
+            </div>
+            <span id="rep-best-day-badge" class="badge-menu-star" style="font-size: 11px; font-weight: 800;">Weekday vs Weekend</span>
+          </div>
+          <div id="rep-day-of-week-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px;">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- 3 Operational Insights Cards -->
+        <div class="rep-insights-grid">
+          
+          <!-- Insight Card 1: Fulfillment Channels -->
+          <div class="rep-insight-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-weight: 800; font-size: 13.5px; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-utensils" style="color: #2563eb;"></i> Fulfillment Channels
+              </div>
+              <span class="insight-badge" id="rep-orders-channel-badge">${validOrders.length} Bills</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;" id="rep-order-types-container">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Insight Card 2: Cash & Payment Reconciliation -->
+          <div class="rep-insight-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-weight: 800; font-size: 13.5px; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-cash-register" style="color: #059669;"></i> Payment Collection Split
+              </div>
+              <span class="insight-badge" id="rep-payment-summary-badge" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Total</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;" id="rep-cash-reconcile-container">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Insight Card 3: Promotional Discounts Impact -->
+          <div class="rep-insight-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-weight: 800; font-size: 13.5px; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-tags" style="color: #8b5cf6;"></i> Discounts Impact
+              </div>
+              <span class="insight-badge" id="rep-discount-rate-badge" style="background: #f5f3ff; color: #5b21b6; border-color: #ddd6fe;">0% Discount</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;" id="rep-discounts-container">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Customer Loyalty Table -->
+        <div class="glass-card" style="padding: 18px 20px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark);">
+                <i class="fa-solid fa-users" style="color: #10b981; margin-right: 6px;"></i> Customer Loyalty & Regular Guests
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);" id="rep-loyalty-subtext">Repeat customer visits in selected period.</p>
+            </div>
+            <span class="badge badge-completed" id="rep-repeat-rate-badge">0% Repeat Rate</span>
+          </div>
+
+          <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+            <table class="premium-table" style="font-size: 12.5px;">
+              <thead>
+                <tr>
+                  <th>Customer Name</th>
+                  <th>Phone / Contact</th>
+                  <th>Orders Placed</th>
+                  <th style="text-align: right;">Total Spent</th>
+                </tr>
+              </thead>
+              <tbody id="rep-loyalty-tbody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    this.renderHourlyRushChartOnly();
+    this.renderDayOfWeekPerformance(validOrders, currency);
     this.renderOrderChannels(validOrders, grossSales, currency);
     this.renderCashReconciliation(cashTotal, upiTotal, cardTotal, grossSales, currency);
-    this.renderShiftsAndPeak(validOrders, currency);
     this.renderDiscountsImpact(validOrders, grossSales, currency);
-
-    // 8. Render Customer Loyalty & Low Velocity Items
     this.renderCustomerLoyalty(validOrders, currency);
-    this.renderLowVelocityMenu(products, categories, validOrders, currency);
-
-    // 9. Day of Week Matrix
-    this.renderDayOfWeekPerformance(validOrders, currency);
-
-    // 10. Render Charts
-    this.renderTrendChartOnly();
-    this.renderDonutChartOnly();
-    this.renderHourlyRushChartOnly();
   },
 
   renderWaterfallSteps(gross, discounts, net, cogs, grossProf, expenses, netProf, currency) {
@@ -1533,27 +1574,27 @@ window.views.reports = {
       <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
           <span style="font-size: 12px; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-money-bill-wave"></i> Cash Collected in Till:
+            <i class="fa-solid fa-money-bill-wave"></i> Cash in Till:
           </span>
           <span style="font-size: 13.5px; font-weight: 900; color: #059669;">${currencySymbol}${Math.round(cashTotal).toLocaleString("en-IN")}</span>
         </div>
         <div style="height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
           <div style="width: ${cashPct}%; height: 100%; background: #10b981; border-radius: 3px;"></div>
         </div>
-        <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${cashPct}% of total collections</div>
+        <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${cashPct}% of collections</div>
       </div>
 
       <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
           <span style="font-size: 12px; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-qrcode"></i> UPI Online Received:
+            <i class="fa-solid fa-qrcode"></i> UPI Online:
           </span>
           <span style="font-size: 13.5px; font-weight: 900; color: #2563eb;">${currencySymbol}${Math.round(upiTotal).toLocaleString("en-IN")}</span>
         </div>
         <div style="height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
           <div style="width: ${upiPct}%; height: 100%; background: #2563eb; border-radius: 3px;"></div>
         </div>
-        <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${upiPct}% of total collections</div>
+        <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${upiPct}% of collections</div>
       </div>
 
       ${cardTotal > 0 ? `
@@ -1567,53 +1608,10 @@ window.views.reports = {
           <div style="height: 5px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
             <div style="width: ${cardPct}%; height: 100%; background: #7c3aed; border-radius: 3px;"></div>
           </div>
-          <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${cardPct}% of total collections</div>
+          <div style="font-size: 10.5px; color: var(--text-muted); text-align: right; margin-top: 2px;">${cardPct}% of collections</div>
         </div>
       ` : ''}
     `;
-  },
-
-  renderShiftsAndPeak(orders, currencySymbol) {
-    const container = document.getElementById("rep-shifts-container");
-    if (!container) return;
-
-    const shifts = [
-      { name: "Afternoon Shift (2 PM - 5 PM)", hours: [14, 15, 16], color: "#f59e0b", sales: 0, count: 0 },
-      { name: "Evening Shift (5 PM - 7 PM)", hours: [17, 18], color: "#ea580c", sales: 0, count: 0 },
-      { name: "Dinner Rush (7 PM - 10 PM)", hours: [19, 20, 21], color: "#7c3aed", sales: 0, count: 0 },
-      { name: "Late Night (10 PM - 12 AM)", hours: [22, 23], color: "#4f46e5", sales: 0, count: 0 }
-    ];
-
-    orders.forEach(o => {
-      if (!o.createdAt) return;
-      const h = new Date(o.createdAt).getHours();
-      const amt = Number(o.total) || 0;
-      shifts.forEach(s => {
-        if (s.hours.includes(h)) {
-          s.sales += amt;
-          s.count++;
-        }
-      });
-    });
-
-    let peakShift = shifts[0];
-    shifts.forEach(s => {
-      if (s.sales > peakShift.sales) peakShift = s;
-    });
-
-    const badge = document.getElementById("rep-peak-hour-badge");
-    if (badge) {
-      badge.textContent = peakShift.sales > 0 ? `Peak: ${peakShift.name.split('(')[0].trim()}` : "No Rush";
-    }
-
-    container.innerHTML = shifts.map(s => `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--border-color); font-size: 11.5px;">
-        <span style="font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-circle" style="color: ${s.color}; font-size: 7px;"></i> ${s.name}
-        </span>
-        <span style="font-weight: 800; color: ${s.color};">${currencySymbol}${Math.round(s.sales).toLocaleString("en-IN")} (${s.count} bills)</span>
-      </div>
-    `).join("");
   },
 
   renderDiscountsImpact(orders, grossSales, currencySymbol) {
@@ -1647,7 +1645,6 @@ window.views.reports = {
     orders.forEach(o => {
       const rawName = (o.customerName || "").trim();
       const rawPhone = (o.customerPhone || "").trim();
-      
       const lowerName = rawName.toLowerCase();
       if (!rawName || lowerName === "walk-in" || lowerName === "walk in" || lowerName === "walk-in guest" || lowerName === "guest") {
         if (!rawPhone) return;
@@ -1732,12 +1729,10 @@ window.views.reports = {
 
     const {
       validOrders,
-      periodExpenses,
       currency,
       grossSales,
       netSales,
       totalDiscounts,
-      flatDiscounts,
       estimatedCOGS,
       grossProfit,
       grossMarginPct,
@@ -1750,7 +1745,7 @@ window.views.reports = {
       cardTotal
     } = this.currentData;
 
-    const settings = window.db.get("settings") || {};
+    const settings = (window.db && window.db.get("settings")) || {};
     const restaurantName = settings.restaurantName || "Crust & Chilly";
 
     const summaryHtml = `
@@ -1879,7 +1874,7 @@ window.views.reports = {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `CC_Sales_and_Profit_Report_${startStr}_to_${endStr}.csv`);
+    link.setAttribute("download", `Crust_Chilly_Sales_Profit_${startStr}_to_${endStr}.csv`);
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);

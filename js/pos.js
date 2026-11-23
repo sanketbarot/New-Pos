@@ -86,6 +86,9 @@ window.views.pos = {
   activeFilter: "all", // 'all' | 'veg'
   activeSort: "default", // 'default' | 'fast' | 'price-asc' | 'price-desc' | 'name-asc'
   gridDensity: localStorage.getItem("cc_pos_density") || "compact", // 'compact' | 'dense'
+  splitDetails: { cash: 0, upi: 0, card: 0 },
+  discountMode: "percent", // 'percent' | 'flat'
+  discountFlatVal: 0,
 
   getTodayStats() {
     const orders = window.db ? (window.db.get("orders") || []) : [];
@@ -118,6 +121,185 @@ window.views.pos = {
     try {
       localStorage.setItem("cc_pos_held_orders", JSON.stringify(list));
     } catch (e) {}
+  },
+
+  getOccupiedTables() {
+    const orders = window.db ? (window.db.get("orders") || []) : [];
+    const map = new Map();
+    orders.forEach(o => {
+      if (o.type === "Dine-in" && o.status !== "Completed" && o.status !== "Cancelled" && o.tableNumber) {
+        const cleanTable = o.tableNumber.trim().toUpperCase().replace("-", "");
+        if (!map.has(cleanTable)) {
+          map.set(cleanTable, o);
+        }
+      }
+    });
+    return map;
+  },
+
+  renderTableChips() {
+    const container = document.getElementById("pos-table-chips-list");
+    if (!container) return;
+    const occupiedMap = this.getOccupiedTables();
+    const tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"];
+    const currentTableVal = (document.getElementById("pos-table-input") ? document.getElementById("pos-table-input").value : "").toUpperCase().replace("-", "");
+
+    container.innerHTML = tables.map(t => {
+      const isOccupied = occupiedMap.has(t);
+      const isActive = currentTableVal === t;
+      const order = occupiedMap.get(t);
+      const title = isOccupied ? `Table ${t} (Occupied by Order #${order.orderNumber} - ₹${order.total})` : `Table ${t} (Vacant)`;
+      return `
+        <span class="pos-table-chip ${isActive ? 'active' : ''} ${isOccupied ? 'occupied' : ''}" 
+              data-table="${t}" 
+              onclick="views.pos.setQuickTable('${t}')" 
+              title="${title}">
+          ${t}
+        </span>
+      `;
+    }).join("");
+  },
+
+  lookupCustomerCRM(phone) {
+    const crmBanner = document.getElementById("pos-cust-crm-banner");
+    if (!crmBanner) return;
+    const clean = (phone || "").replace(/\D/g, "");
+    if (clean.length !== 10) {
+      crmBanner.style.display = "none";
+      return;
+    }
+
+    const orders = window.db ? (window.db.get("orders") || []) : [];
+    const custOrders = orders.filter(o => (o.customerPhone || "").replace(/\D/g, "") === clean && o.status !== "Cancelled");
+
+    if (custOrders.length > 0) {
+      const latest = custOrders[0];
+      const visitCount = custOrders.length;
+      const custName = latest.customerName && latest.customerName.toLowerCase() !== "walk-in customer" ? latest.customerName : "Regular Guest";
+      
+      crmBanner.innerHTML = `
+        <div class="pos-cust-crm-text">
+          <i class="fa-solid fa-crown" style="color: #eab308; font-size: 11px;"></i>
+          <span><strong>${custName}</strong> (${visitCount} visits • Last bill ₹${Number(latest.total).toFixed(0)})</span>
+        </div>
+        <button type="button" class="btn-crm-reorder" onclick="views.pos.reorderLastBill('${clean}')" title="Load items from their last order">
+          <i class="fa-solid fa-rotate-right"></i> Re-Order Last
+        </button>
+      `;
+      crmBanner.style.display = "flex";
+    } else {
+      crmBanner.innerHTML = `
+        <div class="pos-cust-crm-text" style="color: #0284c7;">
+          <i class="fa-solid fa-sparkles" style="color: #0284c7; font-size: 11px;"></i>
+          <span>✨ New Guest! First time at Crust & Chilly</span>
+        </div>
+      `;
+      crmBanner.style.display = "flex";
+    }
+  },
+
+  reorderLastBill(phone) {
+    const orders = window.db ? (window.db.get("orders") || []) : [];
+    const clean = (phone || "").replace(/\D/g, "");
+    const custOrder = orders.find(o => (o.customerPhone || "").replace(/\D/g, "") === clean && o.status !== "Cancelled");
+    if (!custOrder || !custOrder.items || custOrder.items.length === 0) {
+      window.showToast("No previous items found for this customer.", "info");
+      return;
+    }
+
+    let addedCount = 0;
+    custOrder.items.forEach(it => {
+      const existing = this.cart.find(ci => ci.productId === it.productId);
+      if (existing) {
+        existing.quantity += it.quantity;
+      } else {
+        this.cart.push({
+          productId: it.productId,
+          name: it.name,
+          price: it.price,
+          quantity: it.quantity,
+          category: it.category || "cat1",
+          note: it.note || "",
+          addons: it.addons || [],
+          comboChoices: it.comboChoices || null
+        });
+      }
+      addedCount += it.quantity;
+    });
+
+    window.showToast(`Loaded ${addedCount} items from previous order!`, "success");
+    this.renderCart();
+  },
+
+  updateSplitCalculations() {
+    const totalEl = document.getElementById("bill-total");
+    const grandTotal = parseFloat(totalEl ? totalEl.textContent.replace(/[^0-9.]/g, "") : 0) || 0;
+
+    const cashIn = document.getElementById("split-cash-input");
+    const upiIn = document.getElementById("split-upi-input");
+    const cardIn = document.getElementById("split-card-input");
+
+    const cashVal = parseFloat(cashIn ? cashIn.value : 0) || 0;
+    const upiVal = parseFloat(upiIn ? upiIn.value : 0) || 0;
+    const cardVal = parseFloat(cardIn ? cardIn.value : 0) || 0;
+
+    const enteredSum = cashVal + upiVal + cardVal;
+    const remaining = Math.round((grandTotal - enteredSum) * 100) / 100;
+
+    this.splitDetails = { cash: cashVal, upi: upiVal, card: cardVal };
+
+    const totalDisplay = document.getElementById("split-bill-total");
+    const enteredDisplay = document.getElementById("split-entered-total");
+    const remLabel = document.getElementById("split-remaining-val");
+    const pill = document.getElementById("split-balance-pill");
+
+    if (totalDisplay) totalDisplay.textContent = `₹${grandTotal.toFixed(2)}`;
+    if (enteredDisplay) enteredDisplay.textContent = `₹${enteredSum.toFixed(2)}`;
+
+    if (pill && remLabel) {
+      if (Math.abs(remaining) < 0.01) {
+        pill.className = "split-balance-pill balanced";
+        pill.innerHTML = `✓ Balanced`;
+        remLabel.textContent = `₹0.00`;
+        remLabel.style.color = "#059669";
+      } else if (remaining > 0) {
+        pill.className = "split-balance-pill unbalanced";
+        pill.innerHTML = `Remaining: ₹${remaining.toFixed(2)}`;
+        remLabel.textContent = `₹${remaining.toFixed(2)}`;
+        remLabel.style.color = "#dc2626";
+      } else {
+        pill.className = "split-balance-pill unbalanced";
+        pill.innerHTML = `Over: ₹${Math.abs(remaining).toFixed(2)}`;
+        remLabel.textContent = `-₹${Math.abs(remaining).toFixed(2)}`;
+        remLabel.style.color = "#f59e0b";
+      }
+    }
+  },
+
+  autoBalanceSplit(targetMode) {
+    const totalEl = document.getElementById("bill-total");
+    const grandTotal = parseFloat(totalEl ? totalEl.textContent.replace(/[^0-9.]/g, "") : 0) || 0;
+
+    const cashIn = document.getElementById("split-cash-input");
+    const upiIn = document.getElementById("split-upi-input");
+    const cardIn = document.getElementById("split-card-input");
+
+    let cashVal = parseFloat(cashIn ? cashIn.value : 0) || 0;
+    let upiVal = parseFloat(upiIn ? upiIn.value : 0) || 0;
+    let cardVal = parseFloat(cardIn ? cardIn.value : 0) || 0;
+
+    if (targetMode === "cash") {
+      cashVal = Math.max(0, grandTotal - (upiVal + cardVal));
+      if (cashIn) cashIn.value = cashVal > 0 ? Math.round(cashVal) : "";
+    } else if (targetMode === "upi") {
+      upiVal = Math.max(0, grandTotal - (cashVal + cardVal));
+      if (upiIn) upiIn.value = upiVal > 0 ? Math.round(upiVal) : "";
+    } else if (targetMode === "card") {
+      cardVal = Math.max(0, grandTotal - (cashVal + upiVal));
+      if (cardIn) cardIn.value = cardVal > 0 ? Math.round(cardVal) : "";
+    }
+
+    this.updateSplitCalculations();
   },
 
   init(container) {
@@ -169,13 +351,8 @@ window.views.pos = {
             <div id="header-table-box" style="display: ${this.orderType === 'Dine-in' ? 'flex' : 'none'}; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 14px; padding: 4px 10px; height: 38px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
               <span style="font-size: 11.5px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-chair" style="color: #2563eb;"></i> Table:</span>
               <input type="text" id="pos-table-input" placeholder="T-1" value="${this.orderType === 'Dine-in' ? 'T-1' : ''}" style="border: none; outline: none; font-size: 12px; font-weight: 800; width: 44px; color: #2563eb; background: transparent;">
-              <div class="pos-table-chips">
-                <span class="pos-table-chip ${this.orderType === 'Dine-in' ? 'active' : ''}" onclick="views.pos.setQuickTable('T-1')">T1</span>
-                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-2')">T2</span>
-                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-3')">T3</span>
-                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-4')">T4</span>
-                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-5')">T5</span>
-                <span class="pos-table-chip" onclick="views.pos.setQuickTable('T-6')">T6</span>
+              <div class="pos-table-chips" id="pos-table-chips-list">
+                <!-- Populated dynamically by renderTableChips() -->
               </div>
             </div>
           </div>
@@ -207,10 +384,7 @@ window.views.pos = {
               <i class="fa-solid fa-expand"></i>
             </button>
 
-            <!-- Sound toggle button -->
-            <button id="pos-sound-toggle-pill" class="sound-toggle-pill active" onclick="window.soundAlerts && window.soundAlerts.toggleSound(true)" title="Kitchen Audio Alerts: Active (Click to toggle)" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; cursor: pointer;">
-              <i class="fa-solid fa-volume-high" id="pos-sound-icon" style="font-size: 10px; color: #2563eb;"></i>
-            </button>
+            <!-- Audio completely silenced -->
 
             <!-- Hotkeys Guide Button -->
             <button class="btn btn-secondary" onclick="views.pos.showHotkeysModal()" title="Keyboard Shortcuts Guide (?)" style="height: 36px; padding: 0 9px; font-size: 12px; border-radius: 12px; font-weight: 800; color: #64748b;">
@@ -225,7 +399,6 @@ window.views.pos = {
           <!-- Products Panel (Left) -->
           <div class="pos-products-panel">
             
-
             <!-- Categories Tabs -->
             <div class="pos-categories-tabs" id="pos-category-list" style="width: 100%; min-width: 0; margin-bottom: 2px;">
               <!-- Categories injected dynamically -->
@@ -284,6 +457,8 @@ window.views.pos = {
                 <input type="tel" id="cust-phone" class="customer-input" placeholder="Phone (10 digits)" list="customer-phones-list" autocomplete="off" style="border: none; outline: none; background: transparent; font-size: 12px; color: var(--text-dark); flex-grow: 1; padding: 0;">
                 <datalist id="customer-phones-list"></datalist>
               </div>
+              <!-- Row 3: Customer CRM Intelligence & 1-Tap Re-Order -->
+              <div id="pos-cust-crm-banner" class="pos-cust-crm-banner" style="display: none;"></div>
             </div>
 
             <!-- Cart items list scrollable -->
@@ -326,9 +501,21 @@ window.views.pos = {
                   <span>Subtotal</span>
                   <span id="bill-subtotal" class="bill-val">₹0.00</span>
                 </div>
-                <div class="billing-line">
-                  <span class="discount-text-line">Discount (<input type="number" id="bill-discount-input" value="0" min="0" max="100">%)</span>
-                  <span id="bill-discount-amount" class="bill-val-green">-₹0.00</span>
+                <div class="billing-line" style="flex-direction: column; align-items: stretch; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="discount-text-line">Discount</span>
+                    <span id="bill-discount-amount" class="bill-val-green">-₹0.00</span>
+                  </div>
+                  <!-- 1-Tap Quick Discount Chips -->
+                  <div class="cart-discount-pills">
+                    <button type="button" class="cart-discount-chip active" data-discount="0" onclick="views.pos.setQuickDiscount(0)">0%</button>
+                    <button type="button" class="cart-discount-chip" data-discount="5" onclick="views.pos.setQuickDiscount(5)">5%</button>
+                    <button type="button" class="cart-discount-chip" data-discount="10" onclick="views.pos.setQuickDiscount(10)">10%</button>
+                    <button type="button" class="cart-discount-chip" data-discount="15" onclick="views.pos.setQuickDiscount(15)">15%</button>
+                    <button type="button" class="cart-discount-chip" data-discount="20" onclick="views.pos.setQuickDiscount(20)">20%</button>
+                    <button type="button" class="cart-discount-chip" data-discount="50flat" onclick="views.pos.setQuickDiscount('50flat')">₹50 Flat</button>
+                  </div>
+                  <input type="number" id="bill-discount-input" value="0" min="0" max="100" style="display: none;">
                 </div>
                 <div class="billing-line">
                   <span class="tax-text-line">
@@ -398,6 +585,36 @@ window.views.pos = {
                 </div>
               </div>
 
+              <!-- Interactive Split Payment Assistant -->
+              <div id="pos-split-payment-drawer" class="pos-split-tender-box" style="display: ${this.selectedPayment === 'Split' ? 'block' : 'none'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span style="font-size: 11px; font-weight: 800; color: #1e40af;"><i class="fa-solid fa-shuffle"></i> Split Tender:</span>
+                  <span id="split-balance-pill" class="split-balance-pill balanced">✓ Balanced</span>
+                </div>
+                <div class="split-inputs-grid">
+                  <div class="split-input-group">
+                    <label><i class="fa-solid fa-money-bill-wave" style="color: #059669;"></i> Cash</label>
+                    <input type="number" id="split-cash-input" placeholder="0" min="0" step="1" oninput="views.pos.updateSplitCalculations()">
+                    <button type="button" class="btn-split-autofill" onclick="views.pos.autoBalanceSplit('cash')" title="Fill remaining to Cash">Auto</button>
+                  </div>
+                  <div class="split-input-group">
+                    <label><i class="fa-solid fa-qrcode" style="color: #2563eb;"></i> UPI</label>
+                    <input type="number" id="split-upi-input" placeholder="0" min="0" step="1" oninput="views.pos.updateSplitCalculations()">
+                    <button type="button" class="btn-split-autofill" onclick="views.pos.autoBalanceSplit('upi')" title="Fill remaining to UPI">Auto</button>
+                  </div>
+                  <div class="split-input-group">
+                    <label><i class="fa-solid fa-credit-card" style="color: #7c3aed;"></i> Card</label>
+                    <input type="number" id="split-card-input" placeholder="0" min="0" step="1" oninput="views.pos.updateSplitCalculations()">
+                    <button type="button" class="btn-split-autofill" onclick="views.pos.autoBalanceSplit('card')" title="Fill remaining to Card">Auto</button>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 10px; font-weight: 700; color: #64748b;">
+                  <span>Total: <strong id="split-bill-total">₹0</strong></span>
+                  <span>Entered: <strong id="split-entered-total">₹0</strong></span>
+                  <span id="split-remaining-label">Remaining: <strong id="split-remaining-val" style="color: #dc2626;">₹0</strong></span>
+                </div>
+              </div>
+
               <!-- Submit checkout and Save Order -->
               <div class="pos-action-group">
                 <button class="btn-checkout" id="btn-checkout-trigger">
@@ -439,6 +656,7 @@ window.views.pos = {
       </div>
     `;
 
+    this.renderTableChips();
     this.renderCategories();
     this.renderProducts();
 
@@ -564,10 +782,6 @@ window.views.pos = {
 
     // Enable advanced horizontal scroll via momentum inertia drag & fluid wheel
     this.enableAdvancedHorizontalScroll(container);
-    const fastMovers = document.getElementById("pos-fast-movers-bar");
-    if (fastMovers) {
-      this.enableAdvancedHorizontalScroll(fastMovers);
-    }
   },
 
   enableAdvancedHorizontalScroll(el) {
@@ -1690,9 +1904,14 @@ window.views.pos = {
       subtotal += (item.price + addonsCost) * item.quantity;
     });
 
-    const discountVal = Number(document.getElementById("bill-discount-input") ? document.getElementById("bill-discount-input").value : 0) || 0;
-    const discountPercent = Math.min(100, Math.max(0, discountVal));
-    const flatDiscountAmount = Math.round(subtotal * (discountPercent / 100) * 100) / 100;
+    let flatDiscountAmount = 0;
+    if (this.discountMode === "flat") {
+      flatDiscountAmount = Math.min(subtotal, this.discountFlatVal || 50);
+    } else {
+      const discountVal = Number(document.getElementById("bill-discount-input") ? document.getElementById("bill-discount-input").value : 0) || 0;
+      const discountPercent = Math.min(100, Math.max(0, discountVal));
+      flatDiscountAmount = Math.round(subtotal * (discountPercent / 100) * 100) / 100;
+    }
 
     const gstCheck = document.getElementById("tax-enable-checkbox");
     const gstEnabled = gstCheck ? gstCheck.checked : false;
@@ -1742,6 +1961,9 @@ window.views.pos = {
 
     // Sync cash change calculation if open
     this.calcChangeReturn();
+
+    // Sync split tender calculations if open
+    this.updateSplitCalculations();
   },
 
   updateScreenUpiQr(amount) {
@@ -1792,6 +2014,31 @@ window.views.pos = {
           clearSearchBtn.style.display = val ? "flex" : "none";
         }
         this.renderProducts();
+      };
+
+      search.onkeydown = (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const q = (search.value || "").toLowerCase().trim();
+          if (!q) return;
+          const products = window.db ? (window.db.get("products") || []) : [];
+          const match = products.find(p => p.available !== false && (
+            (p.id || "").toLowerCase() === q ||
+            (p.name || "").toLowerCase() === q ||
+            (p.name || "").toLowerCase().startsWith(q) ||
+            (p.name || "").toLowerCase().includes(q)
+          ));
+          if (match) {
+            this.addToCart(match.id);
+            window.showToast(`⚡ Added "${match.name}" to cart`, "success");
+            search.value = "";
+            this.searchQuery = "";
+            if (clearSearchBtn) clearSearchBtn.style.display = "none";
+            this.renderProducts();
+          } else {
+            window.showToast(`No product matching "${q}"`, "warning");
+          }
+        }
       };
     }
 
@@ -1984,6 +2231,12 @@ window.views.pos = {
           this.updateScreenUpiQr(net);
         }
       }
+
+      const splitDrawer = document.getElementById("pos-split-payment-drawer");
+      if (splitDrawer) {
+        splitDrawer.style.display = mode === "Split" ? "block" : "none";
+        if (mode === "Split") this.updateSplitCalculations();
+      }
     };
 
     if (pUpi) pUpi.onclick = () => selectPayment(pUpi, "UPI");
@@ -2025,27 +2278,39 @@ window.views.pos = {
         if (val.length > 10) val = val.substring(0, 10);
         e.target.value = val;
 
+        this.lookupCustomerCRM(val);
+
         if (!val || val.length < 4) return;
 
         const orders = window.db.get("orders") || [];
         const match = orders.find(o => o.customerPhone && o.customerPhone.trim() === val);
-        if (match && nameInput) {
+        if (match && nameInput && (!nameInput.value || nameInput.value === "Walk-in Customer")) {
           nameInput.value = match.customerName;
         }
       });
     }
   },
 
-  setQuickDiscount(percent) {
+  setQuickDiscount(val) {
     const discInput = document.getElementById("bill-discount-input");
-    if (discInput) {
-      discInput.value = percent;
-      this.calculateBillTotals();
+    if (val === "50flat") {
+      this.discountMode = "flat";
+      this.discountFlatVal = 50;
+      if (discInput) discInput.value = 50;
+    } else {
+      this.discountMode = "percent";
+      this.discountFlatVal = 0;
+      const num = Number(val) || 0;
+      if (discInput) discInput.value = num;
     }
+
     const chips = document.querySelectorAll(".cart-discount-chip");
     chips.forEach(chip => {
-      chip.classList.toggle("active", Number(chip.getAttribute("data-discount")) === Number(percent));
+      const d = chip.getAttribute("data-discount");
+      chip.classList.toggle("active", String(d) === String(val));
     });
+
+    this.calculateBillTotals();
   },
 
   setCashTender(val) {
@@ -2381,6 +2646,22 @@ window.views.pos = {
       netTotal = Math.round(netTotal);
     }
 
+    // Split tender validation
+    if (this.selectedPayment === "Split") {
+      const splitCash = parseFloat(document.getElementById("split-cash-input") ? document.getElementById("split-cash-input").value : 0) || 0;
+      const splitUpi = parseFloat(document.getElementById("split-upi-input") ? document.getElementById("split-upi-input").value : 0) || 0;
+      const splitCard = parseFloat(document.getElementById("split-card-input") ? document.getElementById("split-card-input").value : 0) || 0;
+      const sum = splitCash + splitUpi + splitCard;
+      if (sum === 0) {
+        this.splitDetails = { cash: netTotal, upi: 0, card: 0 };
+      } else if (Math.abs(sum - netTotal) > 0.1) {
+        window.showToast(`Split total (₹${sum}) does not match bill total (₹${netTotal}). Please balance.`, "error");
+        return;
+      } else {
+        this.splitDetails = { cash: splitCash, upi: splitUpi, card: splitCard };
+      }
+    }
+
     // Call database create transaction
     const response = window.db.createOrder({
       customerName: customerName,
@@ -2394,17 +2675,12 @@ window.views.pos = {
       type: this.orderType,
       tableNumber: this.orderType === "Dine-in" ? tableNoVal : "",
       notes: kitchenNoteVal,
-      paymentMethod: this.selectedPayment
+      paymentMethod: this.selectedPayment,
+      splitDetails: this.selectedPayment === "Split" ? this.splitDetails : null
     }, bypassStockCheck);
 
     if (response.success) {
-      if (window.soundAlerts && typeof window.soundAlerts.playNewOrderSound === "function") {
-        try {
-          window.soundAlerts.playNewOrderSound();
-        } catch (e) {
-          console.warn("Sound play error:", e);
-        }
-      }
+      // Audio completely silenced across application
       window.showToast(`Order #${response.order.orderNumber} successfully processed!`, "success");
 
       // Trigger printable receipt billing modal
@@ -2417,11 +2693,22 @@ window.views.pos = {
       document.getElementById("cust-name").value = "Walk-in Customer";
       document.getElementById("cust-phone").value = "";
       document.getElementById("bill-discount-input").value = "0";
+      this.discountMode = "percent";
+      this.discountFlatVal = 0;
+      const crmBanner = document.getElementById("pos-cust-crm-banner");
+      if (crmBanner) crmBanner.style.display = "none";
+      const splitCashIn = document.getElementById("split-cash-input");
+      if (splitCashIn) splitCashIn.value = "";
+      const splitUpiIn = document.getElementById("split-upi-input");
+      if (splitUpiIn) splitUpiIn.value = "";
+      const splitCardIn = document.getElementById("split-card-input");
+      if (splitCardIn) splitCardIn.value = "";
       const noteInput = document.getElementById("order-kitchen-note");
       if (noteInput) noteInput.value = "";
       const cashInput = document.getElementById("cash-received-input");
       if (cashInput) cashInput.value = "";
       this.renderCart();
+      this.renderTableChips();
       this.populateCustomerAutocompletes();
       if (window.updateSidebarSummary) {
         window.updateSidebarSummary();
@@ -3004,14 +3291,20 @@ window.views.pos = {
 
   setQuickTable(tableNo) {
     const input = document.getElementById("pos-table-input");
+    const clean = tableNo.toUpperCase().replace("-", "");
     if (input) {
-      input.value = tableNo;
-      input.focus();
+      input.value = `T-${clean.replace("T", "")}`;
     }
     const chips = document.querySelectorAll(".pos-table-chip");
     chips.forEach(chip => {
-      chip.classList.toggle("active", chip.textContent.trim() === tableNo.replace("-", ""));
+      chip.classList.toggle("active", chip.getAttribute("data-table") === clean || chip.textContent.trim().toUpperCase() === clean);
     });
+
+    const occupiedMap = this.getOccupiedTables();
+    if (occupiedMap.has(clean)) {
+      const order = occupiedMap.get(clean);
+      window.showToast(`Table ${clean} is currently dining (Order #${order.orderNumber} • ₹${order.total})`, "warning");
+    }
   },
 
   setQuickCustomerWalkin() {
@@ -3019,6 +3312,8 @@ window.views.pos = {
     const phoneInput = document.getElementById("cust-phone");
     if (nameInput) nameInput.value = "Walk-in Customer";
     if (phoneInput) phoneInput.value = "";
+    const crmBanner = document.getElementById("pos-cust-crm-banner");
+    if (crmBanner) crmBanner.style.display = "none";
     window.showToast("Customer set to Walk-in", "info");
   },
 

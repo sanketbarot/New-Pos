@@ -179,14 +179,6 @@ const app = {
     // Setup Cloud Sync status listeners
     this.setupCloudSyncUI();
 
-    // Hook Global Sound Alert pill in header
-    const headerSoundPill = document.getElementById("header-sound-toggle-pill");
-    if (headerSoundPill) {
-      headerSoundPill.onclick = () => {
-        if (window.soundAlerts) window.soundAlerts.toggleSound(true);
-      };
-    }
-
     // Setup global db-update listener
     window.addEventListener("db-update", (e) => {
       const detail = e.detail || {};

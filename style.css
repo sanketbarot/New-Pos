@@ -6105,3 +6105,544 @@ body {
   gap: 4px;
 }
 
+
+
+/* ==========================================================================
+   ADVANCED KDS STATION ROUTING, BATCH AGGREGATOR & CHECKOFF STYLES
+   ========================================================================== */
+
+/* Station / Category Routing Bar */
+.kds-station-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0;
+}
+
+.kds-station-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.kds-station-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.kds-station-chip:hover {
+  color: #2563eb;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.kds-station-chip.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.kds-station-count {
+  font-size: 10px;
+  font-weight: 850;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.kds-station-chip.active .kds-station-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Card Ready-To-Bump Highlight */
+.kds-order-card.all-items-done {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25) !important;
+  background: #f0fdf4 !important;
+}
+
+.kds-all-done-banner {
+  background: #10b981;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 850;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Special Kitchen Note Badge */
+.kds-note-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 750;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Aggregator Dish Chip Active Filter State */
+.kds-agg-chip.active-dish-filter {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+.kds-agg-chip.active-dish-filter .kds-agg-qty {
+  background: #ffffff !important;
+  color: #2563eb !important;
+}
+
+/* ==========================================================================
+   ADVANCED KDS STATION ROUTING, BATCH AGGREGATOR & CHECKOFF STYLES
+   ========================================================================== */
+
+/* Station / Category Routing Bar */
+.kds-station-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0;
+}
+
+.kds-station-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.kds-station-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.kds-station-chip:hover {
+  color: #2563eb;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.kds-station-chip.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.kds-station-count {
+  font-size: 10px;
+  font-weight: 850;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.kds-station-chip.active .kds-station-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Card Ready-To-Bump Highlight */
+.kds-order-card.all-items-done {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25) !important;
+  background: #f0fdf4 !important;
+}
+
+.kds-all-done-banner {
+  background: #10b981;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 850;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Special Kitchen Note Badge */
+.kds-note-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 750;
+  color: #b45309;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Aggregator Dish Chip Active Filter State */
+.kds-agg-chip.active-dish-filter {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+.kds-agg-chip.active-dish-filter .kds-agg-qty {
+  background: #ffffff !important;
+  color: #2563eb !important;
+}
+
+
+/* Additional Menu Management Enhanced Styles */
+.menu-margin-badge.warn {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.menu-margin-badge.crit {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.btn-quick-price:hover, .btn-quick-cost:hover {
+  color: #2563eb !important;
+  transform: scale(1.1);
+}
+
+.btn-view-cat-items:hover {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+
+/* Daily Counter & Bills Stream Enhanced Styles */
+.bill-row-clickable:hover {
+  background-color: #f1f5f9 !important;
+  transition: background-color 0.15s ease;
+}
+
+.bill-expanded-row {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.counter-tally-box {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: var(--neu-shadow-raised);
+}
+
+
+/* ==========================================================================
+   SALES & PROFIT ANALYTICS SUITE ENHANCEMENTS
+   ========================================================================== */
+
+/* Base Dashboard & Report Grid Layouts */
+.dash-charts-row-triple {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 14px;
+}
+
+.dash-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/* Reports Date Preset Pills */
+.rep-preset-pills {
+  display: inline-flex;
+  background: #f1f5f9;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.btn-rep-preset {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-rep-preset:hover {
+  color: var(--text-dark);
+}
+
+.btn-rep-preset.active {
+  background: #ffffff;
+  color: #2563eb;
+  font-weight: 800;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Reports Charts & Insights Grid Layout */
+.rep-charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1.1fr;
+  gap: 14px;
+}
+
+.rep-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.rep-insight-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--neu-shadow-raised);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+@media (max-width: 900px) {
+  .rep-charts-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* ==========================================================================
+   ADVANCED POS TERMINAL HIGH-PERFORMANCE SUITE ENHANCEMENTS
+   ========================================================================== */
+
+/* Occupied Table Indicator */
+.pos-table-chip.occupied {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fde68a !important;
+  font-weight: 800;
+  position: relative;
+}
+
+.pos-table-chip.occupied::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #d97706;
+  border-radius: 50%;
+  margin-left: 3px;
+  vertical-align: middle;
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0.4; }
+}
+
+/* Smart Customer CRM Banner */
+.pos-cust-crm-banner {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.pos-cust-crm-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-crm-reorder {
+  border: none;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition-smooth);
+}
+
+.btn-crm-reorder:hover {
+  background: #15803d;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+}
+
+/* 1-Tap Quick Discount Chips */
+.cart-discount-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f1f5f9;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 2px;
+}
+
+.cart-discount-chip {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.cart-discount-chip:hover {
+  color: var(--text-dark);
+}
+
+.cart-discount-chip.active {
+  background: #ffffff;
+  color: #2563eb;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Interactive Split Payment Drawer */
+.pos-split-tender-box {
+  background: #f8fafc;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.split-inputs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.split-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+}
+
+.split-input-group label {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.split-input-group input {
+  width: 100%;
+  height: 32px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  padding: 2px 28px 2px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-dark);
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.split-input-group input:focus {
+  border-color: #2563eb;
+}
+
+.btn-split-autofill {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  height: 24px;
+  border: none;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 0 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-split-autofill:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.split-balance-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+.split-balance-pill.balanced {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.split-balance-pill.unbalanced {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}

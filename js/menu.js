@@ -1,51 +1,70 @@
 // Crust & Chilly POS - Advanced Executive Menu Management & Recipe Engineering Suite
-// Features: Catalog Metrics, Accurate Food Costing (COGS Benchmark & Custom Cost Price),
-// Visual Grid/Table Switcher, BOGO Controls, POS Stock Toggles, Recipe Inventory Deduction Matrix,
-// Bulk Price Modifier, CSV Export & Price Sheet Printing.
+// Features: Executive KPI Overview, Smart Category Navigation, Real-Time Filtering & Search,
+// Accurate Food Costing (COGS Benchmark & Custom Cost Price), Inline Quick Edits,
+// 1-Click 86'd / In-Stock POS Toggles, Advanced Recipe Cost Calculator & Inventory Linkage,
+// Bulk Operations Suite (Percent & Fixed Modifiers + Smart Rounding), Category Manager,
+// Role Permissions Matrix, CSV Export, and Official Menu Price Sheet Printing.
 
 window.views = window.views || {};
 window.views.menu = {
   activeTab: "products", // 'products' | 'categories' | 'permissions'
   searchQuery: "",
   selectedCategory: "all",
-  statusFilter: "all", // 'all' | 'in-stock' | 'out-of-stock' | 'veg' | 'recipe-set' | 'recipe-missing'
+  statusFilter: "all", // 'all' | 'in-stock' | 'out-of-stock' | 'veg' | 'non-veg' | 'recipe-set' | 'recipe-missing'
   sortBy: "name-asc", // 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'margin-desc' | 'recipe-desc'
   viewMode: "table", // 'table' | 'grid'
   benchmarkCogsPercent: 32, // Default 32% Food Cost / COGS benchmark matching Reports suite
 
-  // Ingredient standard unit reference costs (INR) for warehouse stock valuation
+  // Standard raw ingredient reference unit costs (INR) for warehouse stock valuation & portion costing
   ingredientCostMap: {
-    ing1: 8.0,    // Burger Bun
-    ing2: 12.0,   // Veg Patty
-    ing3: 14.0,   // Cheese Slice
+    ing1: 8.0,    // Burger Bun (per pc)
+    ing2: 12.0,   // Veg Patty (per pc)
+    ing3: 14.0,   // Cheese Slice (per pc)
     ing4: 3.0,    // Sandwich Bread (per slice)
-    ing5: 7.0,    // Frankie Roti
+    ing5: 7.0,    // Frankie Roti (per pc)
     ing6: 0.04,   // Raw Potatoes (per g) -> Rs 40/kg
-    ing7: 14.0,   // Maggi Packet
+    ing7: 14.0,   // Maggi Packet (per pc)
     ing8: 0.08,   // Mint Leaves (per g)
-    ing9: 5.0,    // Lime Fruit
+    ing9: 5.0,    // Lime Fruit (per pc)
     ing10: 0.03,  // Soda Water (per ml)
-    ing11: 30.0,  // Soft Drink Can
+    ing11: 30.0,  // Soft Drink Can (per can)
     ing12: 0.40,  // Paneer Blocks (per g) -> Rs 400/kg
     ing13: 0.15,  // Mayonnaise (per ml)
     ing14: 0.15   // Chili Sauce (per ml)
   },
 
-  // Calculate accurate plate cost & gross profit margin for a product
+  // Calculate accurate plate cost, gross profit, and margin % for a product
   calculateProductCost(product) {
     const price = Number(product.price) || 0;
-    const settings = window.db.get("settings") || {};
+    const settings = (window.db && window.db.get("settings")) || {};
     const benchmarkRate = (this.benchmarkCogsPercent || settings.cogsPercent || 32) / 100;
 
     let foodCost = 0;
     let isCustom = false;
+    let isFromRecipe = false;
 
-    // 1. If explicit cost price is configured on the item by the manager, use it
+    // 1. Calculate cost from mapped recipe ingredients if available
+    const recipe = product.recipe || {};
+    const recipeKeys = Object.keys(recipe);
+    let recipeSum = 0;
+    if (recipeKeys.length > 0) {
+      recipeKeys.forEach(ingId => {
+        const qty = Number(recipe[ingId]) || 0;
+        const unitCost = this.ingredientCostMap[ingId] || 5.0;
+        recipeSum += qty * unitCost;
+      });
+      recipeSum += Number(product.packagingCost) || 0;
+    }
+
+    // 2. If explicit cost price is configured on the item, use it
     if (product.costPrice !== undefined && product.costPrice !== null && product.costPrice !== "" && !isNaN(product.costPrice) && Number(product.costPrice) > 0) {
       foodCost = Number(product.costPrice);
       isCustom = true;
+    } else if (recipeKeys.length > 0 && recipeSum > 0) {
+      foodCost = Math.round(recipeSum * 100) / 100;
+      isFromRecipe = true;
     } else {
-      // 2. Realistic standard restaurant Food Cost benchmark (32% matching Sales & Profit Reports)
+      // 3. Fallback to standard restaurant Food Cost benchmark (32% COGS)
       foodCost = Math.round(price * benchmarkRate * 100) / 100;
     }
 
@@ -54,10 +73,8 @@ window.views.menu = {
 
     let marginTier = "med";
     if (marginPct >= 65) marginTier = "high";
+    else if (marginPct < 35) marginTier = "crit";
     else if (marginPct < 50) marginTier = "warn";
-
-    const recipe = product.recipe || {};
-    const recipeKeys = Object.keys(recipe);
 
     return {
       foodCost: Math.round(foodCost * 100) / 100,
@@ -65,56 +82,62 @@ window.views.menu = {
       marginPct,
       marginTier,
       isCustom,
+      isFromRecipe,
       hasRecipe: recipeKeys.length > 0,
-      recipeCount: recipeKeys.length
+      recipeCount: recipeKeys.length,
+      calculatedRecipeCost: Math.round(recipeSum * 100) / 100
     };
   },
 
+  // Main Entry Point
   init(container) {
-    const products = window.db.get("products") || [];
-    const categories = window.db.get("categories") || [];
-    const currentUser = window.db.getCurrentUser() || {};
+    const products = (window.db && window.db.get("products")) || [];
+    const categories = (window.db && window.db.get("categories")) || [];
+    const currentUser = (window.db && window.db.getCurrentUser()) || {};
     const isAdmin = currentUser.role === "admin";
 
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
         
         <!-- Header & Navigation Bar -->
-        <div class="glass-card" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div class="glass-card" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px;">
+          
+          <!-- Sub-Tab Buttons -->
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <button class="btn ${this.activeTab === 'products' ? 'btn-primary' : 'btn-secondary'}" id="menu-sub-products" style="height: 38px; border-radius: 12px; padding: 0 16px; font-weight: 800; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-burger"></i> Menu Catalog (${products.length})
+              <i class="fa-solid fa-burger"></i> Menu Catalog <span class="badge" style="background: rgba(255,255,255,0.25); color: inherit; padding: 2px 7px; border-radius: 8px; font-size: 11px; margin-left: 2px;">${products.length}</span>
             </button>
             <button class="btn ${this.activeTab === 'categories' ? 'btn-primary' : 'btn-secondary'}" id="menu-sub-categories" style="height: 38px; border-radius: 12px; padding: 0 16px; font-weight: 800; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-tags"></i> Food Categories (${categories.length})
+              <i class="fa-solid fa-tags"></i> Food Categories <span class="badge" style="background: rgba(255,255,255,0.25); color: inherit; padding: 2px 7px; border-radius: 8px; font-size: 11px; margin-left: 2px;">${categories.length}</span>
             </button>
             ${isAdmin ? `
             <button class="btn ${this.activeTab === 'permissions' ? 'btn-primary' : 'btn-secondary'}" id="menu-sub-permissions" style="height: 38px; border-radius: 12px; padding: 0 16px; font-weight: 800; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-user-shield"></i> Role Permissions Matrix
+              <i class="fa-solid fa-user-shield"></i> Role Permissions
             </button>
             ` : ""}
           </div>
           
+          <!-- Quick Action Buttons -->
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             ${this.activeTab === 'products' ? `
-            <button class="btn btn-secondary" id="btn-menu-bulk-tools" title="Bulk Price Modifier & Quick Actions" style="height: 38px; border-radius: 12px; padding: 0 12px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+            <button class="btn btn-secondary" id="btn-menu-bulk-tools" title="Bulk Price Modifier & Quick Actions" style="height: 38px; border-radius: 12px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-bolt" style="color: #d97706;"></i> Bulk Tools
             </button>
-            <button class="btn btn-secondary" id="btn-menu-export-csv" title="Download Menu Catalog as CSV" style="height: 38px; border-radius: 12px; padding: 0 12px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+            <button class="btn btn-secondary" id="btn-menu-export-csv" title="Download Menu Catalog as CSV" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-file-csv" style="color: #059669;"></i> Export CSV
             </button>
-            <button class="btn btn-secondary" id="btn-menu-print-sheet" title="Print Restaurant Menu & Price List" style="height: 38px; border-radius: 12px; padding: 0 12px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 5px;">
+            <button class="btn btn-secondary" id="btn-menu-print-sheet" title="Print Official Restaurant Menu & Price List" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-print" style="color: #2563eb;"></i> Print Menu
             </button>
             ` : ""}
 
-            <button class="btn btn-primary" id="btn-add-menu-entity" style="display: ${this.activeTab === 'permissions' ? 'none' : 'inline-flex'}; height: 38px; border-radius: 12px; padding: 0 18px; font-weight: 800; font-size: 12.5px; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-plus"></i> <span id="btn-add-text">${this.activeTab === 'categories' ? 'Add Category' : 'Add Product'}</span>
+            <button class="btn btn-primary" id="btn-add-menu-entity" style="display: ${this.activeTab === 'permissions' ? 'none' : 'inline-flex'}; height: 38px; border-radius: 12px; padding: 0 18px; font-weight: 800; font-size: 12.5px; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);">
+              <i class="fa-solid fa-plus"></i> <span id="btn-add-text">${this.activeTab === 'categories' ? 'Add Category' : 'Add New Dish'}</span>
             </button>
           </div>
         </div>
 
-        <!-- Render Mount Container -->
+        <!-- Render Mount Point -->
         <div id="menu-content-mount"></div>
       </div>
     `;
@@ -140,7 +163,7 @@ window.views.menu = {
 
       if (btnAdd) {
         btnAdd.style.display = this.activeTab === "permissions" ? "none" : "inline-flex";
-        if (addText) addText.textContent = this.activeTab === "categories" ? "Add Category" : "Add Product";
+        if (addText) addText.textContent = this.activeTab === "categories" ? "Add Category" : "Add New Dish";
       }
 
       if (btnBulk) btnBulk.style.display = this.activeTab === "products" ? "inline-flex" : "none";
@@ -211,9 +234,9 @@ window.views.menu = {
   // 1. PRODUCTS MANAGEMENT & CATALOG ENGINEERING
   // =========================================================================
   renderProducts(mount) {
-    const products = window.db.get("products") || [];
-    const categories = window.db.get("categories") || [];
-    const settings = window.db.get("settings") || {};
+    const products = (window.db && window.db.get("products")) || [];
+    const categories = (window.db && window.db.get("categories")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
 
     // Compute Executive Scorecard Metrics
@@ -221,6 +244,7 @@ window.views.menu = {
     const availableCount = products.filter(p => p.available !== false).length;
     const outOfStockCount = totalCount - availableCount;
     const vegCount = products.filter(p => p.veg !== false).length;
+    const nonVegCount = totalCount - vegCount;
 
     // Pricing & Margin Stats
     let totalPriceSum = 0;
@@ -240,14 +264,15 @@ window.views.menu = {
       const costInfo = this.calculateProductCost(p);
       totalMarginSum += costInfo.marginPct;
       totalFoodCostSum += costInfo.foodCost;
-      if (costInfo.isCustom) customCostCount++;
+      if (costInfo.isCustom || costInfo.isFromRecipe) customCostCount++;
       if (costInfo.hasRecipe) recipesMappedCount++;
     });
 
-    const avgPrice = totalCount > 0 ? (totalPriceSum / totalCount).toFixed(1) : "0";
+    const avgPrice = totalCount > 0 ? (totalPriceSum / totalCount).toFixed(0) : "0";
     const avgMargin = totalCount > 0 ? Math.round(totalMarginSum / totalCount) : (100 - this.benchmarkCogsPercent);
-    const avgCost = totalCount > 0 ? (totalFoodCostSum / totalCount).toFixed(1) : "0";
+    const avgCost = totalCount > 0 ? (totalFoodCostSum / totalCount).toFixed(0) : "0";
     const inStockPct = totalCount > 0 ? Math.round((availableCount / totalCount) * 100) : 0;
+    const unmappedCount = totalCount - recipesMappedCount;
 
     // Filter Products
     let filtered = [...products];
@@ -264,6 +289,8 @@ window.views.menu = {
       filtered = filtered.filter(p => p.available === false);
     } else if (this.statusFilter === "veg") {
       filtered = filtered.filter(p => p.veg !== false);
+    } else if (this.statusFilter === "non-veg") {
+      filtered = filtered.filter(p => p.veg === false);
     } else if (this.statusFilter === "recipe-set") {
       filtered = filtered.filter(p => p.recipe && Object.keys(p.recipe).length > 0);
     } else if (this.statusFilter === "recipe-missing") {
@@ -278,7 +305,8 @@ window.views.menu = {
         const catName = cat ? cat.name.toLowerCase() : "";
         const idMatch = (p.id || "").toLowerCase().includes(q);
         const nameMatch = (p.name || "").toLowerCase().includes(q);
-        return idMatch || nameMatch || catName.includes(q);
+        const subMatch = (p.subCategory || "").toLowerCase().includes(q);
+        return idMatch || nameMatch || catName.includes(q) || subMatch.includes(q);
       });
     }
 
@@ -306,7 +334,7 @@ window.views.menu = {
 
     // Build Category Filter Pills HTML
     const catPillsHtml = `
-      <div class="menu-cat-pills-bar" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px; -webkit-overflow-scrolling: touch; flex-wrap: nowrap;">
+      <div class="menu-cat-pills-bar" style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; scrollbar-width: none;">
         <button type="button" class="menu-cat-pill ${this.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">
           <i class="fa-solid fa-border-all" style="font-size: 10px; margin-right: 4px;"></i> All Items (${products.length})
         </button>
@@ -327,9 +355,9 @@ window.views.menu = {
     if (filtered.length === 0) {
       rowsHtml = `
         <tr>
-          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px; font-weight: 600;">
-            <i class="fa-solid fa-burger" style="font-size: 32px; opacity: 0.3; display: block; margin-bottom: 8px;"></i>
-            No menu products match the selected filters or search keyword.
+          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 45px; font-weight: 600;">
+            <i class="fa-solid fa-utensils" style="font-size: 34px; opacity: 0.3; display: block; margin-bottom: 10px;"></i>
+            No menu items found matching the selected search keyword or filter chip.
           </td>
         </tr>
       `;
@@ -342,6 +370,7 @@ window.views.menu = {
 
         return `
           <tr class="${!isAvail ? 'table-row-dimmed' : ''}">
+            <!-- Dish & Category -->
             <td>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <div class="menu-diet-box ${isVeg ? 'veg' : 'non-veg'}" title="${isVeg ? 'Pure Vegetarian' : 'Non-Vegetarian'}">
@@ -349,75 +378,84 @@ window.views.menu = {
                 </div>
                 <div>
                   <div style="font-weight: 800; color: var(--text-dark); font-size: 13.5px;">${p.name}</div>
-                  <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                  <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                     <code>${p.id}</code>
                     <span>•</span>
                     <span style="color: #2563eb; font-weight: 700;">${cat ? cat.name : 'Unassigned'}</span>
                     ${p.subCategory ? `<span>•</span><span style="color: #475569; font-weight: 600;">${p.subCategory}</span>` : ''}
+                    ${p.bogo ? `<span style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 9.5px; font-weight: 800; padding: 0 4px; border-radius: 4px;">BOGO</span>` : ''}
                   </div>
                 </div>
               </div>
             </td>
 
+            <!-- Selling Price with Fast Inline Edit -->
             <td>
               <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-weight: 900; color: var(--text-dark); font-size: 14px;">
-                  ${currency}${Number(p.price || 0).toFixed(2)}
+                <span style="font-weight: 900; color: var(--text-dark); font-size: 14.5px;">
+                  ${currency}${Number(p.price || 0).toFixed(0)}
                 </span>
-                <button class="btn btn-secondary btn-quick-price" data-id="${p.id}" data-price="${p.price}" title="Quick Edit Selling Price" style="padding: 2px 6px; font-size: 10px; border-radius: 6px;">
+                <button class="btn btn-secondary btn-quick-price" data-id="${p.id}" data-price="${p.price}" title="Quick Edit Selling Price (₹)" style="padding: 3px 6px; font-size: 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
                   <i class="fa-solid fa-pen"></i>
                 </button>
               </div>
             </td>
 
+            <!-- Food Cost, Profit & Gross Margin -->
             <td>
               <div style="display: flex; flex-direction: column; gap: 3px;">
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span class="menu-margin-badge ${costInfo.marginTier}">
                     <i class="fa-solid fa-chart-line" style="font-size: 9px;"></i> ${costInfo.marginPct}% Margin
                   </span>
-                  ${costInfo.isCustom ? `<span style="font-size: 9.5px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 1px 6px; border-radius: 6px;">Custom</span>` : ''}
+                  ${costInfo.isCustom ? `<span style="font-size: 9px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 5px;">Custom</span>` : ''}
+                  ${costInfo.isFromRecipe ? `<span style="font-size: 9px; font-weight: 800; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 1px 5px; border-radius: 5px;">Recipe</span>` : ''}
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                  <span>Cost: <strong>${currency}${costInfo.foodCost.toFixed(1)}</strong></span>
+                  <span>Cost: <strong>${currency}${costInfo.foodCost.toFixed(0)}</strong></span>
                   <button class="btn-quick-cost" data-id="${p.id}" title="Quick Edit Cost Price (₹)" style="border: none; background: transparent; cursor: pointer; color: #64748b; padding: 0 2px; font-size: 10px;">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
-                  <span>| Profit: <strong style="color: #059669;">${currency}${costInfo.grossProfit.toFixed(1)}</strong></span>
+                  <span>| Profit: <strong style="color: #059669;">${currency}${costInfo.grossProfit.toFixed(0)}</strong></span>
                 </div>
                 ${(p.ingredientCost !== undefined || p.packagingCost !== undefined) ? `
                 <div style="font-size: 10px; color: #64748b; font-weight: 600;">
-                  Ing: ₹${p.ingredientCost !== undefined ? p.ingredientCost : '--'} + Pack: ₹${p.packagingCost !== undefined ? p.packagingCost : '--'}
+                  Ing: ₹${p.ingredientCost !== undefined && p.ingredientCost !== null ? p.ingredientCost : '--'} + Pack: ₹${p.packagingCost !== undefined && p.packagingCost !== null ? p.packagingCost : '--'}
                 </div>` : ''}
               </div>
             </td>
 
+            <!-- Recipe Inventory Tracking -->
             <td>
-              <button class="btn ${costInfo.hasRecipe ? 'btn-secondary' : 'btn-outline'} btn-recipe-setup" data-id="${p.id}" title="Configure Inventory Deductions" style="padding: 4px 10px; font-size: 11.5px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+              <button class="btn ${costInfo.hasRecipe ? 'btn-secondary' : 'btn-outline'} btn-recipe-setup" data-id="${p.id}" title="Configure Raw Ingredients Deduction" style="padding: 4px 10px; font-size: 11.5px; border-radius: 8px; font-weight: 750; display: inline-flex; align-items: center; gap: 6px;">
                 <i class="fa-solid fa-mortar-pestle" style="color: ${costInfo.hasRecipe ? '#2563eb' : '#d97706'};"></i> 
                 ${costInfo.hasRecipe ? `${costInfo.recipeCount} Raw Items` : '<span style="color: #d97706;">+ Inventory Map</span>'}
               </button>
             </td>
 
+            <!-- POS Stock Status (1-Click 86'd Toggle) -->
             <td>
-              <label class="menu-toggle-switch" title="Toggle item live availability in POS">
-                <input type="checkbox" class="toggle-availability-chk" data-id="${p.id}" ${isAvail ? 'checked' : ''}>
-                <span class="menu-toggle-slider slider-green"></span>
-              </label>
-              <span style="font-size: 11px; font-weight: 800; margin-left: 6px; color: ${isAvail ? '#059669' : '#dc2626'};">
-                ${isAvail ? 'In Stock' : 'Out of Stock'}
-              </span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label class="menu-toggle-switch" title="Toggle dish live availability in POS (Green: Live, Grey: 86'd / Hidden)">
+                  <input type="checkbox" class="toggle-availability-chk" data-id="${p.id}" ${isAvail ? 'checked' : ''}>
+                  <span class="menu-toggle-slider slider-green"></span>
+                </label>
+                <span style="font-size: 11.5px; font-weight: 800; color: ${isAvail ? '#059669' : '#dc2626'}; white-space: nowrap;">
+                  ${isAvail ? '<i class="fa-solid fa-circle-check" style="font-size: 10px;"></i> Live' : '<i class="fa-solid fa-circle-xmark" style="font-size: 10px;"></i> 86\'d'}
+                </span>
+              </div>
             </td>
 
+            <!-- Actions -->
             <td>
               <div style="display: flex; gap: 5px; align-items: center; justify-content: flex-end;">
-                <button class="btn btn-secondary btn-edit-product" data-id="${p.id}" title="Edit Dish Details & Cost Price" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
+                <button class="btn btn-secondary btn-edit-product" data-id="${p.id}" title="Edit Dish & Pricing" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
                   <i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i>
                 </button>
-                <button class="btn btn-secondary btn-duplicate-product" data-id="${p.id}" title="Duplicate Item (Clone)" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
+                <button class="btn btn-secondary btn-duplicate-product" data-id="${p.id}" title="Duplicate Dish (Clone)" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
                   <i class="fa-solid fa-copy" style="color: #059669;"></i>
                 </button>
-                <button class="btn btn-danger btn-delete-product" data-id="${p.id}" title="Delete Product" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
+                <button class="btn btn-danger btn-delete-product" data-id="${p.id}" title="Delete Dish" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
@@ -432,8 +470,8 @@ window.views.menu = {
     if (filtered.length === 0) {
       cardsHtml = `
         <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 50px; font-weight: 600;">
-          <i class="fa-solid fa-burger" style="font-size: 36px; opacity: 0.3; display: block; margin-bottom: 10px;"></i>
-          No products found matching filters.
+          <i class="fa-solid fa-utensils" style="font-size: 36px; opacity: 0.3; display: block; margin-bottom: 10px;"></i>
+          No dishes match your selected filter.
         </div>
       `;
     } else {
@@ -445,62 +483,69 @@ window.views.menu = {
 
         return `
           <div class="menu-item-card ${!isAvail ? 'out-of-stock' : ''}">
+            <!-- Header Row -->
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
               <div style="display: flex; align-items: flex-start; gap: 8px;">
                 <div class="menu-diet-box ${isVeg ? 'veg' : 'non-veg'}" style="margin-top: 3px;" title="${isVeg ? 'Pure Veg' : 'Non-Veg'}">
                   <div class="menu-diet-dot"></div>
                 </div>
                 <div>
-                  <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark);">${p.name}</h4>
+                  <h4 style="margin: 0; font-size: 14.5px; font-weight: 800; color: var(--text-dark);">${p.name}</h4>
                   <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
                     <code>${p.id}</code> • <strong style="color: #2563eb;">${cat ? cat.name : 'Unassigned'}</strong>
+                    ${p.subCategory ? ` • <span>${p.subCategory}</span>` : ''}
                   </div>
                 </div>
               </div>
-              <div style="font-size: 16px; font-weight: 900; color: var(--text-dark); white-space: nowrap;">
+              <div style="font-size: 17px; font-weight: 900; color: var(--text-dark); white-space: nowrap;">
                 ${currency}${Number(p.price || 0).toFixed(0)}
               </div>
             </div>
 
-            <!-- Cost & Margin Meter -->
+            <!-- Cost & Margin Progress Meter -->
             <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 10px;">
               <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
                 <span class="menu-margin-badge ${costInfo.marginTier}">
                   ${costInfo.marginPct}% Margin
                 </span>
                 <span style="color: var(--text-muted); font-weight: 700;">
-                  Cost: ${currency}${costInfo.foodCost.toFixed(0)} (${costInfo.isCustom ? 'Custom' : `${this.benchmarkCogsPercent}%`})
+                  Cost: ${currency}${costInfo.foodCost.toFixed(0)} (${costInfo.isCustom ? 'Custom' : costInfo.isFromRecipe ? 'Recipe' : `${this.benchmarkCogsPercent}%`})
                 </span>
               </div>
-              <div style="width: 100%; height: 5px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 6px;">
-                <div style="width: ${costInfo.marginPct}%; height: 100%; background: ${costInfo.marginTier === 'high' ? '#059669' : costInfo.marginTier === 'med' ? '#2563eb' : '#dc2626'}; border-radius: 4px;"></div>
+              <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 6px;">
+                <div style="width: ${costInfo.marginPct}%; height: 100%; background: ${costInfo.marginTier === 'high' ? '#059669' : costInfo.marginTier === 'med' ? '#2563eb' : costInfo.marginTier === 'warn' ? '#d97706' : '#dc2626'}; border-radius: 4px;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 4px; font-weight: 600;">
+                <span>Profit: <strong style="color: #059669;">${currency}${costInfo.grossProfit.toFixed(0)}</strong></span>
+                <span>Selling: <strong>${currency}${Number(p.price || 0).toFixed(0)}</strong></span>
               </div>
             </div>
 
-            <!-- Stock switch row -->
-            <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px;">
+            <!-- Stock Switch Row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 9px;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">POS Billing Status:</span>
               <div style="display: flex; align-items: center; gap: 6px;">
                 <label class="menu-toggle-switch" title="Toggle In-Stock">
                   <input type="checkbox" class="toggle-availability-chk" data-id="${p.id}" ${isAvail ? 'checked' : ''}>
                   <span class="menu-toggle-slider slider-green"></span>
                 </label>
-                <span style="font-size: 11px; font-weight: 700; color: ${isAvail ? '#059669' : '#dc2626'};">
-                  ${isAvail ? 'In Stock' : 'Out of Stock'}
+                <span style="font-size: 11px; font-weight: 800; color: ${isAvail ? '#059669' : '#dc2626'};">
+                  ${isAvail ? 'Live' : '86\'d'}
                 </span>
               </div>
             </div>
 
-            <!-- Actions footer -->
+            <!-- Actions Footer -->
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; border-top: 1px dashed var(--border-color); padding-top: 8px;">
-              <button class="btn btn-secondary btn-recipe-setup" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">
-                <i class="fa-solid fa-mortar-pestle" style="color: #2563eb;"></i> Inventory (${costInfo.recipeCount})
+              <button class="btn btn-secondary btn-recipe-setup" data-id="${p.id}" style="padding: 4px 8px; font-size: 11px; font-weight: 750; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-mortar-pestle" style="color: #2563eb;"></i> Recipe (${costInfo.recipeCount})
               </button>
 
               <div style="display: flex; gap: 4px;">
-                <button class="btn btn-secondary btn-edit-product" data-id="${p.id}" title="Edit Dish & Cost Price" style="padding: 4px 7px; font-size: 11px; border-radius: 8px;">
+                <button class="btn btn-secondary btn-edit-product" data-id="${p.id}" title="Edit Dish" style="padding: 4px 7px; font-size: 11px; border-radius: 8px;">
                   <i class="fa-solid fa-pen" style="color: #2563eb;"></i>
                 </button>
-                <button class="btn btn-secondary btn-duplicate-product" data-id="${p.id}" title="Duplicate Item" style="padding: 4px 7px; font-size: 11px; border-radius: 8px;">
+                <button class="btn btn-secondary btn-duplicate-product" data-id="${p.id}" title="Duplicate" style="padding: 4px 7px; font-size: 11px; border-radius: 8px;">
                   <i class="fa-solid fa-copy" style="color: #059669;"></i>
                 </button>
                 <button class="btn btn-danger btn-delete-product" data-id="${p.id}" title="Delete" style="padding: 4px 7px; font-size: 11px; border-radius: 8px;">
@@ -516,17 +561,17 @@ window.views.menu = {
     mount.innerHTML = `
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
         
-        <!-- 5-Card Executive Scorecard Grid -->
+        <!-- 4-Card Executive Overview Scorecard -->
         <div class="menu-kpi-grid">
           
-          <!-- Card 1: Total Catalog & Availability -->
+          <!-- Card 1: Catalog Status & 86'd Out-of-Stock -->
           <div class="menu-kpi-card">
             <div>
               <div class="menu-kpi-title">Catalog Inventory</div>
               <div class="menu-kpi-val">${totalCount} <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Dishes</span></div>
               <div class="menu-kpi-sub" style="color: #059669;">
-                <i class="fa-solid fa-circle-check"></i> ${availableCount} In-Stock (${inStockPct}%)
-                ${outOfStockCount > 0 ? `<span style="color: #dc2626; margin-left: 4px;">• ${outOfStockCount} Out</span>` : ''}
+                <i class="fa-solid fa-circle-check"></i> ${availableCount} Live in POS (${inStockPct}%)
+                ${outOfStockCount > 0 ? `<span style="color: #dc2626; margin-left: 4px;">• ${outOfStockCount} 86'd</span>` : ''}
               </div>
             </div>
             <div class="menu-kpi-icon" style="background: #eff6ff; color: #2563eb;">
@@ -534,7 +579,7 @@ window.views.menu = {
             </div>
           </div>
 
-          <!-- Card 2: Avg Price & Price Range -->
+          <!-- Card 2: Price Valuation & Range -->
           <div class="menu-kpi-card">
             <div>
               <div class="menu-kpi-title">Catalog Valuation</div>
@@ -548,14 +593,14 @@ window.views.menu = {
             </div>
           </div>
 
-          <!-- Card 3: Food Cost & Margin Calibration -->
+          <!-- Card 3: Food Cost (COGS) & Profit Margin -->
           <div class="menu-kpi-card">
             <div>
-              <div class="menu-kpi-title">Food Cost (COGS) & Margin</div>
+              <div class="menu-kpi-title">Gross Profit & Food Cost</div>
               <div class="menu-kpi-val" style="color: #059669;">${avgMargin}% <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Avg Profit</span></div>
               <div class="menu-kpi-sub" style="color: #b45309; display: flex; align-items: center; gap: 4px;">
                 <span>${currency}${avgCost} Avg Cost (${this.benchmarkCogsPercent}% COGS)</span>
-                ${customCostCount > 0 ? `<span style="color: #2563eb;">• ${customCostCount} Custom</span>` : ''}
+                ${customCostCount > 0 ? `<span style="color: #2563eb;">• ${customCostCount} Custom/Recipe</span>` : ''}
               </div>
             </div>
             <div class="menu-kpi-icon" style="background: #f0fdf4; color: #16a34a;">
@@ -563,24 +608,25 @@ window.views.menu = {
             </div>
           </div>
 
-          <!-- Card 4: Categories & Dietary -->
+          <!-- Card 4: Recipe & Inventory Readiness -->
           <div class="menu-kpi-card">
             <div>
-              <div class="menu-kpi-title">Categories & Dietary</div>
-              <div class="menu-kpi-val">${categories.length} <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Groups</span></div>
+              <div class="menu-kpi-title">Recipe & Dietary Health</div>
+              <div class="menu-kpi-val">${recipesMappedCount} <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">/ ${totalCount} Mapped</span></div>
               <div class="menu-kpi-sub" style="color: #16a34a;">
-                <i class="fa-solid fa-leaf"></i> ${vegCount} Pure Veg Items
+                <i class="fa-solid fa-leaf"></i> ${vegCount} Veg ${nonVegCount > 0 ? `• <span style="color: #dc2626;">${nonVegCount} Non-Veg</span>` : ''}
+                ${unmappedCount > 0 ? `<span style="color: #d97706; margin-left: 4px;">• ${unmappedCount} Unmapped</span>` : ''}
               </div>
             </div>
-            <div class="menu-kpi-icon" style="background: #f5f3ff; color: #7c3aed;">
-              <i class="fa-solid fa-layer-group"></i>
+            <div class="menu-kpi-icon" style="background: #fdf4ff; color: #c026d3;">
+              <i class="fa-solid fa-mortar-pestle"></i>
             </div>
           </div>
 
         </div>
 
         <!-- Toolbar & Filter Engine -->
-        <div class="glass-card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="glass-card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
           
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             
@@ -590,14 +636,14 @@ window.views.menu = {
               <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 12px; pointer-events: none;"></i>
             </div>
 
-            <!-- Benchmark Food Cost Calibrator -->
+            <!-- Food Cost COGS Benchmark Switcher -->
             <div style="display: flex; align-items: center; gap: 6px;" title="Determines default food cost percentage across menu dishes without an explicit custom cost price">
               <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Food Cost Benchmark:</span>
               <div class="cogs-calibrator-pill" style="display: inline-flex; background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 10px; padding: 2px;">
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 28 ? 'active' : ''}" data-rate="28" style="padding: 4px 8px; border: none; background: ${this.benchmarkCogsPercent === 28 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 28 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">28%</button>
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 30 ? 'active' : ''}" data-rate="30" style="padding: 4px 8px; border: none; background: ${this.benchmarkCogsPercent === 30 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 30 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">30%</button>
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 32 ? 'active' : ''}" data-rate="32" style="padding: 4px 8px; border: none; background: ${this.benchmarkCogsPercent === 32 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 32 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">32%</button>
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 35 ? 'active' : ''}" data-rate="35" style="padding: 4px 8px; border: none; background: ${this.benchmarkCogsPercent === 35 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 35 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">35%</button>
+                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 28 ? 'active' : ''}" data-rate="28" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 28 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 28 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">28%</button>
+                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 30 ? 'active' : ''}" data-rate="30" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 30 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 30 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">30%</button>
+                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 32 ? 'active' : ''}" data-rate="32" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 32 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 32 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">32%</button>
+                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 35 ? 'active' : ''}" data-rate="35" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 35 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 35 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">35%</button>
               </div>
             </div>
 
@@ -609,23 +655,23 @@ window.views.menu = {
                 <option value="name-desc" ${this.sortBy === 'name-desc' ? 'selected' : ''}>Dish Name (Z - A)</option>
                 <option value="price-asc" ${this.sortBy === 'price-asc' ? 'selected' : ''}>Price (Low to High)</option>
                 <option value="price-desc" ${this.sortBy === 'price-desc' ? 'selected' : ''}>Price (High to Low)</option>
-                <option value="margin-desc" ${this.sortBy === 'margin-desc' ? 'selected' : ''}>Gross Margin % (High to Low)</option>
-                <option value="recipe-desc" ${this.sortBy === 'recipe-desc' ? 'selected' : ''}>Recipe Ingredients Count</option>
+                <option value="margin-desc" ${this.sortBy === 'margin-desc' ? 'selected' : ''}>Profit Margin % (Highest)</option>
+                <option value="recipe-desc" ${this.sortBy === 'recipe-desc' ? 'selected' : ''}>Recipe Ingredients (Most)</option>
               </select>
             </div>
 
             <!-- View Switcher (Table vs Grid) -->
             <div class="menu-view-switcher">
-              <button class="menu-view-btn ${this.viewMode === 'table' ? 'active' : ''}" id="btn-view-table" title="Dense Table View">
+              <button class="menu-view-btn ${this.viewMode === 'table' ? 'active' : ''}" id="btn-view-table" title="Compact Table View">
                 <i class="fa-solid fa-table-list"></i> Table
               </button>
-              <button class="menu-view-btn ${this.viewMode === 'grid' ? 'active' : ''}" id="btn-view-grid" title="Tile Cards Grid View">
+              <button class="menu-view-btn ${this.viewMode === 'grid' ? 'active' : ''}" id="btn-view-grid" title="Visual Cards Grid View">
                 <i class="fa-solid fa-border-all"></i> Cards
               </button>
             </div>
 
             <div style="font-size: 12px; color: var(--text-muted); font-weight: 700;">
-              Showing <strong style="color: var(--text-dark);">${filtered.length}</strong> of ${products.length} products
+              Showing <strong style="color: var(--text-dark);">${filtered.length}</strong> of ${products.length} dishes
             </div>
           </div>
 
@@ -638,16 +684,21 @@ window.views.menu = {
               <i class="fa-solid fa-circle-check" style="color: #059669;"></i> In Stock (${availableCount})
             </button>
             <button class="menu-filter-chip ${this.statusFilter === 'out-of-stock' ? 'active' : ''}" data-filter="out-of-stock">
-              <i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> Out of Stock (${outOfStockCount})
+              <i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> 86'd Out (${outOfStockCount})
             </button>
             <button class="menu-filter-chip ${this.statusFilter === 'veg' ? 'active' : ''}" data-filter="veg">
               <i class="fa-solid fa-leaf" style="color: #16a34a;"></i> Pure Veg (${vegCount})
             </button>
+            ${nonVegCount > 0 ? `
+            <button class="menu-filter-chip ${this.statusFilter === 'non-veg' ? 'active' : ''}" data-filter="non-veg">
+              <i class="fa-solid fa-drumstick-bite" style="color: #dc2626;"></i> Non-Veg (${nonVegCount})
+            </button>
+            ` : ''}
             <button class="menu-filter-chip ${this.statusFilter === 'recipe-set' ? 'active' : ''}" data-filter="recipe-set">
-              <i class="fa-solid fa-mortar-pestle" style="color: #2563eb;"></i> Inventory Mapped (${recipesMappedCount})
+              <i class="fa-solid fa-mortar-pestle" style="color: #2563eb;"></i> Recipe Mapped (${recipesMappedCount})
             </button>
             <button class="menu-filter-chip ${this.statusFilter === 'recipe-missing' ? 'active' : ''}" data-filter="recipe-missing">
-              <i class="fa-solid fa-triangle-exclamation" style="color: #d97706;"></i> Unmapped (${totalCount - recipesMappedCount})
+              <i class="fa-solid fa-triangle-exclamation" style="color: #d97706;"></i> Unmapped (${unmappedCount})
             </button>
           </div>
 
@@ -657,7 +708,7 @@ window.views.menu = {
 
         <!-- Products View (Table or Cards) -->
         ${this.viewMode === 'table' ? `
-          <div class="glass-card" style="padding: 16px 18px;">
+          <div class="glass-card" style="padding: 16px 18px; border-radius: 14px;">
             <div class="table-container">
               <table class="premium-table">
                 <thead>
@@ -665,8 +716,8 @@ window.views.menu = {
                     <th style="min-width: 220px;">Dish & Category</th>
                     <th>Selling Price</th>
                     <th>Food Cost & Margin</th>
-                    <th>Inventory Tracking</th>
-                    <th>POS Stock Status</th>
+                    <th>Inventory Recipe</th>
+                    <th>POS Live Status</th>
                     <th style="text-align: right; min-width: 120px;">Actions</th>
                   </tr>
                 </thead>
@@ -703,7 +754,7 @@ window.views.menu = {
       btn.onclick = () => {
         const rate = Number(btn.getAttribute("data-rate")) || 32;
         this.benchmarkCogsPercent = rate;
-        const settings = window.db.get("settings") || {};
+        const settings = (window.db && window.db.get("settings")) || {};
         settings.cogsPercent = rate;
         window.db.set("settings", settings);
         window.showToast(`Food cost benchmark set to ${rate}%.`, "success");
@@ -802,7 +853,7 @@ window.views.menu = {
       };
     });
 
-    // Bind item availability toggle
+    // Bind item availability toggle (1-Click 86'd / In-Stock)
     mount.querySelectorAll(".toggle-availability-chk").forEach(chk => {
       chk.onchange = () => {
         const id = chk.getAttribute("data-id");
@@ -810,7 +861,7 @@ window.views.menu = {
         if (prod) {
           prod.available = chk.checked;
           window.db.saveProduct(prod);
-          window.showToast(`${prod.name} is now ${chk.checked ? 'In Stock (Live in POS)' : 'Out of Stock (Hidden)'}.`, chk.checked ? "success" : "info");
+          window.showToast(`${prod.name} is now ${chk.checked ? 'In Stock (Live in POS)' : '86\'d (Hidden from POS)'}.`, chk.checked ? "success" : "info");
           this.render();
         }
       };
@@ -842,7 +893,7 @@ window.views.menu = {
         if (!prod) return;
         if (confirm(`Are you sure you want to permanently delete "${prod.name}"?`)) {
           window.db.deleteProduct(id);
-          window.showToast(`Product "${prod.name}" deleted from menu.`, "info");
+          window.showToast(`Dish "${prod.name}" deleted from menu.`, "info");
           this.render();
         }
       };
@@ -864,9 +915,12 @@ window.views.menu = {
       name: newName,
       price: product.price,
       costPrice: product.costPrice || null,
+      ingredientCost: product.ingredientCost || null,
+      packagingCost: product.packagingCost || null,
       category: product.category,
-      bogo: product.bogo,
-      available: product.available,
+      subCategory: product.subCategory || "Regular",
+      bogo: product.bogo || false,
+      available: product.available !== false,
       veg: product.veg !== false,
       recipe: { ...(product.recipe || {}) }
     });
@@ -876,7 +930,7 @@ window.views.menu = {
 
   // Product Add / Edit Modal
   openProductModal(product = null) {
-    const categories = window.db.get("categories") || [];
+    const categories = (window.db && window.db.get("categories")) || [];
     const categoriesOptions = categories.map(c => `
       <option value="${c.id}" ${product && product.category === c.id ? 'selected' : ''}>${c.name}</option>
     `).join("");
@@ -894,7 +948,7 @@ window.views.menu = {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="prod-modal-price" style="font-weight: 700; margin-bottom: 5px;">Unit Selling Price (₹) *</label>
+            <label class="form-label" for="prod-modal-price" style="font-weight: 700; margin-bottom: 5px;">Selling Price (₹) *</label>
             <input type="number" id="prod-modal-price" class="form-input" value="${product ? product.price : ''}" placeholder="e.g. 110" min="1" step="any" style="height: 38px; font-weight: 800; font-size: 14px; border-radius: 10px;" required>
           </div>
 
@@ -906,7 +960,7 @@ window.views.menu = {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="prod-modal-ing-cost" style="font-weight: 700; margin-bottom: 5px; font-size: 11.5px;">Ingredient Cost (₹)</label>
+            <label class="form-label" for="prod-modal-ing-cost" style="font-weight: 700; margin-bottom: 5px; font-size: 11.5px;">Raw Ingredient Cost (₹)</label>
             <input type="number" id="prod-modal-ing-cost" class="form-input" value="${product && product.ingredientCost !== undefined && product.ingredientCost !== null ? product.ingredientCost : ''}" placeholder="e.g. 30" min="0" step="any" style="height: 36px; font-size: 12px; font-weight: 700; border-radius: 10px;" oninput="
               const ing = parseFloat(this.value) || 0;
               const pack = parseFloat(document.getElementById('prod-modal-pack-cost').value) || 0;
@@ -914,7 +968,7 @@ window.views.menu = {
             ">
           </div>
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="prod-modal-pack-cost" style="font-weight: 700; margin-bottom: 5px; font-size: 11.5px;">Packaging (₹)</label>
+            <label class="form-label" for="prod-modal-pack-cost" style="font-weight: 700; margin-bottom: 5px; font-size: 11.5px;">Packaging Cost (₹)</label>
             <input type="number" id="prod-modal-pack-cost" class="form-input" value="${product && product.packagingCost !== undefined && product.packagingCost !== null ? product.packagingCost : ''}" placeholder="e.g. 3.5" min="0" step="any" style="height: 36px; font-size: 12px; font-weight: 700; border-radius: 10px;" oninput="
               const ing = parseFloat(document.getElementById('prod-modal-ing-cost').value) || 0;
               const pack = parseFloat(this.value) || 0;
@@ -927,8 +981,8 @@ window.views.menu = {
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: -6px; font-size: 11px; color: var(--text-muted);">
-          <span>Total Cost = Ingredient Cost + Packaging Cost.</span>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: -6px;">
+          <span>Total Cost = Raw Ingredient Cost + Packaging Cost (Used for accurate Gross Profit calculation).</span>
         </div>
 
         <div class="form-group" style="margin-bottom: 0;">
@@ -941,7 +995,7 @@ window.views.menu = {
         <!-- Dietary Type -->
         <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
           <label class="form-label" style="font-weight: 700; margin-bottom: 6px; display: block;">Dietary Classification</label>
-          <div style="display: flex; gap: 16px;">
+          <div style="display: flex; gap: 20px;">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700;">
               <input type="radio" name="prod-diet" id="prod-diet-veg" value="veg" ${isVeg ? 'checked' : ''}>
               <span class="menu-diet-box veg"><span class="menu-diet-dot"></span></span> Pure Vegetarian
@@ -953,11 +1007,11 @@ window.views.menu = {
           </div>
         </div>
 
-        <!-- Live Availability Switch -->
+        <!-- Live POS Availability Switch -->
         <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <div style="font-weight: 700; color: var(--text-dark);">Live POS Availability</div>
-            <div style="font-size: 11px; color: var(--text-muted);">When enabled, product appears immediately on the cashier billing screen.</div>
+            <div style="font-weight: 700; color: var(--text-dark);">Live POS Availability (In Stock)</div>
+            <div style="font-size: 11px; color: var(--text-muted);">When turned off, the dish is marked 86'd and hidden from POS cashier terminals.</div>
           </div>
           <label class="menu-toggle-switch">
             <input type="checkbox" id="prod-modal-avail" ${product && product.available === false ? '' : 'checked'}>
@@ -969,9 +1023,9 @@ window.views.menu = {
     `;
 
     window.customModal.show({
-      title: product ? `Edit Menu Product - ${product.name}` : "Create New Menu Product",
+      title: product ? `Edit Dish - ${product.name}` : "Create New Menu Dish",
       bodyHtml: formHtml,
-      confirmText: product ? "Update Product" : "Save Product",
+      confirmText: product ? "Update Dish" : "Save Dish",
       onConfirm: () => {
         const name = document.getElementById("prod-modal-name").value.trim();
         const price = document.getElementById("prod-modal-price").value;
@@ -981,7 +1035,7 @@ window.views.menu = {
         const veg = document.getElementById("prod-diet-veg").checked;
 
         if (!name || !price || isNaN(price) || Number(price) <= 0) {
-          window.showToast("Please enter valid name and pricing details.", "error");
+          window.showToast("Please enter a valid dish name and price.", "error");
           return false;
         }
 
@@ -989,7 +1043,7 @@ window.views.menu = {
         const rawIng = document.getElementById("prod-modal-ing-cost") ? document.getElementById("prod-modal-ing-cost").value.trim() : "";
         const rawPack = document.getElementById("prod-modal-pack-cost") ? document.getElementById("prod-modal-pack-cost").value.trim() : "";
         const subCatInput = document.getElementById("prod-modal-subcat");
-        const subCategory = subCatInput ? subCatInput.value.trim() : (product ? (product.subCategory || "Regular") : "Regular");
+        const subCategory = subCatInput && subCatInput.value.trim() ? subCatInput.value.trim() : (product ? (product.subCategory || "Regular") : "Regular");
 
         const ingredientCost = rawIng && !isNaN(rawIng) ? Number(rawIng) : null;
         const packagingCost = rawPack && !isNaN(rawPack) ? Number(rawPack) : null;
@@ -1010,7 +1064,7 @@ window.views.menu = {
           recipe: product ? product.recipe : {}
         });
 
-        window.showToast(product ? "Menu item details updated." : "New menu item saved successfully.", "success");
+        window.showToast(product ? "Dish details updated successfully." : "New menu dish added successfully.", "success");
         this.render();
         return true;
       }
@@ -1018,12 +1072,12 @@ window.views.menu = {
   },
 
   // =========================================================================
-  // 2. RECIPE INVENTORY DEDUCTION MATRIX
+  // 2. RECIPE INVENTORY DEDUCTION & COST CALCULATOR MATRIX
   // =========================================================================
   openRecipeModal(productId) {
-    const products = window.db.get("products") || [];
-    const ingredients = window.db.get("ingredients") || [];
-    const settings = window.db.get("settings") || {};
+    const products = (window.db && window.db.get("products")) || [];
+    const ingredients = (window.db && window.db.get("ingredients")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
     const product = products.find(p => p.id === productId);
 
@@ -1031,7 +1085,27 @@ window.views.menu = {
 
     // Local mutable copy of recipe mapping
     const localRecipe = { ...(product.recipe || {}) };
-    const costInfo = this.calculateProductCost(product);
+    let packagingCost = Number(product.packagingCost) || 0;
+
+    // Helper to calculate total raw recipe cost
+    const calculateRecipeCostSummary = () => {
+      let rawIngCost = 0;
+      Object.entries(localRecipe).forEach(([ingId, qty]) => {
+        const unitCost = this.ingredientCostMap[ingId] || 5.0;
+        rawIngCost += Number(qty) * unitCost;
+      });
+      const totalCost = rawIngCost + packagingCost;
+      const price = Number(product.price) || 0;
+      const profit = Math.max(0, price - totalCost);
+      const margin = price > 0 ? Math.round((profit / price) * 100) : 0;
+      return {
+        rawIngCost: Math.round(rawIngCost * 100) / 100,
+        packagingCost: Math.round(packagingCost * 100) / 100,
+        totalCost: Math.round(totalCost * 100) / 100,
+        profit: Math.round(profit * 100) / 100,
+        margin
+      };
+    };
 
     const renderRecipeTable = () => {
       const rows = Object.entries(localRecipe).map(([ingId, qty]) => {
@@ -1044,7 +1118,7 @@ window.views.menu = {
           <tr id="recipe-row-${ingId}">
             <td>
               <div style="font-weight: 800; color: var(--text-dark);">${ing.name}</div>
-              <div style="font-size: 11px; color: var(--text-muted);">Current Warehouse Stock: <strong>${ing.stock} ${ing.unit}</strong></div>
+              <div style="font-size: 11px; color: var(--text-muted);">Warehouse Stock: <strong>${ing.stock} ${ing.unit}</strong></div>
             </td>
             <td style="font-weight: 800; color: #2563eb;">
               ${qty} ${ing.unit}
@@ -1065,19 +1139,19 @@ window.views.menu = {
       }).join("");
 
       return `
-        <div class="table-container" style="max-height: 220px; overflow-y: auto; margin-bottom: 14px;">
+        <div class="table-container" style="max-height: 220px; overflow-y: auto; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 10px;">
           <table class="premium-table" style="font-size: 12.5px;">
             <thead>
               <tr>
                 <th>Raw Material Component</th>
-                <th>Deduction Quantity</th>
-                <th>Ref Unit Price</th>
-                <th>Stock Valuation</th>
+                <th>Deduction Portion</th>
+                <th>Unit Price</th>
+                <th>Portion Cost</th>
                 <th style="text-align: right;">Remove</th>
               </tr>
             </thead>
             <tbody id="recipe-modal-table-body">
-              ${rows || `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px; font-weight: 600;">No raw materials mapped. When orders are checked out, no warehouse inventory is depleted for this item.</td></tr>`}
+              ${rows || `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px; font-weight: 600;">No raw materials mapped. When orders are checked out, warehouse inventory will not be depleted for this dish.</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -1085,26 +1159,27 @@ window.views.menu = {
     };
 
     const renderSummaryBanner = () => {
+      const summary = calculateRecipeCostSummary();
       return `
         <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center;">
           <div>
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Selling Price</div>
-            <div style="font-size: 16px; font-weight: 900; color: var(--text-dark); margin-top: 2px;">${currency}${Number(product.price || 0).toFixed(2)}</div>
+            <div style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Selling Price</div>
+            <div style="font-size: 16px; font-weight: 900; color: var(--text-dark); margin-top: 2px;">${currency}${Number(product.price || 0).toFixed(0)}</div>
           </div>
           <div>
-            <div style="font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase;">Food Cost (COGS)</div>
+            <div style="font-size: 10.5px; font-weight: 700; color: #b45309; text-transform: uppercase;">Raw Plate Cost</div>
             <div style="font-size: 16px; font-weight: 900; color: #d97706; margin-top: 2px;">
-              ${currency}${costInfo.foodCost.toFixed(2)}
-              <span style="font-size: 10px; color: var(--text-muted); display: block; font-weight: 600;">${costInfo.isCustom ? '(Custom Cost)' : `(${this.benchmarkCogsPercent}% Benchmark)`}</span>
+              ${currency}${summary.totalCost.toFixed(1)}
+              <span style="font-size: 9.5px; color: var(--text-muted); display: block; font-weight: 600;">(Ing: ₹${summary.rawIngCost} + Pack: ₹${summary.packagingCost})</span>
             </div>
           </div>
           <div>
-            <div style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;">Gross Profit</div>
-            <div style="font-size: 16px; font-weight: 900; color: #059669; margin-top: 2px;">${currency}${costInfo.grossProfit.toFixed(2)}</div>
+            <div style="font-size: 10.5px; font-weight: 700; color: #047857; text-transform: uppercase;">Gross Profit</div>
+            <div style="font-size: 16px; font-weight: 900; color: #059669; margin-top: 2px;">${currency}${summary.profit.toFixed(1)}</div>
           </div>
           <div>
-            <div style="font-size: 11px; font-weight: 700; color: #1e40af; text-transform: uppercase;">Profit Margin</div>
-            <div style="font-size: 16px; font-weight: 900; color: #2563eb; margin-top: 2px;">${costInfo.marginPct}%</div>
+            <div style="font-size: 10.5px; font-weight: 700; color: #1e40af; text-transform: uppercase;">Calculated Margin</div>
+            <div style="font-size: 16px; font-weight: 900; color: #2563eb; margin-top: 2px;">${summary.margin}%</div>
           </div>
         </div>
       `;
@@ -1117,7 +1192,7 @@ window.views.menu = {
 
     const completeHtml = `
       <div style="margin-bottom: 12px; font-size: 12.5px; color: var(--text-muted); font-weight: 500;">
-        Map raw inventory materials automatically deducted from warehouse stock whenever <strong style="color: #2563eb;">${product.name}</strong> is ordered on POS.
+        Map raw ingredients deducted automatically from inventory when <strong style="color: #2563eb;">${product.name}</strong> is ordered on POS.
       </div>
       
       <!-- Live Food Cost & Margin Summary Banner -->
@@ -1130,10 +1205,21 @@ window.views.menu = {
         ${renderRecipeTable()}
       </div>
 
+      <!-- Packaging Cost & Quick Apply Cost -->
+      <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label for="recipe-pack-cost-input" style="font-size: 12px; font-weight: 700; color: var(--text-dark);">Packaging Cost (₹):</label>
+          <input type="number" id="recipe-pack-cost-input" class="form-input" value="${packagingCost || ''}" placeholder="e.g. 3.5" min="0" step="any" style="width: 90px; height: 32px; font-size: 12px; font-weight: 700; border-radius: 8px;">
+        </div>
+        <button type="button" class="btn btn-secondary" id="btn-sync-recipe-cost" title="Set Product Food Cost equal to calculated Recipe Cost" style="height: 32px; font-size: 11.5px; font-weight: 800; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px;">
+          <i class="fa-solid fa-calculator" style="color: #059669;"></i> Apply Recipe Cost to Product
+        </button>
+      </div>
+
       <!-- Add New Ingredient Form Wrapper -->
       <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px 14px; border-radius: 12px;">
         <h4 style="font-size: 12px; margin: 0 0 8px 0; color: #2563eb; font-weight: 800; text-transform: uppercase;">
-          <i class="fa-solid fa-plus-circle"></i> Add Raw Material Component
+          <i class="fa-solid fa-plus-circle"></i> Add Raw Ingredient Component
         </h4>
         <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px;">
           <select id="recipe-add-ing-select" class="form-select" style="font-size: 12px; height: 36px; padding: 4px 8px; border-radius: 8px;">
@@ -1158,8 +1244,14 @@ window.views.menu = {
     };
 
     const refreshModalContent = () => {
-      const wrapper = document.getElementById("recipe-table-wrapper");
-      if (wrapper) wrapper.innerHTML = renderRecipeTable();
+      const packInput = document.getElementById("recipe-pack-cost-input");
+      if (packInput) packagingCost = parseFloat(packInput.value) || 0;
+
+      const summaryWrapper = document.getElementById("recipe-summary-banner-wrapper");
+      if (summaryWrapper) summaryWrapper.innerHTML = renderSummaryBanner();
+
+      const tableWrapper = document.getElementById("recipe-table-wrapper");
+      if (tableWrapper) tableWrapper.innerHTML = renderRecipeTable();
       
       const select = document.getElementById("recipe-add-ing-select");
       if (select) {
@@ -1177,14 +1269,18 @@ window.views.menu = {
       bodyHtml: completeHtml,
       confirmText: "Save Inventory Recipe",
       onConfirm: () => {
+        const packInput = document.getElementById("recipe-pack-cost-input");
+        const packVal = packInput ? parseFloat(packInput.value) : 0;
+        product.packagingCost = !isNaN(packVal) ? packVal : 0;
         product.recipe = localRecipe;
         window.db.saveProduct(product);
-        window.showToast(`Inventory deduction recipe saved for "${product.name}".`, "success");
+        window.showToast(`Inventory recipe saved for "${product.name}".`, "success");
         this.render();
         return true;
       }
     });
 
+    // Handle Add Ingredient Button
     const addTrigger = document.getElementById("btn-recipe-add-item-trigger");
     if (addTrigger) {
       addTrigger.onclick = () => {
@@ -1207,6 +1303,32 @@ window.views.menu = {
       };
     }
 
+    // Handle Packaging input change
+    const packInput = document.getElementById("recipe-pack-cost-input");
+    if (packInput) {
+      packInput.oninput = () => {
+        packagingCost = parseFloat(packInput.value) || 0;
+        const summaryWrapper = document.getElementById("recipe-summary-banner-wrapper");
+        if (summaryWrapper) summaryWrapper.innerHTML = renderSummaryBanner();
+      };
+    }
+
+    // Handle Sync Recipe Cost Button
+    const btnSyncCost = document.getElementById("btn-sync-recipe-cost");
+    if (btnSyncCost) {
+      btnSyncCost.onclick = () => {
+        const summary = calculateRecipeCostSummary();
+        product.ingredientCost = summary.rawIngCost;
+        product.packagingCost = summary.packagingCost;
+        product.costPrice = summary.totalCost;
+        product.recipe = localRecipe;
+        window.db.saveProduct(product);
+        window.showToast(`Calculated recipe cost ₹${summary.totalCost} applied as dish cost price.`, "success");
+        window.customModal.hide();
+        this.render();
+      };
+    }
+
     bindTableListeners();
   },
 
@@ -1214,9 +1336,9 @@ window.views.menu = {
   // 3. CATEGORIES MANAGEMENT VIEW
   // =========================================================================
   renderCategories(mount) {
-    const categories = window.db.get("categories") || [];
-    const products = window.db.get("products") || [];
-    const settings = window.db.get("settings") || {};
+    const categories = (window.db && window.db.get("categories")) || [];
+    const products = (window.db && window.db.get("products")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
 
     let rowsHtml = "";
@@ -1238,14 +1360,14 @@ window.views.menu = {
           if (pr < catMin) catMin = pr;
           if (pr > catMax) catMax = pr;
         });
-        const catAvg = items.length > 0 ? (catPriceSum / items.length).toFixed(1) : "0";
+        const catAvg = items.length > 0 ? (catPriceSum / items.length).toFixed(0) : "0";
 
         return `
           <tr>
             <td>
               <div style="font-weight: 800; color: var(--text-dark); font-size: 14px; display: flex; align-items: center; gap: 8px;">
                 <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 13px;">
-                  <i class="fa-solid fa-layer-group"></i>
+                  <i class="fa-solid fa-tags"></i>
                 </div>
                 ${c.name}
               </div>
@@ -1255,7 +1377,7 @@ window.views.menu = {
             </td>
             <td>
               <span style="font-size: 12px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 3px 10px; border-radius: 10px;">
-                ${items.length} Products (${availCount} Active${outCount > 0 ? `, ${outCount} Out` : ''})
+                ${items.length} Dishes (${availCount} Live${outCount > 0 ? `, ${outCount} 86'd` : ''})
               </span>
             </td>
             <td>
@@ -1265,7 +1387,10 @@ window.views.menu = {
             </td>
             <td>
               <div style="display: flex; gap: 6px;">
-                <button class="btn btn-secondary btn-edit-category" data-id="${c.id}" title="Edit Category Title" style="padding: 5px 12px; font-size: 11.5px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                <button class="btn btn-secondary btn-view-cat-items" data-id="${c.id}" title="Filter catalog dishes in this category" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                  <i class="fa-solid fa-eye" style="color: #059669;"></i> View Items
+                </button>
+                <button class="btn btn-secondary btn-edit-category" data-id="${c.id}" title="Rename Category" style="padding: 5px 10px; font-size: 11.5px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
                   <i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i> Rename
                 </button>
                 <button class="btn btn-danger btn-delete-category" data-id="${c.id}" title="Delete Category" style="padding: 5px 9px; font-size: 11.5px; border-radius: 8px;">
@@ -1279,11 +1404,11 @@ window.views.menu = {
     }
 
     mount.innerHTML = `
-      <div class="glass-card view-animate" style="padding: 18px 20px;">
+      <div class="glass-card view-animate" style="padding: 18px 20px; border-radius: 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
           <div>
             <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0;">
-              <i class="fa-solid fa-layer-group" style="color: #2563eb; margin-right: 6px;"></i> Food Categories Directory
+              <i class="fa-solid fa-tags" style="color: #2563eb; margin-right: 6px;"></i> Food Categories Directory
             </h3>
             <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Organize menu items into navigation groups for fast cashier selection on the POS screen.</p>
           </div>
@@ -1310,6 +1435,26 @@ window.views.menu = {
         </div>
       </div>
     `;
+
+    // Bind View Cat Items
+    mount.querySelectorAll(".btn-view-cat-items").forEach(btn => {
+      btn.onclick = () => {
+        const catId = btn.getAttribute("data-id");
+        this.selectedCategory = catId;
+        this.activeTab = "products";
+        const btnProd = document.getElementById("menu-sub-products");
+        const btnCat = document.getElementById("menu-sub-categories");
+        if (btnProd) btnProd.className = "btn btn-primary";
+        if (btnCat) btnCat.className = "btn btn-secondary";
+        const btnBulk = document.getElementById("btn-menu-bulk-tools");
+        const btnExport = document.getElementById("btn-menu-export-csv");
+        const btnPrint = document.getElementById("btn-menu-print-sheet");
+        if (btnBulk) btnBulk.style.display = "inline-flex";
+        if (btnExport) btnExport.style.display = "inline-flex";
+        if (btnPrint) btnPrint.style.display = "inline-flex";
+        this.render();
+      };
+    });
 
     // Bind Edit Cat
     mount.querySelectorAll(".btn-edit-category").forEach(btn => {
@@ -1340,7 +1485,7 @@ window.views.menu = {
       <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
         <div class="form-group" style="margin-bottom: 0;">
           <label class="form-label" for="cat-modal-name" style="font-weight: 700; margin-bottom: 5px;">Category Title *</label>
-          <input type="text" id="cat-modal-name" class="form-input" value="${category ? category.name : ''}" placeholder="e.g. Premium Shakes, Paneer Wraps" style="height: 38px; border-radius: 10px;" required>
+          <input type="text" id="cat-modal-name" class="form-input" value="${category ? category.name : ''}" placeholder="e.g. Burgers, Wraps, Shakes" style="height: 38px; border-radius: 10px;" required>
         </div>
       </div>
     `;
@@ -1372,14 +1517,14 @@ window.views.menu = {
   // 4. PERMISSIONS ACCESS CONTROL MATRIX
   // =========================================================================
   renderPermissions(mount) {
-    const permissions = window.db.get("permissions") || {
+    const permissions = (window.db && window.db.get("permissions")) || {
       admin: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
       manager: ["dashboard", "reports", "counter", "pos", "orders", "menu"],
       staff: ["pos", "orders"]
     };
 
     const viewsList = [
-      { id: "dashboard", name: "Dashboard Overview", icon: "fa-gauge-high", desc: "View executive revenue summaries, real-time KPI metrics, and sales charts." },
+      { id: "dashboard", name: "Executive Dashboard", icon: "fa-gauge-high", desc: "View executive revenue summaries, real-time KPI metrics, and sales charts." },
       { id: "reports", name: "Sales & Profit Reports", icon: "fa-chart-pie", desc: "Access P&L analytics, COGS calibrations, daily financial trends, and CSV exports." },
       { id: "counter", name: "Daily Counter & Cash Register", icon: "fa-cash-register", desc: "Daily cash & UPI counter totals, physical drawer tally, bill history & reprints." },
       { id: "pos", name: "POS Billing Terminal", icon: "fa-cart-shopping", desc: "Access the cashier billing screen to place orders and generate bills." },
@@ -1424,7 +1569,7 @@ window.views.menu = {
     }).join("");
 
     mount.innerHTML = `
-      <div class="glass-card view-animate" style="padding: 20px;">
+      <div class="glass-card view-animate" style="padding: 20px; border-radius: 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 16px;">
           <div>
             <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0;">
@@ -1479,14 +1624,14 @@ window.views.menu = {
   },
 
   // =========================================================================
-  // 5. BULK OPERATIONS & PRICE MODIFIER
+  // 5. BULK OPERATIONS SUITE & PRICE MODIFIER
   // =========================================================================
   openBulkOperationsModal() {
-    const categories = window.db.get("categories") || [];
-    const products = window.db.get("products") || [];
+    const categories = (window.db && window.db.get("categories")) || [];
+    const products = (window.db && window.db.get("products")) || [];
 
     const catOptions = categories.map(c => `
-      <option value="${c.id}">${c.name} (${products.filter(p => p.category === c.id).length} items)</option>
+      <option value="${c.id}">${c.name} (${products.filter(p => p.category === c.id).length} dishes)</option>
     `).join("");
 
     const bodyHtml = `
@@ -1502,13 +1647,13 @@ window.views.menu = {
             <div>
               <label class="form-label" for="bulk-target-cat" style="font-weight: 700; margin-bottom: 4px;">Target Group:</label>
               <select id="bulk-target-cat" class="form-select" style="height: 36px; font-size: 12px; border-radius: 8px;">
-                <option value="all">All Menu Items (${products.length} Products)</option>
+                <option value="all">All Menu Items (${products.length} Dishes)</option>
                 ${catOptions}
               </select>
             </div>
 
             <div>
-              <label class="form-label" for="bulk-action-type" style="font-weight: 700; margin-bottom: 4px;">Action Type:</label>
+              <label class="form-label" for="bulk-action-type" style="font-weight: 700; margin-bottom: 4px;">Adjustment Type:</label>
               <select id="bulk-action-type" class="form-select" style="height: 36px; font-size: 12px; border-radius: 8px;">
                 <option value="inc-pct">Increase by Percentage (%)</option>
                 <option value="dec-pct">Decrease by Percentage (%)</option>
@@ -1518,24 +1663,35 @@ window.views.menu = {
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="flex: 1;">
-              <input type="number" id="bulk-action-val" class="form-input" placeholder="Value (e.g. 10 for 10% or ₹10)" min="1" step="any" style="height: 36px; font-size: 13px; font-weight: 800; border-radius: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div>
+              <label class="form-label" for="bulk-action-val" style="font-weight: 700; margin-bottom: 4px;">Value (e.g. 10):</label>
+              <input type="number" id="bulk-action-val" class="form-input" placeholder="e.g. 10" min="1" step="any" style="height: 36px; font-size: 13px; font-weight: 800; border-radius: 8px;">
             </div>
-            <button class="btn btn-primary" id="btn-apply-bulk-price" style="height: 36px; padding: 0 16px; font-size: 12px; border-radius: 8px; font-weight: 800;">
-              Apply Price Change
-            </button>
+
+            <div>
+              <label class="form-label" for="bulk-rounding" style="font-weight: 700; margin-bottom: 4px;">Smart Rounding:</label>
+              <select id="bulk-rounding" class="form-select" style="height: 36px; font-size: 12px; border-radius: 8px;">
+                <option value="none">Exact Integer (Round to ₹1)</option>
+                <option value="5">Round to nearest ₹5</option>
+                <option value="10">Round to nearest ₹10</option>
+              </select>
+            </div>
           </div>
+
+          <button class="btn btn-primary" id="btn-apply-bulk-price" style="height: 36px; padding: 0 16px; font-size: 12px; border-radius: 8px; font-weight: 800; width: 100%;">
+            Apply Bulk Price Adjustment
+          </button>
         </div>
 
         <!-- Action 2: Stock Availability Reset -->
         <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px;">
           <h4 style="margin: 0 0 10px 0; font-size: 13.5px; font-weight: 800; color: #059669; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-boxes-stacked"></i> Quick Stock Availability
+            <i class="fa-solid fa-boxes-stacked"></i> Bulk Stock Availability (86'd Controls)
           </h4>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button class="btn btn-secondary" id="btn-bulk-stock-all-on" style="height: 36px; font-size: 12px; font-weight: 800; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px;">
-              <i class="fa-solid fa-circle-check" style="color: #059669;"></i> Mark All In-Stock (Live)
+              <i class="fa-solid fa-circle-check" style="color: #059669;"></i> Mark All Dishes In-Stock (Morning Open)
             </button>
           </div>
         </div>
@@ -1558,6 +1714,7 @@ window.views.menu = {
         const targetCat = document.getElementById("bulk-target-cat").value;
         const actionType = document.getElementById("bulk-action-type").value;
         const rawVal = document.getElementById("bulk-action-val").value;
+        const rounding = document.getElementById("bulk-rounding").value;
         const val = Number(rawVal);
 
         if (!rawVal || isNaN(val) || val <= 0) {
@@ -1586,11 +1743,20 @@ window.views.menu = {
           } else if (actionType === "dec-fixed") {
             curr = Math.max(1, curr - val);
           }
-          p.price = Math.round(curr);
+
+          if (rounding === "5") {
+            curr = Math.round(curr / 5) * 5;
+          } else if (rounding === "10") {
+            curr = Math.round(curr / 10) * 10;
+          } else {
+            curr = Math.round(curr);
+          }
+
+          p.price = Math.max(1, curr);
           window.db.saveProduct(p);
         });
 
-        window.showToast(`Updated pricing for ${targetProducts.length} items.`, "success");
+        window.showToast(`Updated pricing for ${targetProducts.length} dishes successfully.`, "success");
         window.customModal.hide();
         this.render();
       };
@@ -1604,7 +1770,7 @@ window.views.menu = {
           p.available = true;
           window.db.saveProduct(p);
         });
-        window.showToast(`All ${products.length} menu products marked as In-Stock.`, "success");
+        window.showToast(`All ${products.length} menu items marked as In-Stock (Live in POS).`, "success");
         window.customModal.hide();
         this.render();
       };
@@ -1612,11 +1778,11 @@ window.views.menu = {
   },
 
   // =========================================================================
-  // 6. CSV EXPORT & MENU PRINTING
+  // 6. CSV EXPORT & MENU SHEET PRINTING
   // =========================================================================
   exportMenuCSV() {
-    const products = window.db.get("products") || [];
-    const categories = window.db.get("categories") || [];
+    const products = (window.db && window.db.get("products")) || [];
+    const categories = (window.db && window.db.get("categories")) || [];
 
     if (products.length === 0) {
       window.showToast("No products found to export.", "error");
@@ -1632,7 +1798,7 @@ window.views.menu = {
       "Selling Price (INR)",
       "Ingredient Cost (INR)",
       "Packaging (INR)",
-      "Total Cost (INR)",
+      "Total Food Cost (INR)",
       "Gross Profit (INR)",
       "Gross Margin (%)",
       "POS Available"
@@ -1641,8 +1807,8 @@ window.views.menu = {
     const rows = products.map(p => {
       const cat = categories.find(c => c.id === p.category);
       const costInfo = this.calculateProductCost(p);
-      const ingCost = p.ingredientCost !== undefined ? Number(p.ingredientCost).toFixed(2) : costInfo.foodCost.toFixed(2);
-      const packCost = p.packagingCost !== undefined ? Number(p.packagingCost).toFixed(2) : "0.00";
+      const ingCost = p.ingredientCost !== undefined && p.ingredientCost !== null ? Number(p.ingredientCost).toFixed(2) : costInfo.foodCost.toFixed(2);
+      const packCost = p.packagingCost !== undefined && p.packagingCost !== null ? Number(p.packagingCost).toFixed(2) : "0.00";
       return [
         `"${p.id}"`,
         `"${(p.name || '').replace(/"/g, '""')}"`,
@@ -1674,9 +1840,9 @@ window.views.menu = {
   },
 
   printMenuPriceList() {
-    const products = window.db.get("products") || [];
-    const categories = window.db.get("categories") || [];
-    const settings = window.db.get("settings") || {};
+    const products = (window.db && window.db.get("products")) || [];
+    const categories = (window.db && window.db.get("categories")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
     const restaurantName = settings.restaurantName || "Crust & Chilly Fast Food";
     const currency = settings.currencySymbol || "₹";
 
@@ -1693,19 +1859,21 @@ window.views.menu = {
     Object.entries(grouped).forEach(([catTitle, items]) => {
       if (items.length === 0) return;
       const itemRows = items.map(p => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dotted #e2e8f0; font-size: 13px;">
-          <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px dotted #e2e8f0; font-size: 13.5px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${p.veg !== false ? '#16a34a' : '#dc2626'};"></span>
             <strong style="color: #0f172a;">${p.name}</strong>
-            ${p.bogo ? `<span style="font-size: 10px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 6px; margin-left: 6px;">BOGO</span>` : ''}
-            ${p.available === false ? `<span style="font-size: 10px; color: #dc2626; margin-left: 4px;">(Unavailable)</span>` : ''}
+            ${p.subCategory ? `<span style="font-size: 11px; color: #64748b;">(${p.subCategory})</span>` : ''}
+            ${p.bogo ? `<span style="font-size: 10px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 6px; margin-left: 4px;">BOGO</span>` : ''}
+            ${p.available === false ? `<span style="font-size: 10px; color: #dc2626; margin-left: 4px;">(Out of Stock)</span>` : ''}
           </div>
-          <div style="font-weight: 900; color: #0f172a;">${currency}${Number(p.price || 0).toFixed(0)}</div>
+          <div style="font-weight: 900; color: #0f172a; font-size: 14px;">${currency}${Number(p.price || 0).toFixed(0)}</div>
         </div>
       `).join("");
 
       sectionsHtml += `
-        <div style="margin-bottom: 20px; page-break-inside: avoid;">
-          <h3 style="font-size: 15px; font-weight: 900; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 0 0 8px 0; text-transform: uppercase;">
+        <div style="margin-bottom: 22px; page-break-inside: avoid;">
+          <h3 style="font-size: 15px; font-weight: 900; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">
             ${catTitle} (${items.length})
           </h3>
           <div style="display: flex; flex-direction: column;">
@@ -1746,7 +1914,7 @@ window.views.menu = {
 
         <div style="text-align: center; margin-bottom: 24px; border-bottom: 2px solid #0f172a; padding-bottom: 12px;">
           <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">${restaurantName}</h1>
-          <div style="font-size: 13px; color: #64748b; margin-top: 4px;">OFFICIAL MENU CATALOG & PRICE SHEET • ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+          <div style="font-size: 13px; color: #64748b; margin-top: 4px;">OFFICIAL RESTAURANT MENU & PRICE SHEET • ${new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
         </div>
 
         ${sectionsHtml}

@@ -1,19 +1,22 @@
-// Crust & Chilly POS - Advanced Daily Counter & Bills History Module
-// Executive Cash Drawer Settlement, Currency Denominations Tally, Hourly Traffic Heatmap,
-// Multi-Filter Order Auditing, Instant Payment Mode Switcher, WhatsApp Receipt Sharing, and Z-Report Settlement.
+// Crust & Chilly POS - Advanced Executive Daily Counter & Bills History Module
+// Features: Executive KPI Overview, Sub-Tab Architecture (Bills Stream, Cash Drawer Reconciliation, Shift Velocity),
+// Interactive Currency Denomination Tally, Real-Time Variance Calculation (Balanced / Surplus / Shortage),
+// Expandable Bill Details, 1-Click Payment Mode Switcher, WhatsApp Receipt Sharing,
+// Quick Cash Out Petty Expenses Log, Hourly Traffic Heatmap, 80mm Z-Report Settlement & Tally Slip Printing, CSV Export.
 
 window.views = window.views || {};
 window.views.counter = {
+  activeTab: "bills", // 'bills' | 'drawer' | 'velocity'
   activeDateStr: null,
   selectedPeriod: "today", // 'today' | 'yesterday' | 'week' | 'month' | 'all' | 'custom'
   searchQuery: "",
-  paymentFilter: "all",
-  statusFilter: "all",
-  typeFilter: "all",
+  paymentFilter: "all", // 'all' | 'Cash' | 'UPI' | 'Card'
+  statusFilter: "all", // 'all' | 'Completed' | 'Preparing' | 'Ready' | 'Cancelled'
+  typeFilter: "all", // 'all' | 'Dine-in' | 'Takeaway'
   sortBy: "newest", // 'newest' | 'oldest' | 'highest' | 'lowest'
-  showTallyPanel: false,
+  expandedOrderId: null, // Track currently expanded bill row
 
-  // Denominations state
+  // Physical Denominations state
   denominations: {
     500: 0,
     200: 0,
@@ -34,18 +37,29 @@ window.views.counter = {
     return `${yyyy}-${mm}-${dd}`;
   },
 
+  loadSavedDenominations() {
+    try {
+      const savedDenoms = localStorage.getItem(`crust_denom_${this.activeDateStr}`);
+      if (savedDenoms) {
+        this.denominations = JSON.parse(savedDenoms);
+      } else {
+        this.denominations = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, coins: 0 };
+      }
+    } catch (e) {
+      this.denominations = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, coins: 0 };
+    }
+  },
+
   init(container) {
     const today = new Date();
     this.activeDateStr = this.getIstDateString(today);
-
-    // Load saved denominations for active date if available
     this.loadSavedDenominations();
 
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
         
-        <!-- Top Executive Control Bar (Date Navigation, Tally Toggle, Actions) -->
-        <div class="glass-card counter-control-bar" style="padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <!-- Top Command Bar: Period Navigation & Action Hub -->
+        <div class="glass-card counter-control-bar" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px;">
           
           <!-- Period Selector & Date Navigation -->
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -72,35 +86,29 @@ window.views.counter = {
           <!-- Utility Operations Toolbar -->
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             
-            <!-- Cash Drawer Tally Toggle with Live Status Pill -->
-            <button class="btn btn-secondary" id="btn-toggle-tally" style="height: 35px; padding: 0 12px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-calculator" style="color: #059669;"></i> Cash Drawer Tally
-              <span id="counter-tally-status-indicator" style="font-size: 10px; padding: 1px 6px; border-radius: 8px; background: #e2e8f0; color: #475569; font-weight: 800;">Tally</span>
-            </button>
-
-            <!-- Quick Petty Cash Out Button -->
-            <button class="btn btn-secondary" id="btn-counter-expense" style="height: 35px; padding: 0 12px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Record Till Cash Expense">
+            <!-- Quick Cash Out Expense Button -->
+            <button class="btn btn-secondary" id="btn-counter-expense" style="height: 36px; padding: 0 13px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Record Till Cash Expense / Payout">
               <i class="fa-solid fa-hand-holding-dollar" style="color: #dc2626;"></i> + Cash Out
             </button>
 
             <!-- Export CSV -->
-            <button class="btn btn-secondary" id="btn-export-csv" style="height: 35px; padding: 0 12px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Download Bills CSV Excel">
-              <i class="fa-solid fa-file-csv" style="color: #2563eb;"></i> Export CSV
+            <button class="btn btn-secondary" id="btn-export-csv" style="height: 36px; padding: 0 13px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Download Bills CSV Excel">
+              <i class="fa-solid fa-file-csv" style="color: #059669;"></i> Export CSV
             </button>
 
-            <!-- Day Summary Slip Print Modal -->
-            <button class="btn btn-secondary" id="btn-print-daysummary" style="height: 35px; padding: 0 12px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Print 80mm Z-Report Day Summary">
-              <i class="fa-solid fa-print" style="color: #4b5563;"></i> Day Summary
+            <!-- Z-Report Day Summary Slip -->
+            <button class="btn btn-secondary" id="btn-print-daysummary" style="height: 36px; padding: 0 13px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Print 80mm Z-Report Day Summary">
+              <i class="fa-solid fa-print" style="color: #2563eb;"></i> Day Summary
             </button>
 
             <!-- Refresh Button -->
-            <button class="btn btn-primary" id="btn-counter-refresh" style="height: 35px; padding: 0 13px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="btn btn-primary" id="btn-counter-refresh" style="height: 36px; padding: 0 14px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-arrows-rotate"></i> Refresh
             </button>
           </div>
         </div>
 
-        <!-- 6-Card Executive Counter Scorecard Grid -->
+        <!-- 5-Card Executive Counter Scorecard Grid -->
         <div class="rep-kpi-grid counter-kpi-grid">
           
           <!-- Card 1: Net Sales Volume -->
@@ -116,7 +124,7 @@ window.views.counter = {
               <div class="rep-kpi-sub" id="counter-orders-count">0 valid bills</div>
             </div>
             <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="counter-orders-active-pill"><i class="fa-solid fa-receipt"></i> 0 Active</span>
+              <span class="dash-sub-pill pill-neutral" id="counter-orders-active-pill"><i class="fa-solid fa-receipt"></i> 0 Completed</span>
               <span class="dash-sub-pill pill-neutral" id="counter-orders-void-pill" style="display: none; color: #dc2626;"><i class="fa-solid fa-ban"></i> 0 Void</span>
             </div>
           </div>
@@ -173,7 +181,7 @@ window.views.counter = {
           </div>
 
           <!-- Card 5: Cash Drawer Balance & Tally Status -->
-          <div class="rep-kpi-card accent-amber" id="counter-drawer-card" style="cursor: pointer;" title="Click to open Cash Drawer Tally panel">
+          <div class="rep-kpi-card accent-amber" id="counter-drawer-card" style="cursor: pointer;" title="Click to view Cash Drawer Reconciliation">
             <div class="rep-kpi-header">
               <span class="rep-kpi-label">Drawer Expected vs Tally</span>
               <div class="rep-kpi-icon icon-amber" id="counter-drawer-icon">
@@ -189,285 +197,62 @@ window.views.counter = {
             </div>
           </div>
 
-          <!-- Card 6: Average Ticket & Rush Velocity -->
-          <div class="rep-kpi-card accent-cyan">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Avg Ticket & Rush</span>
-              <div class="rep-kpi-icon" style="background: #ecfeff; border: 1px solid #a5f3fc; color: #0891b2;">
-                <i class="fa-solid fa-chart-line"></i>
-              </div>
-            </div>
-            <div>
-              <div class="rep-kpi-val" id="counter-avg-ticket" style="color: #0891b2;">₹0</div>
-              <div class="rep-kpi-sub" id="counter-token-range">Token #0 - #0</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="counter-discount-total-pill"><i class="fa-solid fa-tag"></i> Disc: ₹0</span>
-            </div>
-          </div>
-
         </div>
 
-        <!-- Cash Drawer Tally & Denominations Counter Card (Collapsible) -->
-        <div id="counter-tally-container" class="counter-tally-box" style="display: ${this.showTallyPanel ? 'block' : 'none'};">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div style="width: 34px; height: 34px; border-radius: 10px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 16px;">
-                <i class="fa-solid fa-vault"></i>
-              </div>
-              <div>
-                <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark);">Cash Drawer Reconciliation & Notes Counter</h4>
-                <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);">Reconcile physical drawer cash with POS registered sales and petty cash expenses.</p>
-              </div>
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <button type="button" class="btn btn-secondary" id="btn-reset-denoms" style="height: 30px; font-size: 11px; padding: 0 10px; border-radius: 8px;">
-                <i class="fa-solid fa-arrow-rotate-left"></i> Reset Notes
-              </button>
-              <button type="button" class="btn btn-primary" id="btn-print-tally-slip" style="height: 30px; font-size: 11px; padding: 0 12px; border-radius: 8px;">
-                <i class="fa-solid fa-print"></i> Print Tally Slip
-              </button>
-            </div>
+        <!-- Sub-Tabs Navigation Strip -->
+        <div class="glass-card" style="padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-radius: 12px;">
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button class="btn ${this.activeTab === 'bills' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-bills" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-receipt"></i> Bills & Orders Stream
+            </button>
+            <button class="btn ${this.activeTab === 'drawer' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-drawer" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-vault"></i> Cash Drawer & Denominations
+            </button>
+            <button class="btn ${this.activeTab === 'velocity' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-velocity" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-chart-column"></i> Shift Rush & Velocity
+            </button>
           </div>
-
-          <!-- Drawer Calculation Math Summary Row -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
-            
-            <!-- Opening Float -->
-            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Opening Cash Float</span>
-                <button type="button" id="btn-edit-float" title="Change Opening Cash Float" style="background: none; border: none; color: #2563eb; cursor: pointer; font-size: 11px; font-weight: 700;">
-                  <i class="fa-solid fa-pen"></i> Edit
-                </button>
-              </div>
-              <div id="tally-opening-float" style="font-size: 20px; font-weight: 900; color: var(--text-dark); margin-top: 4px;">₹1,000</div>
-              <span style="font-size: 10.5px; color: var(--text-muted);">Morning shift base cash</span>
-            </div>
-
-            <!-- (+) Cash Sales -->
-            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 10px 14px;">
-              <span style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;">(+) Cash Sales</span>
-              <div id="tally-cash-sales" style="font-size: 20px; font-weight: 900; color: #059669; margin-top: 4px;">₹0</div>
-              <span id="tally-cash-bills-count" style="font-size: 10.5px; color: #065f46;">0 bills collected</span>
-            </div>
-
-            <!-- (-) Cash Paid Out / Expenses -->
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 10px 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">(-) Cash Expenses</span>
-                <span id="tally-expense-count" style="font-size: 10.5px; color: #991b1b; font-weight: 700;">0 entries</span>
-              </div>
-              <div id="tally-cash-out" style="font-size: 20px; font-weight: 900; color: #dc2626; margin-top: 4px;">₹0</div>
-              <span style="font-size: 10.5px; color: #991b1b;">Petty cash paid from till</span>
-            </div>
-
-            <!-- (=) Expected Drawer Cash -->
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 10px 14px;">
-              <span style="font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase;">(=) Expected in Drawer</span>
-              <div id="tally-expected-cash" style="font-size: 20px; font-weight: 900; color: #2563eb; margin-top: 4px;">₹1,000</div>
-              <span style="font-size: 10.5px; color: #1e40af;">Float + Cash In - Cash Out</span>
-            </div>
-
-            <!-- Physical Counted & Difference -->
-            <div id="tally-diff-card" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 11px; font-weight: 700; color: var(--text-dark); text-transform: uppercase;">Physical Counted</span>
-                <span id="tally-variance-badge" style="font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: #e2e8f0; color: var(--text-dark);">₹0 Diff</span>
-              </div>
-              <div id="tally-actual-cash" style="font-size: 20px; font-weight: 900; color: var(--text-dark); margin-top: 4px;">₹0</div>
-              <span id="tally-variance-desc" style="font-size: 10.5px; color: var(--text-muted);">Enter denominations below</span>
-            </div>
-          </div>
-
-          <!-- Currency Denomination Note Counters Grid -->
-          <div style="margin-top: 10px;">
-            <div style="font-size: 12px; font-weight: 800; color: var(--text-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-money-bill-1-wave" style="color: #059669;"></i> Physical Cash Note Breakdown:
-            </div>
-            <div class="counter-denom-grid">
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹500 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="500" value="${this.denominations[500] || ''}" placeholder="0">
-                <span id="denom-sub-500" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 45px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹200 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="200" value="${this.denominations[200] || ''}" placeholder="0">
-                <span id="denom-sub-200" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 45px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹100 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="100" value="${this.denominations[100] || ''}" placeholder="0">
-                <span id="denom-sub-100" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 45px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹50 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="50" value="${this.denominations[50] || ''}" placeholder="0">
-                <span id="denom-sub-50" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 45px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹20 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="20" value="${this.denominations[20] || ''}" placeholder="0">
-                <span id="denom-sub-20" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 45px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹10 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="10" value="${this.denominations[10] || ''}" placeholder="0">
-                <span id="denom-sub-10" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 45px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">Coins ₹</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="coins" value="${this.denominations.coins || ''}" placeholder="0" style="width: 60px;">
-                <span id="denom-sub-coins" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 45px; text-align: right;">₹0</span>
-              </div>
-            </div>
+          <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); padding-right: 8px;" id="counter-subtab-indicator">
+            <!-- Dynamic context indicator -->
           </div>
         </div>
 
-        <!-- Hourly Rush Meter (Store Traffic Heatmap) -->
-        <div class="glass-card" style="padding: 12px 18px; display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-chart-column" style="color: #2563eb;"></i> Hourly Store Traffic & Rush Timeline
-            </span>
-            <span id="counter-peak-hour-badge" style="font-size: 11px; font-weight: 700; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 8px;">
-              Peak: --
-            </span>
-          </div>
-          <div class="counter-rush-strip" id="counter-rush-timeline">
-            <!-- Hourly bars dynamically populated -->
-          </div>
-        </div>
-
-        <!-- Orders History & Bills Search Section -->
-        <div class="glass-card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div>
-              <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0 0 2px 0;">
-                <i class="fa-solid fa-clock-rotate-left" style="color: #2563eb; margin-right: 6px;"></i> Bills & Order Audit History
-              </h3>
-              <p style="font-size: 12px; color: var(--text-muted); margin: 0;" id="counter-history-subtitle">
-                Search, inspect items, switch payment modes, send WhatsApp receipt, or reprint bill.
-              </p>
-            </div>
-
-            <!-- Comprehensive Search and Filter controls -->
-            <div class="counter-search-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              
-              <!-- Payment Filter -->
-              <select id="counter-payment-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 110px;">
-                <option value="all">All Modes</option>
-                <option value="Cash">Cash</option>
-                <option value="UPI">UPI</option>
-                <option value="Card">Card</option>
-              </select>
-
-              <!-- Status Filter -->
-              <select id="counter-status-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 120px;">
-                <option value="all">All Statuses</option>
-                <option value="Completed">Completed</option>
-                <option value="Preparing">Preparing</option>
-                <option value="Ready">Ready</option>
-                <option value="Cancelled">Cancelled (Void)</option>
-              </select>
-
-              <!-- Order Type Filter -->
-              <select id="counter-type-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 110px;">
-                <option value="all">All Types</option>
-                <option value="Dine-in">Dine-in</option>
-                <option value="Takeaway">Takeaway</option>
-              </select>
-
-              <!-- Sort Order -->
-              <select id="counter-sort-by" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 125px;">
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="highest">Highest ₹</option>
-                <option value="lowest">Lowest ₹</option>
-              </select>
-
-              <!-- Search Box -->
-              <div class="counter-search-box" style="position: relative; width: 230px;">
-                <input type="text" id="counter-search-input" class="form-input" placeholder="Search Bill# / Cust / Phone / Item" style="padding: 6px 12px 6px 30px; font-size: 12px; height: 36px; border-radius: 10px; width: 100%;">
-                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 11px; pointer-events: none;"></i>
-              </div>
-
-              <!-- Reset Filters Button -->
-              <button class="btn btn-secondary" id="btn-reset-filters" style="height: 36px; padding: 0 10px; font-size: 11.5px; border-radius: 10px;" title="Reset Search & Filters">
-                <i class="fa-solid fa-filter-circle-xmark"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Matching records summary banner -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
-            <span id="counter-records-count" style="font-weight: 700; color: var(--text-dark);">Showing 0 bills</span>
-            <span id="counter-records-amount" style="font-weight: 800; color: #2563eb;">Total: ₹0</span>
-          </div>
-
-          <!-- Orders Table Container -->
-          <div class="table-container" style="max-height: 480px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch;">
-            <table class="premium-table">
-              <thead>
-                <tr>
-                  <th>Bill # / Token</th>
-                  <th>Time & Date</th>
-                  <th>Customer & Type</th>
-                  <th>Items Summary</th>
-                  <th>Payment</th>
-                  <th>Discount</th>
-                  <th style="text-align: right;">Total Amount</th>
-                  <th>Status</th>
-                  <th style="text-align: center;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="counter-orders-table-body">
-                <!-- Dynamic order rows rendered here -->
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <!-- Sub-Tab Content Mount -->
+        <div id="counter-subtab-mount"></div>
 
       </div>
     `;
 
-    this.bindEvents();
+    this.bindGlobalEvents();
     this.render();
   },
 
-  loadSavedDenominations() {
-    try {
-      const savedDenoms = localStorage.getItem(`crust_denom_${this.activeDateStr}`);
-      if (savedDenoms) {
-        this.denominations = JSON.parse(savedDenoms);
-      } else {
-        this.denominations = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, coins: 0 };
-      }
-    } catch (e) {
-      this.denominations = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, coins: 0 };
-    }
-  },
-
-  bindEvents() {
+  bindGlobalEvents() {
     const datePicker = document.getElementById("counter-date-picker");
     const btnRefresh = document.getElementById("btn-counter-refresh");
-    const searchInput = document.getElementById("counter-search-input");
-    const filterPayment = document.getElementById("counter-payment-filter");
-    const filterStatus = document.getElementById("counter-status-filter");
-    const filterType = document.getElementById("counter-type-filter");
-    const sortBy = document.getElementById("counter-sort-by");
-    const btnResetFilters = document.getElementById("btn-reset-filters");
-    const btnToggleTally = document.getElementById("btn-toggle-tally");
     const drawerCard = document.getElementById("counter-drawer-card");
     const btnExpense = document.getElementById("btn-counter-expense");
     const btnExportCsv = document.getElementById("btn-export-csv");
     const btnPrintSummary = document.getElementById("btn-print-daysummary");
-    const btnEditFloat = document.getElementById("btn-edit-float");
-    const btnResetDenoms = document.getElementById("btn-reset-denoms");
-    const btnPrintTallySlip = document.getElementById("btn-print-tally-slip");
 
-    // Quick Time Pills
+    const tabBills = document.getElementById("subtab-counter-bills");
+    const tabDrawer = document.getElementById("subtab-counter-drawer");
+    const tabVelocity = document.getElementById("subtab-counter-velocity");
+
+    const switchSubTab = (tab) => {
+      this.activeTab = tab;
+      if (tabBills) tabBills.className = this.activeTab === "bills" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabDrawer) tabDrawer.className = this.activeTab === "drawer" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabVelocity) tabVelocity.className = this.activeTab === "velocity" ? "btn btn-primary" : "btn btn-secondary";
+      this.renderSubTab();
+    };
+
+    if (tabBills) tabBills.onclick = () => switchSubTab("bills");
+    if (tabDrawer) tabDrawer.onclick = () => switchSubTab("drawer");
+    if (tabVelocity) tabVelocity.onclick = () => switchSubTab("velocity");
+    if (drawerCard) drawerCard.onclick = () => switchSubTab("drawer");
+
+    // Quick Time Presets
     document.querySelectorAll(".counter-time-pill").forEach(pill => {
       pill.onclick = () => {
         document.querySelectorAll(".counter-time-pill").forEach(p => p.classList.remove("active"));
@@ -507,20 +292,6 @@ window.views.counter = {
       };
     }
 
-    const toggleTally = () => {
-      this.showTallyPanel = !this.showTallyPanel;
-      const box = document.getElementById("counter-tally-container");
-      if (box) {
-        box.style.display = this.showTallyPanel ? "block" : "none";
-        if (this.showTallyPanel) {
-          box.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }
-    };
-
-    if (btnToggleTally) btnToggleTally.onclick = toggleTally;
-    if (drawerCard) drawerCard.onclick = toggleTally;
-
     if (btnExpense) {
       btnExpense.onclick = () => this.openQuickCashOutModal();
     }
@@ -532,32 +303,283 @@ window.views.counter = {
     if (btnPrintSummary) {
       btnPrintSummary.onclick = () => this.showDaySummaryPrintModal();
     }
+  },
 
-    if (btnEditFloat) {
-      btnEditFloat.onclick = () => this.promptEditOpeningFloat();
+  getOpeningFloat() {
+    const key = `crust_opening_float_${this.activeDateStr}`;
+    const saved = localStorage.getItem(key);
+    if (saved !== null && !isNaN(Number(saved))) {
+      return Number(saved);
+    }
+    const settings = (window.db && window.db.get("settings")) || {};
+    return Number(settings.defaultOpeningFloat) || 1000;
+  },
+
+  promptEditOpeningFloat() {
+    const current = this.getOpeningFloat();
+    const res = prompt(`Enter Morning Opening Cash Float for ${this.activeDateStr} (₹):`, current);
+    if (res !== null) {
+      const num = Math.max(0, Number(res) || 0);
+      localStorage.setItem(`crust_opening_float_${this.activeDateStr}`, num);
+      window.showToast(`Opening cash float set to ₹${num.toLocaleString("en-IN")}`, "success");
+      this.recalculateDrawerMath();
+    }
+  },
+
+  saveAndRecalcDenominations() {
+    try {
+      localStorage.setItem(`crust_denom_${this.activeDateStr}`, JSON.stringify(this.denominations));
+    } catch (e) {}
+    this.recalculateDrawerMath();
+  },
+
+  getFilteredOrdersByPeriod(allOrders) {
+    const now = new Date();
+    const todayStr = this.getIstDateString(now);
+
+    if (this.selectedPeriod === "all") {
+      return allOrders;
     }
 
-    if (btnResetDenoms) {
-      btnResetDenoms.onclick = () => {
-        this.denominations = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, coins: 0 };
-        document.querySelectorAll(".counter-denom-input").forEach(input => input.value = "");
-        this.saveAndRecalcDenominations();
-      };
+    if (this.selectedPeriod === "today") {
+      return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === todayStr);
     }
 
-    if (btnPrintTallySlip) {
-      btnPrintTallySlip.onclick = () => this.printTallySlip();
+    if (this.selectedPeriod === "yesterday") {
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      const yestStr = this.getIstDateString(yest);
+      return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === yestStr);
     }
 
-    // Denomination inputs
-    document.querySelectorAll(".counter-denom-input").forEach(input => {
-      input.oninput = (e) => {
-        const denom = e.target.getAttribute("data-denom");
-        const val = Math.max(0, parseInt(e.target.value, 10) || 0);
-        this.denominations[denom] = val;
-        this.saveAndRecalcDenominations();
-      };
-    });
+    if (this.selectedPeriod === "week") {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      return allOrders.filter(o => o.createdAt && new Date(o.createdAt) >= sevenDaysAgo);
+    }
+
+    if (this.selectedPeriod === "month") {
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      return allOrders.filter(o => {
+        if (!o.createdAt) return false;
+        const d = new Date(o.createdAt);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+    }
+
+    // Default to activeDateStr (Custom calendar selection)
+    const targetDate = this.activeDateStr;
+    return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === targetDate);
+  },
+
+  render() {
+    this.renderKpis();
+    this.renderSubTab();
+  },
+
+  renderKpis() {
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
+    const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
+    const cancelledOrders = periodOrders.filter(o => o.status === "Cancelled");
+
+    // Metrics calculations
+    const netSales = validOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
+    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    const upiOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "upi");
+    const upiSales = upiOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    const cardOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "card");
+    const cardSales = cardOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    // Percentage shares
+    const cashPct = netSales > 0 ? Math.round((cashSales / netSales) * 100) : 0;
+    const upiPct = netSales > 0 ? Math.round((upiSales / netSales) * 100) : 0;
+    const cardPct = netSales > 0 ? Math.round((cardSales / netSales) * 100) : 0;
+
+    // Update Top Scorecard Elements
+    const totalEl = document.getElementById("counter-total-sales");
+    const ordersEl = document.getElementById("counter-orders-count");
+    const activePill = document.getElementById("counter-orders-active-pill");
+    const voidPill = document.getElementById("counter-orders-void-pill");
+
+    const cashEl = document.getElementById("counter-cash-sales");
+    const cashCountEl = document.getElementById("counter-cash-count");
+    const cashPctPill = document.getElementById("counter-cash-pct-pill");
+
+    const upiEl = document.getElementById("counter-upi-sales");
+    const upiCountEl = document.getElementById("counter-upi-count");
+    const upiPctPill = document.getElementById("counter-upi-pct-pill");
+
+    const cardEl = document.getElementById("counter-card-sales");
+    const cardCountEl = document.getElementById("counter-card-count");
+    const cardPctPill = document.getElementById("counter-card-pct-pill");
+
+    if (totalEl) totalEl.textContent = `${currency}${Math.round(netSales).toLocaleString("en-IN")}`;
+    if (ordersEl) ordersEl.textContent = `${validOrders.length} valid bills placed`;
+    if (activePill) activePill.innerHTML = `<i class="fa-solid fa-receipt"></i> ${validOrders.length} Completed`;
+    if (voidPill) {
+      if (cancelledOrders.length > 0) {
+        voidPill.style.display = "inline-flex";
+        voidPill.innerHTML = `<i class="fa-solid fa-ban"></i> ${cancelledOrders.length} Void`;
+      } else {
+        voidPill.style.display = "none";
+      }
+    }
+
+    if (cashEl) cashEl.textContent = `${currency}${Math.round(cashSales).toLocaleString("en-IN")}`;
+    if (cashCountEl) cashCountEl.textContent = `${cashOrders.length} Cash Bills`;
+    if (cashPctPill) cashPctPill.textContent = `${cashPct}% of total collections`;
+
+    if (upiEl) upiEl.textContent = `${currency}${Math.round(upiSales).toLocaleString("en-IN")}`;
+    if (upiCountEl) upiCountEl.textContent = `${upiOrders.length} UPI QR Bills`;
+    if (upiPctPill) upiPctPill.textContent = `${upiPct}% of total collections`;
+
+    if (cardEl) cardEl.textContent = `${currency}${Math.round(cardSales).toLocaleString("en-IN")}`;
+    if (cardCountEl) cardCountEl.textContent = `${cardOrders.length} Card Swipes`;
+    if (cardPctPill) cardPctPill.textContent = `${cardPct}% of total collections`;
+
+    this.recalculateDrawerMath();
+  },
+
+  renderSubTab() {
+    const mount = document.getElementById("counter-subtab-mount");
+    if (!mount) return;
+
+    const ind = document.getElementById("counter-subtab-indicator");
+    if (ind) {
+      if (this.activeTab === "bills") {
+        ind.innerHTML = `<i class="fa-solid fa-circle-check" style="color: #059669;"></i> Real-time orders audit`;
+      } else if (this.activeTab === "drawer") {
+        ind.innerHTML = `<i class="fa-solid fa-shield-halved" style="color: #2563eb;"></i> Physical cash reconciliation`;
+      } else if (this.activeTab === "velocity") {
+        ind.innerHTML = `<i class="fa-solid fa-fire" style="color: #d97706;"></i> Rush & peak throughput`;
+      }
+    }
+
+    if (this.activeTab === "bills") {
+      this.renderBillsTab(mount);
+    } else if (this.activeTab === "drawer") {
+      this.renderDrawerTab(mount);
+    } else if (this.activeTab === "velocity") {
+      this.renderVelocityTab(mount);
+    }
+  },
+
+  // =========================================================================
+  // SUB-TAB 1: BILLS & ORDERS AUDIT STREAM
+  // =========================================================================
+  renderBillsTab(mount) {
+    mount.innerHTML = `
+      <div class="glass-card view-animate" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 14px;">
+        
+        <!-- Header & Filter Row -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0 0 2px 0;">
+              <i class="fa-solid fa-receipt" style="color: #2563eb; margin-right: 6px;"></i> Bills Audit & Orders Stream
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+              Click any bill to expand items • Switch payment modes • WhatsApp receipt • Reprint 80mm bill.
+            </p>
+          </div>
+
+          <!-- Comprehensive Search and Filter controls -->
+          <div class="counter-search-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            
+            <!-- Payment Filter -->
+            <select id="counter-payment-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 110px;">
+              <option value="all" ${this.paymentFilter === 'all' ? 'selected' : ''}>All Modes</option>
+              <option value="Cash" ${this.paymentFilter === 'Cash' ? 'selected' : ''}>Cash</option>
+              <option value="UPI" ${this.paymentFilter === 'UPI' ? 'selected' : ''}>UPI</option>
+              <option value="Card" ${this.paymentFilter === 'Card' ? 'selected' : ''}>Card</option>
+            </select>
+
+            <!-- Status Filter -->
+            <select id="counter-status-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 125px;">
+              <option value="all" ${this.statusFilter === 'all' ? 'selected' : ''}>All Statuses</option>
+              <option value="Completed" ${this.statusFilter === 'Completed' ? 'selected' : ''}>Completed</option>
+              <option value="Preparing" ${this.statusFilter === 'Preparing' ? 'selected' : ''}>Preparing</option>
+              <option value="Ready" ${this.statusFilter === 'Ready' ? 'selected' : ''}>Ready</option>
+              <option value="Cancelled" ${this.statusFilter === 'Cancelled' ? 'selected' : ''}>Cancelled (Void)</option>
+            </select>
+
+            <!-- Order Type Filter -->
+            <select id="counter-type-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 110px;">
+              <option value="all" ${this.typeFilter === 'all' ? 'selected' : ''}>All Types</option>
+              <option value="Dine-in" ${this.typeFilter === 'Dine-in' ? 'selected' : ''}>Dine-in</option>
+              <option value="Takeaway" ${this.typeFilter === 'Takeaway' ? 'selected' : ''}>Takeaway</option>
+            </select>
+
+            <!-- Sort Order -->
+            <select id="counter-sort-by" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 125px;">
+              <option value="newest" ${this.sortBy === 'newest' ? 'selected' : ''}>Newest First</option>
+              <option value="oldest" ${this.sortBy === 'oldest' ? 'selected' : ''}>Oldest First</option>
+              <option value="highest" ${this.sortBy === 'highest' ? 'selected' : ''}>Highest ₹</option>
+              <option value="lowest" ${this.sortBy === 'lowest' ? 'selected' : ''}>Lowest ₹</option>
+            </select>
+
+            <!-- Search Box -->
+            <div class="counter-search-box" style="position: relative; width: 220px;">
+              <input type="text" id="counter-search-input" class="form-input" placeholder="Search Bill# / Phone / Item" value="${this.searchQuery}" style="padding: 6px 12px 6px 30px; font-size: 12px; height: 36px; border-radius: 10px; width: 100%;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 11px; pointer-events: none;"></i>
+            </div>
+
+            <!-- Reset Filters Button -->
+            <button class="btn btn-secondary" id="btn-reset-filters" style="height: 36px; padding: 0 10px; font-size: 11.5px; border-radius: 10px;" title="Reset Search & Filters">
+              <i class="fa-solid fa-filter-circle-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Matching records summary banner -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+          <span id="counter-records-count" style="font-weight: 700; color: var(--text-dark);">Showing 0 bills</span>
+          <span id="counter-records-amount" style="font-weight: 800; color: #2563eb;">Total: ₹0</span>
+        </div>
+
+        <!-- Orders Table Container -->
+        <div class="table-container" style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 10px;">
+          <table class="premium-table">
+            <thead>
+              <tr>
+                <th style="min-width: 120px;">Bill # / Token</th>
+                <th>Time & Date</th>
+                <th>Customer & Type</th>
+                <th style="min-width: 180px;">Items Summary</th>
+                <th>Payment</th>
+                <th>Discount</th>
+                <th style="text-align: right;">Total Amount</th>
+                <th>Status</th>
+                <th style="text-align: center; min-width: 160px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="counter-orders-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    this.bindBillsViewEvents(mount);
+    this.renderTableOnly();
+  },
+
+  bindBillsViewEvents(mount) {
+    const searchInput = mount.querySelector("#counter-search-input");
+    const filterPayment = mount.querySelector("#counter-payment-filter");
+    const filterStatus = mount.querySelector("#counter-status-filter");
+    const filterType = mount.querySelector("#counter-type-filter");
+    const sortBy = mount.querySelector("#counter-sort-by");
+    const btnResetFilters = mount.querySelector("#btn-reset-filters");
 
     if (searchInput) {
       searchInput.oninput = (e) => {
@@ -614,401 +636,9 @@ window.views.counter = {
     }
   },
 
-  getOpeningFloat() {
-    const key = `crust_opening_float_${this.activeDateStr}`;
-    const saved = localStorage.getItem(key);
-    if (saved !== null && !isNaN(Number(saved))) {
-      return Number(saved);
-    }
-    const settings = window.db.get("settings") || {};
-    return Number(settings.defaultOpeningFloat) || 1000;
-  },
-
-  promptEditOpeningFloat() {
-    const current = this.getOpeningFloat();
-    const res = prompt("Enter Morning Opening Cash Float for " + this.activeDateStr + " (₹):", current);
-    if (res !== null) {
-      const num = Math.max(0, Number(res) || 0);
-      localStorage.setItem(`crust_opening_float_${this.activeDateStr}`, num);
-      window.showToast(`Opening cash float set to ₹${num.toLocaleString("en-IN")}`, "success");
-      this.recalculateDrawerMath();
-    }
-  },
-
-  saveAndRecalcDenominations() {
-    try {
-      localStorage.setItem(`crust_denom_${this.activeDateStr}`, JSON.stringify(this.denominations));
-    } catch (e) {}
-    this.recalculateDrawerMath();
-  },
-
-  getFilteredOrdersByPeriod(allOrders) {
-    const now = new Date();
-    const todayStr = this.getIstDateString(now);
-
-    if (this.selectedPeriod === "all") {
-      return allOrders;
-    }
-
-    if (this.selectedPeriod === "today") {
-      return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === todayStr);
-    }
-
-    if (this.selectedPeriod === "yesterday") {
-      const yest = new Date();
-      yest.setDate(yest.getDate() - 1);
-      const yestStr = this.getIstDateString(yest);
-      return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === yestStr);
-    }
-
-    if (this.selectedPeriod === "week") {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
-      return allOrders.filter(o => o.createdAt && new Date(o.createdAt) >= sevenDaysAgo);
-    }
-
-    if (this.selectedPeriod === "month") {
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      return allOrders.filter(o => {
-        if (!o.createdAt) return false;
-        const d = new Date(o.createdAt);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      });
-    }
-
-    // Default to activeDateStr (Custom date)
-    const targetDate = this.activeDateStr;
-    return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === targetDate);
-  },
-
-  render() {
-    const allOrders = window.db.get("orders") || [];
-    const settings = window.db.get("settings") || {};
-    const currency = settings.currencySymbol || "₹";
-
-    const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
-    const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
-    const cancelledOrders = periodOrders.filter(o => o.status === "Cancelled");
-
-    // Metrics calculations
-    const netSales = validOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    
-    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
-    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-    const upiOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "upi");
-    const upiSales = upiOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-    const cardOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "card");
-    const cardSales = cardOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-    const totalDiscounts = validOrders.reduce((sum, o) => {
-      const flat = Number(o.discount) || 0;
-      return sum + flat;
-    }, 0);
-
-    const avgTicket = validOrders.length > 0 ? Math.round(netSales / validOrders.length) : 0;
-
-    let minToken = 999999;
-    let maxToken = 0;
-    validOrders.forEach(o => {
-      const tok = Number(o.tokenNumber) || 0;
-      if (tok > 0) {
-        if (tok < minToken) minToken = tok;
-        if (tok > maxToken) maxToken = tok;
-      }
-    });
-
-    const tokenRangeText = maxToken > 0 ? `Token #${minToken} - #${maxToken}` : "Token #0 - #0";
-
-    // Percentage shares
-    const cashPct = netSales > 0 ? Math.round((cashSales / netSales) * 100) : 0;
-    const upiPct = netSales > 0 ? Math.round((upiSales / netSales) * 100) : 0;
-    const cardPct = netSales > 0 ? Math.round((cardSales / netSales) * 100) : 0;
-
-    // Update Top 6 KPI Elements
-    const totalEl = document.getElementById("counter-total-sales");
-    const ordersEl = document.getElementById("counter-orders-count");
-    const activePill = document.getElementById("counter-orders-active-pill");
-    const voidPill = document.getElementById("counter-orders-void-pill");
-
-    const cashEl = document.getElementById("counter-cash-sales");
-    const cashCountEl = document.getElementById("counter-cash-count");
-    const cashPctPill = document.getElementById("counter-cash-pct-pill");
-
-    const upiEl = document.getElementById("counter-upi-sales");
-    const upiCountEl = document.getElementById("counter-upi-count");
-    const upiPctPill = document.getElementById("counter-upi-pct-pill");
-
-    const cardEl = document.getElementById("counter-card-sales");
-    const cardCountEl = document.getElementById("counter-card-count");
-    const cardPctPill = document.getElementById("counter-card-pct-pill");
-
-    const avgEl = document.getElementById("counter-avg-ticket");
-    const tokenEl = document.getElementById("counter-token-range");
-    const discountPill = document.getElementById("counter-discount-total-pill");
-
-    if (totalEl) totalEl.textContent = `${currency}${Math.round(netSales).toLocaleString("en-IN")}`;
-    if (ordersEl) ordersEl.textContent = `${validOrders.length} valid bills placed`;
-    if (activePill) activePill.innerHTML = `<i class="fa-solid fa-receipt"></i> ${validOrders.length} Completed`;
-    if (voidPill) {
-      if (cancelledOrders.length > 0) {
-        voidPill.style.display = "inline-flex";
-        voidPill.innerHTML = `<i class="fa-solid fa-ban"></i> ${cancelledOrders.length} Void`;
-      } else {
-        voidPill.style.display = "none";
-      }
-    }
-
-    if (cashEl) cashEl.textContent = `${currency}${Math.round(cashSales).toLocaleString("en-IN")}`;
-    if (cashCountEl) cashCountEl.textContent = `${cashOrders.length} Cash Bills`;
-    if (cashPctPill) cashPctPill.textContent = `${cashPct}% of total collections`;
-
-    if (upiEl) upiEl.textContent = `${currency}${Math.round(upiSales).toLocaleString("en-IN")}`;
-    if (upiCountEl) upiCountEl.textContent = `${upiOrders.length} UPI QR Bills`;
-    if (upiPctPill) upiPctPill.textContent = `${upiPct}% of total collections`;
-
-    if (cardEl) cardEl.textContent = `${currency}${Math.round(cardSales).toLocaleString("en-IN")}`;
-    if (cardCountEl) cardCountEl.textContent = `${cardOrders.length} Card Swipes`;
-    if (cardPctPill) cardPctPill.textContent = `${cardPct}% of total collections`;
-
-    if (avgEl) avgEl.textContent = `${currency}${avgTicket} / ticket`;
-    if (tokenEl) tokenEl.textContent = tokenRangeText;
-    if (discountPill) discountPill.innerHTML = `<i class="fa-solid fa-tag"></i> Discounts: ${currency}${Math.round(totalDiscounts).toLocaleString("en-IN")}`;
-
-    // Recalculate Cash Drawer math & Denominations
-    this.recalculateDrawerMath();
-
-    // Render Rush meter
-    this.renderRushMeter(validOrders);
-
-    // Render Table
-    this.renderTableOnly();
-  },
-
-  recalculateDrawerMath() {
-    const allOrders = window.db.get("orders") || [];
-    const allExpenses = window.db.get("expenses") || [];
-    const settings = window.db.get("settings") || {};
-    const currency = settings.currencySymbol || "₹";
-
-    const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
-    const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
-
-    // Cash Sales
-    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
-    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-    // Filter cash expenses for active date
-    const targetDate = this.activeDateStr;
-    const periodExpenses = allExpenses.filter(e => {
-      const eDate = e.date || (e.createdAt ? this.getIstDateString(new Date(e.createdAt)) : "");
-      const isCash = (e.paymentMode || e.paymentMethod || "Cash").toLowerCase() === "cash";
-      return isCash && (this.selectedPeriod === "all" || eDate === targetDate);
-    });
-
-    const cashOut = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-    const openingFloat = this.getOpeningFloat();
-    const expectedCash = openingFloat + cashSales - cashOut;
-
-    // Physical counted calculation
-    const d = this.denominations;
-    const sub500 = (d[500] || 0) * 500;
-    const sub200 = (d[200] || 0) * 200;
-    const sub100 = (d[100] || 0) * 100;
-    const sub50 = (d[50] || 0) * 50;
-    const sub20 = (d[20] || 0) * 20;
-    const sub10 = (d[10] || 0) * 10;
-    const subCoins = d.coins || 0;
-
-    const actualCash = sub500 + sub200 + sub100 + sub50 + sub20 + sub10 + subCoins;
-    const variance = actualCash - expectedCash;
-
-    // Update DOM in Tally panel
-    const floatEl = document.getElementById("tally-opening-float");
-    const cashSalesEl = document.getElementById("tally-cash-sales");
-    const cashBillsCountEl = document.getElementById("tally-cash-bills-count");
-    const cashOutEl = document.getElementById("tally-cash-out");
-    const expenseCountEl = document.getElementById("tally-expense-count");
-    const expectedEl = document.getElementById("tally-expected-cash");
-    const actualEl = document.getElementById("tally-actual-cash");
-    const diffBadgeEl = document.getElementById("tally-variance-badge");
-    const diffDescEl = document.getElementById("tally-variance-desc");
-    const diffCardEl = document.getElementById("tally-diff-card");
-
-    // KPI Card 5 elements
-    const kpiExpectedEl = document.getElementById("counter-drawer-expected");
-    const kpiStatusBadge = document.getElementById("counter-drawer-status-badge");
-    const tallyStatusIndicator = document.getElementById("counter-tally-status-indicator");
-
-    if (floatEl) floatEl.textContent = `${currency}${openingFloat.toLocaleString("en-IN")}`;
-    if (cashSalesEl) cashSalesEl.textContent = `${currency}${Math.round(cashSales).toLocaleString("en-IN")}`;
-    if (cashBillsCountEl) cashBillsCountEl.textContent = `${cashOrders.length} cash orders`;
-    if (cashOutEl) cashOutEl.textContent = `${currency}${Math.round(cashOut).toLocaleString("en-IN")}`;
-    if (expenseCountEl) expenseCountEl.textContent = `${periodExpenses.length} cash payouts`;
-    if (expectedEl) expectedEl.textContent = `${currency}${Math.round(expectedCash).toLocaleString("en-IN")}`;
-    if (actualEl) actualEl.textContent = `${currency}${Math.round(actualCash).toLocaleString("en-IN")}`;
-    if (kpiExpectedEl) kpiExpectedEl.textContent = `${currency}${Math.round(expectedCash).toLocaleString("en-IN")}`;
-
-    // Update denomination sub-labels
-    const s500 = document.getElementById("denom-sub-500");
-    const s200 = document.getElementById("denom-sub-200");
-    const s100 = document.getElementById("denom-sub-100");
-    const s50 = document.getElementById("denom-sub-50");
-    const s20 = document.getElementById("denom-sub-20");
-    const s10 = document.getElementById("denom-sub-10");
-    const sCoins = document.getElementById("denom-sub-coins");
-
-    if (s500) s500.textContent = `₹${sub500.toLocaleString("en-IN")}`;
-    if (s200) s200.textContent = `₹${sub200.toLocaleString("en-IN")}`;
-    if (s100) s100.textContent = `₹${sub100.toLocaleString("en-IN")}`;
-    if (s50) s50.textContent = `₹${sub50.toLocaleString("en-IN")}`;
-    if (s20) s20.textContent = `₹${sub20.toLocaleString("en-IN")}`;
-    if (s10) s10.textContent = `₹${sub10.toLocaleString("en-IN")}`;
-    if (sCoins) sCoins.textContent = `₹${subCoins.toLocaleString("en-IN")}`;
-
-    // Variance badge styling
-    if (diffBadgeEl && diffDescEl && diffCardEl) {
-      if (actualCash === 0) {
-        diffBadgeEl.textContent = "Uncounted";
-        diffBadgeEl.style.background = "#f1f5f9";
-        diffBadgeEl.style.color = "#64748b";
-        diffDescEl.textContent = "Enter counted notes below";
-        diffCardEl.style.borderColor = "var(--border-color)";
-
-        if (kpiStatusBadge) {
-          kpiStatusBadge.className = "growth-tag";
-          kpiStatusBadge.style.background = "#f1f5f9";
-          kpiStatusBadge.style.color = "#64748b";
-          kpiStatusBadge.style.borderColor = "#e2e8f0";
-          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-clock"></i> Uncounted`;
-        }
-        if (tallyStatusIndicator) {
-          tallyStatusIndicator.style.background = "#f1f5f9";
-          tallyStatusIndicator.style.color = "#64748b";
-          tallyStatusIndicator.textContent = "Uncounted";
-        }
-      } else if (variance === 0) {
-        diffBadgeEl.textContent = "PERFECT MATCH";
-        diffBadgeEl.style.background = "#ecfdf5";
-        diffBadgeEl.style.color = "#059669";
-        diffDescEl.textContent = "Cash drawer perfectly balanced!";
-        diffCardEl.style.borderColor = "#10b981";
-
-        if (kpiStatusBadge) {
-          kpiStatusBadge.className = "growth-tag growth-up";
-          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-check"></i> Balanced`;
-        }
-        if (tallyStatusIndicator) {
-          tallyStatusIndicator.style.background = "#ecfdf5";
-          tallyStatusIndicator.style.color = "#059669";
-          tallyStatusIndicator.textContent = "Balanced 🟢";
-        }
-      } else if (variance > 0) {
-        diffBadgeEl.textContent = `+${currency}${Math.abs(variance)} SURPLUS`;
-        diffBadgeEl.style.background = "#eff6ff";
-        diffBadgeEl.style.color = "#2563eb";
-        diffDescEl.textContent = "Physical cash is higher than register";
-        diffCardEl.style.borderColor = "#3b82f6";
-
-        if (kpiStatusBadge) {
-          kpiStatusBadge.className = "growth-tag";
-          kpiStatusBadge.style.background = "#eff6ff";
-          kpiStatusBadge.style.color = "#2563eb";
-          kpiStatusBadge.style.borderColor = "#bfdbfe";
-          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-arrow-up"></i> +₹${Math.abs(variance)} Surplus`;
-        }
-        if (tallyStatusIndicator) {
-          tallyStatusIndicator.style.background = "#eff6ff";
-          tallyStatusIndicator.style.color = "#2563eb";
-          tallyStatusIndicator.textContent = `+₹${Math.abs(variance)}`;
-        }
-      } else {
-        diffBadgeEl.textContent = `-${currency}${Math.abs(variance)} SHORTAGE`;
-        diffBadgeEl.style.background = "#fef2f2";
-        diffBadgeEl.style.color = "#dc2626";
-        diffDescEl.textContent = "Drawer cash has a shortfall!";
-        diffCardEl.style.borderColor = "#ef4444";
-
-        if (kpiStatusBadge) {
-          kpiStatusBadge.className = "growth-tag growth-down";
-          kpiStatusBadge.style.background = "#fef2f2";
-          kpiStatusBadge.style.color = "#dc2626";
-          kpiStatusBadge.style.borderColor = "#fecaca";
-          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> -₹${Math.abs(variance)} Short`;
-        }
-        if (tallyStatusIndicator) {
-          tallyStatusIndicator.style.background = "#fef2f2";
-          tallyStatusIndicator.style.color = "#dc2626";
-          tallyStatusIndicator.textContent = `-₹${Math.abs(variance)} ⚠️`;
-        }
-      }
-    }
-  },
-
-  renderRushMeter(validOrders) {
-    const timelineEl = document.getElementById("counter-rush-timeline");
-    const peakBadgeEl = document.getElementById("counter-peak-hour-badge");
-    if (!timelineEl) return;
-
-    // Operational hours from 2 PM to 12 AM (14 to 23)
-    const hours = [14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
-    const hourCounts = {};
-    const hourSales = {};
-    hours.forEach(h => {
-      hourCounts[h] = 0;
-      hourSales[h] = 0;
-    });
-
-    validOrders.forEach(o => {
-      if (!o.createdAt) return;
-      const h = new Date(o.createdAt).getHours();
-      if (hourCounts[h] !== undefined) {
-        hourCounts[h]++;
-        hourSales[h] += (Number(o.total) || 0);
-      }
-    });
-
-    const maxCount = Math.max(...Object.values(hourCounts), 1);
-    let peakHour = null;
-    let peakCount = 0;
-    hours.forEach(h => {
-      if (hourCounts[h] > peakCount) {
-        peakCount = hourCounts[h];
-        peakHour = h;
-      }
-    });
-
-    if (peakBadgeEl) {
-      if (peakCount > 0 && peakHour !== null) {
-        const label = peakHour >= 12 ? (peakHour === 12 ? "12 PM" : `${peakHour - 12} PM`) : `${peakHour} AM`;
-        peakBadgeEl.textContent = `Peak Rush: ${label} (${peakCount} bills • ₹${Math.round(hourSales[peakHour]).toLocaleString("en-IN")})`;
-      } else {
-        peakBadgeEl.textContent = "Peak: No Rush Yet";
-      }
-    }
-
-    timelineEl.innerHTML = hours.map(h => {
-      const count = hourCounts[h] || 0;
-      const sales = hourSales[h] || 0;
-      const heightPercent = Math.max(10, Math.round((count / maxCount) * 100));
-      const isPeak = h === peakHour && count > 0;
-      const label = h >= 12 ? (h === 12 ? "12p" : `${h - 12}p`) : `${h}a`;
-
-      return `
-        <div class="counter-rush-col" title="${label}: ${count} bills (₹${Math.round(sales).toLocaleString('en-IN')})">
-          <div class="counter-rush-bar ${isPeak ? 'peak' : ''}" style="height: ${heightPercent}%;"></div>
-          <span class="counter-rush-hour" style="${isPeak ? 'color: #2563eb; font-weight: 900;' : ''}">${label}</span>
-        </div>
-      `;
-    }).join("");
-  },
-
   renderTableOnly() {
-    const allOrders = window.db.get("orders") || [];
-    const settings = window.db.get("settings") || {};
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
 
     // 1. Period filter
@@ -1114,12 +744,41 @@ window.views.counter = {
         : `<span style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 1px 6px; border-radius: 6px; font-size: 10px; font-weight: 800;">Dine-in</span>`;
 
       const isCancelled = o.status === "Cancelled";
+      const isExpanded = this.expandedOrderId === o.id;
+
+      // Expanded items row preview
+      const expandedDetailsHtml = isExpanded ? `
+        <tr class="bill-expanded-row" style="background: #f8fafc;">
+          <td colspan="9" style="padding: 12px 18px; border-top: none; border-bottom: 2px solid #cbd5e1;">
+            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 6px; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 800; color: #2563eb;">Itemized Bill Breakdown:</span>
+                <span style="font-size: 11px; color: var(--text-muted);">Timestamp: ${new Date(o.createdAt).toLocaleString("en-IN")}</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px;">
+                ${(o.items || []).map(it => `
+                  <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 10px; font-size: 12px;">
+                    <div>
+                      <strong style="color: var(--text-dark);">${it.name}</strong>
+                      <span style="color: var(--text-muted); font-size: 11px; margin-left: 4px;">x${it.quantity}</span>
+                    </div>
+                    <span style="font-weight: 800; color: #2563eb;">${currency}${Number(it.lineTotal || (it.price * it.quantity)).toFixed(2)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </td>
+        </tr>
+      ` : '';
 
       return `
-        <tr style="${isCancelled ? 'opacity: 0.6; background: #fff5f5;' : ''}">
+        <tr class="bill-row-clickable ${isCancelled ? 'table-row-dimmed' : ''}" data-id="${o.id}" style="${isCancelled ? 'opacity: 0.6; background: #fff5f5;' : ''} cursor: pointer;">
           <td>
-            <div style="font-weight: 800; color: var(--text-dark); font-size: 13.5px;">#${o.orderNumber || o.id}</div>
-            <div style="font-size: 11px; font-weight: 800; color: #2563eb;">Token #${o.tokenNumber || 1}</div>
+            <div style="font-weight: 800; color: var(--text-dark); font-size: 13.5px; display: flex; align-items: center; gap: 5px;">
+              <i class="fa-solid fa-chevron-${isExpanded ? 'down' : 'right'}" style="font-size: 10px; color: #94a3b8;"></i>
+              #${o.orderNumber || o.id}
+            </div>
+            <div style="font-size: 11px; font-weight: 800; color: #2563eb; margin-left: 15px;">Token #${o.tokenNumber || 1}</div>
           </td>
           <td>
             <div style="font-size: 12px; font-weight: 700; color: var(--text-dark);">${timeStr}</div>
@@ -1141,11 +800,11 @@ window.views.counter = {
             ${currency}${Number(o.total || 0).toFixed(2)}
           </td>
           <td><span class="badge ${statusBadge}">${o.status}</span></td>
-          <td style="text-align: center;">
+          <td style="text-align: center;" onclick="event.stopPropagation();">
             <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
               
               <!-- View / Reprint Bill -->
-              <button class="btn btn-secondary btn-reprint-counter" data-id="${o.id}" title="View & Print 80mm Receipt" style="padding: 5px 8px; font-size: 11px; border-radius: 8px; font-weight: 700;">
+              <button class="btn btn-secondary btn-reprint-counter" data-id="${o.id}" title="View & Print 80mm Bill" style="padding: 5px 8px; font-size: 11px; border-radius: 8px; font-weight: 700;">
                 <i class="fa-solid fa-receipt" style="color: #2563eb;"></i> View
               </button>
               
@@ -1168,8 +827,18 @@ window.views.counter = {
             </div>
           </td>
         </tr>
+        ${expandedDetailsHtml}
       `;
     }).join("");
+
+    // Bind row click for expandable items
+    tbody.querySelectorAll(".bill-row-clickable").forEach(row => {
+      row.onclick = () => {
+        const orderId = row.getAttribute("data-id");
+        this.expandedOrderId = this.expandedOrderId === orderId ? null : orderId;
+        this.renderTableOnly();
+      };
+    });
 
     // Bind action listeners
     tbody.querySelectorAll(".btn-reprint-counter").forEach(btn => {
@@ -1201,13 +870,605 @@ window.views.counter = {
     });
   },
 
+  // =========================================================================
+  // SUB-TAB 2: CASH DRAWER RECONCILIATION & DENOMINATIONS WORKSTATION
+  // =========================================================================
+  renderDrawerTab(mount) {
+    const allExpenses = (window.db && window.db.get("expenses")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    // Cash expenses for active date
+    const targetDate = this.activeDateStr;
+    const periodExpenses = allExpenses.filter(e => {
+      const eDate = e.date || (e.createdAt ? this.getIstDateString(new Date(e.createdAt)) : "");
+      const isCash = (e.paymentMode || e.paymentMethod || "Cash").toLowerCase() === "cash";
+      return isCash && (this.selectedPeriod === "all" || eDate === targetDate);
+    });
+
+    const expenseRowsHtml = periodExpenses.length === 0
+      ? `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px; font-weight: 600;">No cash payouts recorded for ${this.activeDateStr}.</td></tr>`
+      : periodExpenses.map(e => `
+        <tr>
+          <td style="font-weight: 700; color: var(--text-dark);">${e.title || e.description}</td>
+          <td><span style="font-size: 11px; font-weight: 700; background: #eff6ff; color: #2563eb; padding: 2px 8px; border-radius: 6px;">${e.category || 'General'}</span></td>
+          <td style="font-size: 11.5px; color: var(--text-muted);">${e.createdAt ? new Date(e.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}</td>
+          <td style="font-weight: 900; color: #dc2626; text-align: right;">-${currency}${Number(e.amount).toFixed(2)}</td>
+          <td style="text-align: center;">
+            <button class="btn btn-secondary btn-delete-expense" data-id="${e.id}" title="Remove this expense entry" style="padding: 3px 8px; font-size: 11px; border-radius: 6px; color: #dc2626;">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        </tr>
+      `).join("");
+
+    mount.innerHTML = `
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Drawer Settlement Container -->
+        <div class="counter-tally-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                <i class="fa-solid fa-vault"></i>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-dark);">Cash Drawer Settlement & Notes Reconciliation</h4>
+                <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);">Reconcile physical counted drawer notes with registered POS cash sales and petty payouts.</p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" class="btn btn-secondary" id="btn-reset-denoms" style="height: 34px; font-size: 11.5px; padding: 0 12px; border-radius: 8px; font-weight: 700;">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Reset Notes
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-print-tally-slip" style="height: 34px; font-size: 11.5px; padding: 0 14px; border-radius: 8px; font-weight: 800; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);">
+                <i class="fa-solid fa-print"></i> Print Tally Slip
+              </button>
+            </div>
+          </div>
+
+          <!-- Drawer Calculation Math Summary Row -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            
+            <!-- Opening Float -->
+            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Opening Cash Float</span>
+                <button type="button" id="btn-edit-float" title="Change Opening Cash Float" style="background: none; border: none; color: #2563eb; cursor: pointer; font-size: 11px; font-weight: 700;">
+                  <i class="fa-solid fa-pen"></i> Edit
+                </button>
+              </div>
+              <div id="tally-opening-float" style="font-size: 20px; font-weight: 900; color: var(--text-dark); margin-top: 4px;">₹1,000</div>
+              <span style="font-size: 10.5px; color: var(--text-muted);">Morning shift base cash</span>
+            </div>
+
+            <!-- (+) Cash Sales -->
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 12px 14px;">
+              <span style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;">(+) Cash Sales</span>
+              <div id="tally-cash-sales" style="font-size: 20px; font-weight: 900; color: #059669; margin-top: 4px;">₹0</div>
+              <span id="tally-cash-bills-count" style="font-size: 10.5px; color: #065f46;">0 bills collected</span>
+            </div>
+
+            <!-- (-) Cash Paid Out / Expenses -->
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 12px 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">(-) Cash Expenses</span>
+                <span id="tally-expense-count" style="font-size: 10.5px; color: #991b1b; font-weight: 700;">${periodExpenses.length} entries</span>
+              </div>
+              <div id="tally-cash-out" style="font-size: 20px; font-weight: 900; color: #dc2626; margin-top: 4px;">₹0</div>
+              <span style="font-size: 10.5px; color: #991b1b;">Petty cash paid from till</span>
+            </div>
+
+            <!-- (=) Expected Drawer Cash -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 14px;">
+              <span style="font-size: 11px; font-weight: 700; color: #1d4ed8; text-transform: uppercase;">(=) Expected in Drawer</span>
+              <div id="tally-expected-cash" style="font-size: 20px; font-weight: 900; color: #2563eb; margin-top: 4px;">₹1,000</div>
+              <span style="font-size: 10.5px; color: #1e40af;">Float + Cash In - Cash Out</span>
+            </div>
+
+            <!-- Physical Counted & Difference -->
+            <div id="tally-diff-card" style="background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-dark); text-transform: uppercase;">Physical Counted</span>
+                <span id="tally-variance-badge" style="font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 6px; background: #e2e8f0; color: var(--text-dark);">₹0 Diff</span>
+              </div>
+              <div id="tally-actual-cash" style="font-size: 20px; font-weight: 900; color: var(--text-dark); margin-top: 4px;">₹0</div>
+              <span id="tally-variance-desc" style="font-size: 10.5px; color: var(--text-muted);">Enter denominations below</span>
+            </div>
+          </div>
+
+          <!-- Currency Denomination Note Counters Grid -->
+          <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 16px;">
+            <div style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-money-bill-1-wave" style="color: #059669;"></i> Physical Cash Note Breakdown:
+              </span>
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Type counts to auto-calculate physical drawer total</span>
+            </div>
+            
+            <div class="counter-denom-grid">
+              <div class="counter-denom-item">
+                <span class="counter-denom-label">₹500 x</span>
+                <input type="number" min="0" class="counter-denom-input" data-denom="500" value="${this.denominations[500] || ''}" placeholder="0">
+                <span id="denom-sub-500" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+              </div>
+              <div class="counter-denom-item">
+                <span class="counter-denom-label">₹200 x</span>
+                <input type="number" min="0" class="counter-denom-input" data-denom="200" value="${this.denominations[200] || ''}" placeholder="0">
+                <span id="denom-sub-200" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+              </div>
+              <div class="counter-denom-item">
+                <span class="counter-denom-label">₹100 x</span>
+                <input type="number" min="0" class="counter-denom-input" data-denom="100" value="${this.denominations[100] || ''}" placeholder="0">
+                <span id="denom-sub-100" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+              </div>
+              <div class="counter-denom-item">
+                <span class="counter-denom-label">₹50 x</span>
+                <input type="number" min="0" class="counter-denom-input" data-denom="50" value="${this.denominations[50] || ''}" placeholder="0">
+                <span id="denom-sub-50" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+              </div>
+              <div class="counter-denom-item">
+                <span class="counter-denom-label">₹20 x</span>
+                <input type="number" min="0" class="counter-denom-input" data-denom="20" value="${this.denominations[20] || ''}" placeholder="0">
+                <span id="denom-sub-20" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+              </div>
+              <div class="counter-denom-item">
+                <span class="counter-denom-label">₹10 x</span>
+                <input type="number" min="0" class="counter-denom-input" data-denom="10" value="${this.denominations[10] || ''}" placeholder="0">
+                <span id="denom-sub-10" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+              </div>
+              <div class="counter-denom-item">
+                <span class="counter-denom-label">Coins ₹</span>
+                <input type="number" min="0" class="counter-denom-input" data-denom="coins" value="${this.denominations.coins || ''}" placeholder="0" style="width: 60px;">
+                <span id="denom-sub-coins" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Petty Cash Payouts Log for this Period -->
+        <div class="glass-card" style="padding: 16px 20px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <div>
+              <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark);">
+                <i class="fa-solid fa-hand-holding-dollar" style="color: #dc2626; margin-right: 6px;"></i> Till Cash Payouts & Expenses Log
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);">Expenses deducted directly from the cash drawer during this period.</p>
+            </div>
+            <button class="btn btn-secondary" id="btn-add-payout-secondary" style="height: 32px; font-size: 11.5px; font-weight: 800; border-radius: 8px;">
+              <i class="fa-solid fa-plus"></i> Add Cash Out
+            </button>
+          </div>
+
+          <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+            <table class="premium-table" style="font-size: 12.5px;">
+              <thead>
+                <tr>
+                  <th>Description / Purpose</th>
+                  <th>Category</th>
+                  <th>Time</th>
+                  <th style="text-align: right;">Amount</th>
+                  <th style="text-align: center;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${expenseRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    this.bindDrawerEvents(mount);
+    this.recalculateDrawerMath();
+  },
+
+  bindDrawerEvents(mount) {
+    const btnEditFloat = mount.querySelector("#btn-edit-float");
+    const btnResetDenoms = mount.querySelector("#btn-reset-denoms");
+    const btnPrintTallySlip = mount.querySelector("#btn-print-tally-slip");
+    const btnAddPayoutSec = mount.querySelector("#btn-add-payout-secondary");
+
+    if (btnEditFloat) {
+      btnEditFloat.onclick = () => this.promptEditOpeningFloat();
+    }
+
+    if (btnResetDenoms) {
+      btnResetDenoms.onclick = () => {
+        this.denominations = { 500: 0, 200: 0, 100: 0, 50: 0, 20: 0, 10: 0, coins: 0 };
+        mount.querySelectorAll(".counter-denom-input").forEach(input => input.value = "");
+        this.saveAndRecalcDenominations();
+      };
+    }
+
+    if (btnPrintTallySlip) {
+      btnPrintTallySlip.onclick = () => this.printTallySlip();
+    }
+
+    if (btnAddPayoutSec) {
+      btnAddPayoutSec.onclick = () => this.openQuickCashOutModal();
+    }
+
+    // Denomination inputs
+    mount.querySelectorAll(".counter-denom-input").forEach(input => {
+      input.oninput = (e) => {
+        const denom = e.target.getAttribute("data-denom");
+        const val = Math.max(0, parseInt(e.target.value, 10) || 0);
+        this.denominations[denom] = val;
+        this.saveAndRecalcDenominations();
+      };
+    });
+
+    // Delete expense buttons
+    mount.querySelectorAll(".btn-delete-expense").forEach(btn => {
+      btn.onclick = () => {
+        const expId = btn.getAttribute("data-id");
+        if (confirm("Are you sure you want to remove this cash expense entry? Till balance will be restored.")) {
+          const expenses = (window.db && window.db.get("expenses")) || [];
+          const filtered = expenses.filter(e => e.id !== expId);
+          window.db.set("expenses", filtered);
+          window.showToast("Cash expense removed. Till balance re-calculated.", "info");
+          this.render();
+        }
+      };
+    });
+  },
+
+  recalculateDrawerMath() {
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const allExpenses = (window.db && window.db.get("expenses")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
+    const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
+
+    // Cash Sales
+    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
+    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    // Filter cash expenses for active date
+    const targetDate = this.activeDateStr;
+    const periodExpenses = allExpenses.filter(e => {
+      const eDate = e.date || (e.createdAt ? this.getIstDateString(new Date(e.createdAt)) : "");
+      const isCash = (e.paymentMode || e.paymentMethod || "Cash").toLowerCase() === "cash";
+      return isCash && (this.selectedPeriod === "all" || eDate === targetDate);
+    });
+
+    const cashOut = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    const openingFloat = this.getOpeningFloat();
+    const expectedCash = openingFloat + cashSales - cashOut;
+
+    // Physical counted calculation
+    const d = this.denominations;
+    const sub500 = (d[500] || 0) * 500;
+    const sub200 = (d[200] || 0) * 200;
+    const sub100 = (d[100] || 0) * 100;
+    const sub50 = (d[50] || 0) * 50;
+    const sub20 = (d[20] || 0) * 20;
+    const sub10 = (d[10] || 0) * 10;
+    const subCoins = d.coins || 0;
+
+    const actualCash = sub500 + sub200 + sub100 + sub50 + sub20 + sub10 + subCoins;
+    const variance = actualCash - expectedCash;
+
+    // Update DOM in Tally panel
+    const floatEl = document.getElementById("tally-opening-float");
+    const cashSalesEl = document.getElementById("tally-cash-sales");
+    const cashBillsCountEl = document.getElementById("tally-cash-bills-count");
+    const cashOutEl = document.getElementById("tally-cash-out");
+    const expenseCountEl = document.getElementById("tally-expense-count");
+    const expectedEl = document.getElementById("tally-expected-cash");
+    const actualEl = document.getElementById("tally-actual-cash");
+    const diffBadgeEl = document.getElementById("tally-variance-badge");
+    const diffDescEl = document.getElementById("tally-variance-desc");
+    const diffCardEl = document.getElementById("tally-diff-card");
+
+    // KPI Card 5 elements
+    const kpiExpectedEl = document.getElementById("counter-drawer-expected");
+    const kpiStatusBadge = document.getElementById("counter-drawer-status-badge");
+
+    if (floatEl) floatEl.textContent = `${currency}${openingFloat.toLocaleString("en-IN")}`;
+    if (cashSalesEl) cashSalesEl.textContent = `${currency}${Math.round(cashSales).toLocaleString("en-IN")}`;
+    if (cashBillsCountEl) cashBillsCountEl.textContent = `${cashOrders.length} cash orders`;
+    if (cashOutEl) cashOutEl.textContent = `${currency}${Math.round(cashOut).toLocaleString("en-IN")}`;
+    if (expenseCountEl) expenseCountEl.textContent = `${periodExpenses.length} cash payouts`;
+    if (expectedEl) expectedEl.textContent = `${currency}${Math.round(expectedCash).toLocaleString("en-IN")}`;
+    if (actualEl) actualEl.textContent = `${currency}${Math.round(actualCash).toLocaleString("en-IN")}`;
+    if (kpiExpectedEl) kpiExpectedEl.textContent = `${currency}${Math.round(expectedCash).toLocaleString("en-IN")}`;
+
+    // Update denomination sub-labels
+    const s500 = document.getElementById("denom-sub-500");
+    const s200 = document.getElementById("denom-sub-200");
+    const s100 = document.getElementById("denom-sub-100");
+    const s50 = document.getElementById("denom-sub-50");
+    const s20 = document.getElementById("denom-sub-20");
+    const s10 = document.getElementById("denom-sub-10");
+    const sCoins = document.getElementById("denom-sub-coins");
+
+    if (s500) s500.textContent = `₹${sub500.toLocaleString("en-IN")}`;
+    if (s200) s200.textContent = `₹${sub200.toLocaleString("en-IN")}`;
+    if (s100) s100.textContent = `₹${sub100.toLocaleString("en-IN")}`;
+    if (s50) s50.textContent = `₹${sub50.toLocaleString("en-IN")}`;
+    if (s20) s20.textContent = `₹${sub20.toLocaleString("en-IN")}`;
+    if (s10) s10.textContent = `₹${sub10.toLocaleString("en-IN")}`;
+    if (sCoins) sCoins.textContent = `₹${subCoins.toLocaleString("en-IN")}`;
+
+    // Variance badge styling
+    if (diffBadgeEl && diffDescEl && diffCardEl) {
+      if (actualCash === 0) {
+        diffBadgeEl.textContent = "Uncounted";
+        diffBadgeEl.style.background = "#f1f5f9";
+        diffBadgeEl.style.color = "#64748b";
+        diffDescEl.textContent = "Enter counted notes below";
+        diffCardEl.style.borderColor = "var(--border-color)";
+
+        if (kpiStatusBadge) {
+          kpiStatusBadge.className = "growth-tag";
+          kpiStatusBadge.style.background = "#f1f5f9";
+          kpiStatusBadge.style.color = "#64748b";
+          kpiStatusBadge.style.borderColor = "#e2e8f0";
+          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-clock"></i> Uncounted`;
+        }
+      } else if (variance === 0) {
+        diffBadgeEl.textContent = "PERFECT MATCH";
+        diffBadgeEl.style.background = "#ecfdf5";
+        diffBadgeEl.style.color = "#059669";
+        diffDescEl.textContent = "Cash drawer perfectly balanced!";
+        diffCardEl.style.borderColor = "#10b981";
+
+        if (kpiStatusBadge) {
+          kpiStatusBadge.className = "growth-tag growth-up";
+          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-check"></i> Balanced`;
+        }
+      } else if (variance > 0) {
+        diffBadgeEl.textContent = `+${currency}${Math.abs(variance)} SURPLUS`;
+        diffBadgeEl.style.background = "#eff6ff";
+        diffBadgeEl.style.color = "#2563eb";
+        diffDescEl.textContent = "Physical cash is higher than register";
+        diffCardEl.style.borderColor = "#3b82f6";
+
+        if (kpiStatusBadge) {
+          kpiStatusBadge.className = "growth-tag";
+          kpiStatusBadge.style.background = "#eff6ff";
+          kpiStatusBadge.style.color = "#2563eb";
+          kpiStatusBadge.style.borderColor = "#bfdbfe";
+          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-arrow-up"></i> +₹${Math.abs(variance)} Surplus`;
+        }
+      } else {
+        diffBadgeEl.textContent = `-${currency}${Math.abs(variance)} SHORTAGE`;
+        diffBadgeEl.style.background = "#fef2f2";
+        diffBadgeEl.style.color = "#dc2626";
+        diffDescEl.textContent = "Drawer cash has a shortfall!";
+        diffCardEl.style.borderColor = "#ef4444";
+
+        if (kpiStatusBadge) {
+          kpiStatusBadge.className = "growth-tag growth-down";
+          kpiStatusBadge.style.background = "#fef2f2";
+          kpiStatusBadge.style.color = "#dc2626";
+          kpiStatusBadge.style.borderColor = "#fecaca";
+          kpiStatusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> -₹${Math.abs(variance)} Short`;
+        }
+      }
+    }
+  },
+
+  // =========================================================================
+  // SUB-TAB 3: SHIFT RUSH & VELOCITY ANALYTICS
+  // =========================================================================
+  renderVelocityTab(mount) {
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
+    const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
+    const netSales = validOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    const avgTicket = validOrders.length > 0 ? Math.round(netSales / validOrders.length) : 0;
+    const totalDiscounts = validOrders.reduce((sum, o) => sum + (Number(o.discount) || 0) + (Number(o.bogoDiscount) || 0), 0);
+
+    let minToken = 999999;
+    let maxToken = 0;
+    let maxBillVal = 0;
+    validOrders.forEach(o => {
+      const tok = Number(o.tokenNumber) || 0;
+      const tot = Number(o.total) || 0;
+      if (tok > 0) {
+        if (tok < minToken) minToken = tok;
+        if (tok > maxToken) maxToken = tok;
+      }
+      if (tot > maxBillVal) maxBillVal = tot;
+    });
+
+    const tokenRangeText = maxToken > 0 ? `Token #${minToken} - #${maxToken}` : "None";
+
+    // Payment shares
+    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
+    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const upiOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "upi");
+    const upiSales = upiOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const cardOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "card");
+    const cardSales = cardOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    const cashPct = netSales > 0 ? Math.round((cashSales / netSales) * 100) : 0;
+    const upiPct = netSales > 0 ? Math.round((upiSales / netSales) * 100) : 0;
+    const cardPct = netSales > 0 ? Math.round((cardSales / netSales) * 100) : 0;
+
+    // Order type shares
+    const dineInOrders = validOrders.filter(o => (o.type || "Dine-in") === "Dine-in");
+    const takeawayOrders = validOrders.filter(o => (o.type || "Dine-in") === "Takeaway");
+    const dineInPct = validOrders.length > 0 ? Math.round((dineInOrders.length / validOrders.length) * 100) : 0;
+    const takeawayPct = validOrders.length > 0 ? (100 - dineInPct) : 0;
+
+    mount.innerHTML = `
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Hourly Store Traffic Rush Meter -->
+        <div class="glass-card" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-chart-column" style="color: #2563eb;"></i> Hourly Store Traffic & Rush Timeline
+              </h4>
+              <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);">Visual customer order volume across business operational hours.</p>
+            </div>
+            <span id="counter-peak-hour-badge" style="font-size: 11.5px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 8px;">
+              Peak: --
+            </span>
+          </div>
+
+          <div class="counter-rush-strip" id="counter-rush-timeline" style="height: 90px;">
+            <!-- Dynamically populated bars -->
+          </div>
+        </div>
+
+        <!-- Velocity & Payment Share Insights Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+          
+          <!-- Payment Mode Share Breakdown -->
+          <div class="glass-card" style="padding: 16px 18px; border-radius: 14px; display: flex; flex-direction: column; gap: 10px;">
+            <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: var(--text-dark);">
+              <i class="fa-solid fa-wallet" style="color: #059669; margin-right: 6px;"></i> Payment Modes Distribution
+            </h4>
+            
+            <!-- Horizontal Split Bar -->
+            <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex; margin-top: 4px;">
+              <div style="width: ${cashPct}%; height: 100%; background: #10b981;" title="Cash: ${cashPct}%"></div>
+              <div style="width: ${upiPct}%; height: 100%; background: #8b5cf6;" title="UPI: ${upiPct}%"></div>
+              <div style="width: ${cardPct}%; height: 100%; background: #3b82f6;" title="Card: ${cardPct}%"></div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span> Cash Orders</span>
+                <strong>${currency}${Math.round(cashSales).toLocaleString("en-IN")} (${cashPct}%)</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #8b5cf6;"></span> UPI QR Orders</span>
+                <strong>${currency}${Math.round(upiSales).toLocaleString("en-IN")} (${upiPct}%)</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #3b82f6;"></span> Card Swipes</span>
+                <strong>${currency}${Math.round(cardSales).toLocaleString("en-IN")} (${cardPct}%)</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Type & Ticket Velocity -->
+          <div class="glass-card" style="padding: 16px 18px; border-radius: 14px; display: flex; flex-direction: column; gap: 10px;">
+            <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: var(--text-dark);">
+              <i class="fa-solid fa-gauge-high" style="color: #2563eb; margin-right: 6px;"></i> Speed of Service & AOV
+            </h4>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px;">
+              <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Average Ticket (AOV)</span>
+                <div style="font-size: 18px; font-weight: 900; color: #2563eb; margin-top: 2px;">${currency}${avgTicket}</div>
+                <span style="font-size: 10.5px; color: var(--text-muted);">${validOrders.length} valid checks</span>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Largest Bill</span>
+                <div style="font-size: 18px; font-weight: 900; color: #059669; margin-top: 2px;">${currency}${maxBillVal}</div>
+                <span style="font-size: 10.5px; color: var(--text-muted);">Max order ticket</span>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
+              <span>Dine-in vs Takeaway:</span>
+              <strong>🍽️ ${dineInPct}% Dine-in • 🥡 ${takeawayPct}% Takeaway</strong>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+              <span>Token Number Range:</span>
+              <strong style="color: #2563eb;">${tokenRangeText}</strong>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+              <span>Total Discounts Dispensed:</span>
+              <strong style="color: #16a34a;">-${currency}${Math.round(totalDiscounts).toLocaleString("en-IN")}</strong>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    this.renderRushMeter(validOrders);
+  },
+
+  renderRushMeter(validOrders) {
+    const timelineEl = document.getElementById("counter-rush-timeline");
+    const peakBadgeEl = document.getElementById("counter-peak-hour-badge");
+    if (!timelineEl) return;
+
+    // Operational hours from 12 PM to 11 PM (12 to 23)
+    const hours = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
+    const hourCounts = {};
+    const hourSales = {};
+    hours.forEach(h => {
+      hourCounts[h] = 0;
+      hourSales[h] = 0;
+    });
+
+    validOrders.forEach(o => {
+      if (!o.createdAt) return;
+      const h = new Date(o.createdAt).getHours();
+      if (hourCounts[h] !== undefined) {
+        hourCounts[h]++;
+        hourSales[h] += (Number(o.total) || 0);
+      }
+    });
+
+    const maxCount = Math.max(...Object.values(hourCounts), 1);
+    let peakHour = null;
+    let peakCount = 0;
+    hours.forEach(h => {
+      if (hourCounts[h] > peakCount) {
+        peakCount = hourCounts[h];
+        peakHour = h;
+      }
+    });
+
+    if (peakBadgeEl) {
+      if (peakCount > 0 && peakHour !== null) {
+        const label = peakHour >= 12 ? (peakHour === 12 ? "12 PM" : `${peakHour - 12} PM`) : `${peakHour} AM`;
+        peakBadgeEl.textContent = `Peak Rush: ${label} (${peakCount} bills • ₹${Math.round(hourSales[peakHour]).toLocaleString("en-IN")})`;
+      } else {
+        peakBadgeEl.textContent = "Peak: No Rush Yet";
+      }
+    }
+
+    timelineEl.innerHTML = hours.map(h => {
+      const count = hourCounts[h] || 0;
+      const sales = hourSales[h] || 0;
+      const heightPercent = Math.max(10, Math.round((count / maxCount) * 100));
+      const isPeak = h === peakHour && count > 0;
+      const label = h >= 12 ? (h === 12 ? "12p" : `${h - 12}p`) : `${h}a`;
+
+      return `
+        <div class="counter-rush-col" title="${label}: ${count} bills (₹${Math.round(sales).toLocaleString('en-IN')})">
+          <div class="counter-rush-bar ${isPeak ? 'peak' : ''}" style="height: ${heightPercent}%;"></div>
+          <span class="counter-rush-hour" style="${isPeak ? 'color: #2563eb; font-weight: 900;' : ''}">${label}</span>
+        </div>
+      `;
+    }).join("");
+  },
+
+  // =========================================================================
+  // ACTIONS: CHANGE PAYMENT MODE, VOID ORDER, CASH OUT, PRINTING, CSV
+  // =========================================================================
   promptChangePaymentMode(orderId) {
-    const orders = window.db.get("orders") || [];
+    const orders = (window.db && window.db.get("orders")) || [];
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
     const currentMode = order.paymentMethod || "Cash";
-    const settings = window.db.get("settings") || {};
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
 
     const modalHtml = `
@@ -1238,7 +1499,7 @@ window.views.counter = {
         </div>
 
         <div style="font-size: 11px; color: var(--text-muted); background: #f8fafc; padding: 8px 12px; border-radius: 8px;">
-          <i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> Changing this mode will immediately re-balance your Cash Drawer Tally register.
+          <i class="fa-solid fa-circle-info" style="color: #2563eb;"></i> Changing this mode will immediately re-balance your Cash Drawer Register.
         </div>
       </div>
     `;
@@ -1265,11 +1526,11 @@ window.views.counter = {
   },
 
   shareOrderWhatsApp(orderId) {
-    const orders = window.db.get("orders") || [];
+    const orders = (window.db && window.db.get("orders")) || [];
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
-    const settings = window.db.get("settings") || {};
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
     const shopName = settings.restaurantName || "Crust & Chilly";
 
@@ -1300,7 +1561,7 @@ window.views.counter = {
   },
 
   promptVoidOrder(orderId) {
-    const orders = window.db.get("orders") || [];
+    const orders = (window.db && window.db.get("orders")) || [];
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
@@ -1313,7 +1574,7 @@ window.views.counter = {
   },
 
   openQuickCashOutModal() {
-    const settings = window.db.get("settings") || {};
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
 
     const modalHtml = `
@@ -1364,7 +1625,7 @@ window.views.counter = {
     `;
 
     window.customModal.show({
-      title: "Log Cash Out / Counter Expense",
+      title: "Log Cash Out / Till Expense",
       bodyHtml: modalHtml,
       confirmText: "Record Cash Out",
       cancelText: "Cancel",
@@ -1390,7 +1651,7 @@ window.views.counter = {
           return false;
         }
 
-        const expenses = window.db.get("expenses") || [];
+        const expenses = (window.db && window.db.get("expenses")) || [];
         const newExpense = {
           id: `EXP-${Date.now()}`,
           title: desc,
@@ -1413,7 +1674,7 @@ window.views.counter = {
   },
 
   exportOrdersToCsv() {
-    const allOrders = window.db.get("orders") || [];
+    const allOrders = (window.db && window.db.get("orders")) || [];
     let orders = this.getFilteredOrdersByPeriod(allOrders);
 
     if (this.paymentFilter !== "all") {
@@ -1468,9 +1729,9 @@ window.views.counter = {
   },
 
   showDaySummaryPrintModal() {
-    const allOrders = window.db.get("orders") || [];
-    const allExpenses = window.db.get("expenses") || [];
-    const settings = window.db.get("settings") || {};
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const allExpenses = (window.db && window.db.get("expenses")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
 
     const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
@@ -1580,7 +1841,7 @@ window.views.counter = {
   },
 
   printTallySlip() {
-    const settings = window.db.get("settings") || {};
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
     const d = this.denominations;
 
@@ -1642,14 +1903,14 @@ window.views.counter = {
   },
 
   showReceiptModal(orderId) {
-    const orders = window.db.get("orders") || [];
+    const orders = (window.db && window.db.get("orders")) || [];
     const order = orders.find(o => o.id === orderId);
     if (!order) {
       window.showToast("Order not found.", "error");
       return;
     }
 
-    const settings = window.db.get("settings") || {};
+    const settings = (window.db && window.db.get("settings")) || {};
     const currency = settings.currencySymbol || "₹";
     const dateStr = new Date(order.createdAt).toLocaleString("en-IN", {
       dateStyle: "medium",
