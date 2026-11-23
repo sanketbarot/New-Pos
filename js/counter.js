@@ -1,20 +1,26 @@
-// Crust & Chilly POS - Advanced Executive Daily Counter & Bills History Module
-// Features: Executive KPI Overview, Sub-Tab Architecture (Bills Stream, Cash Drawer Reconciliation, Shift Velocity),
-// Interactive Currency Denomination Tally, Real-Time Variance Calculation (Balanced / Surplus / Shortage),
-// Expandable Bill Details, 1-Click Payment Mode Switcher, WhatsApp Receipt Sharing,
-// Quick Cash Out Petty Expenses Log, Hourly Traffic Heatmap, 80mm Z-Report Settlement & Tally Slip Printing, CSV Export.
+// Crust & Chilly POS - Advanced Executive Daily Counter & Bills History Module 2.0
+// Features: Executive 5-Card Scorecard with Visual Payment Split Ribbon,
+// One-Tap Quick Filter Chips (Cash, UPI, Card, Dine-in, Takeaway, Void),
+// Multi-Select Floating Bulk Action Bar (Export, Mark Completed),
+// Expandable Bill Item Breakdown, 1-Click Payment Mode Switcher, WhatsApp Receipt Sharing,
+// End-of-Day Shift Settlement Wizard (Z-Report Close Register),
+// Cash Drawer Physical Denominations Workstation with Quick Steppers (+1, +5, +10),
+// Real-Time Variance Calculation (Balanced / Surplus / Shortage),
+// Till Cash Payouts Petty Log, Shift Velocity Rush Timeline, Shift Settlement Audit Log.
 
 window.views = window.views || {};
 window.views.counter = {
-  activeTab: "bills", // 'bills' | 'drawer' | 'velocity'
+  activeTab: "bills", // 'bills' | 'drawer' | 'velocity' | 'shifts'
   activeDateStr: null,
   selectedPeriod: "today", // 'today' | 'yesterday' | 'week' | 'month' | 'all' | 'custom'
+  quickFilterChip: "all", // 'all' | 'cash' | 'upi' | 'card' | 'dinein' | 'takeaway' | 'void'
   searchQuery: "",
   paymentFilter: "all", // 'all' | 'Cash' | 'UPI' | 'Card'
   statusFilter: "all", // 'all' | 'Completed' | 'Preparing' | 'Ready' | 'Cancelled'
   typeFilter: "all", // 'all' | 'Dine-in' | 'Takeaway'
   sortBy: "newest", // 'newest' | 'oldest' | 'highest' | 'lowest'
   expandedOrderId: null, // Track currently expanded bill row
+  selectedOrderIds: new Set(), // Multi-select bill IDs for bulk actions
 
   // Physical Denominations state
   denominations: {
@@ -54,6 +60,7 @@ window.views.counter = {
     const today = new Date();
     this.activeDateStr = this.getIstDateString(today);
     this.loadSavedDenominations();
+    this.selectedOrderIds.clear();
 
     container.innerHTML = `
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
@@ -86,6 +93,11 @@ window.views.counter = {
           <!-- Utility Operations Toolbar -->
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             
+            <!-- End Shift / Close Register Wizard -->
+            <button class="btn btn-primary" id="btn-counter-close-shift" style="height: 36px; padding: 0 14px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);" title="End Shift & Settle Register (Z-Report)">
+              <i class="fa-solid fa-file-invoice-dollar"></i> Close Register
+            </button>
+
             <!-- Quick Cash Out Expense Button -->
             <button class="btn btn-secondary" id="btn-counter-expense" style="height: 36px; padding: 0 13px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Record Till Cash Expense / Payout">
               <i class="fa-solid fa-hand-holding-dollar" style="color: #dc2626;"></i> + Cash Out
@@ -102,8 +114,8 @@ window.views.counter = {
             </button>
 
             <!-- Refresh Button -->
-            <button class="btn btn-primary" id="btn-counter-refresh" style="height: 36px; padding: 0 14px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            <button class="btn btn-secondary" id="btn-counter-refresh" style="height: 36px; padding: 0 12px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Refresh Counter Records">
+              <i class="fa-solid fa-arrows-rotate"></i>
             </button>
           </div>
         </div>
@@ -199,6 +211,35 @@ window.views.counter = {
 
         </div>
 
+        <!-- Live Visual Payment Split Mini-Ribbon -->
+        <div class="glass-card" style="padding: 10px 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: var(--text-dark);">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Live Payment Split Distribution:
+            </span>
+            <div style="display: flex; gap: 14px; font-size: 11.5px;">
+              <span style="display: flex; align-items: center; gap: 5px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                Cash: <strong id="ribbon-cash-pct" style="color: #059669;">0%</strong>
+              </span>
+              <span style="display: flex; align-items: center; gap: 5px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #8b5cf6;"></span>
+                UPI: <strong id="ribbon-upi-pct" style="color: #7c3aed;">0%</strong>
+              </span>
+              <span style="display: flex; align-items: center; gap: 5px;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span>
+                Card: <strong id="ribbon-card-pct" style="color: #2563eb;">0%</strong>
+              </span>
+            </div>
+          </div>
+
+          <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
+            <div id="ribbon-bar-cash" style="width: 0%; height: 100%; background: #10b981; transition: width 0.4s ease;" title="Cash Share"></div>
+            <div id="ribbon-bar-upi" style="width: 0%; height: 100%; background: #8b5cf6; transition: width 0.4s ease;" title="UPI Share"></div>
+            <div id="ribbon-bar-card" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.4s ease;" title="Card Share"></div>
+          </div>
+        </div>
+
         <!-- Sub-Tabs Navigation Strip -->
         <div class="glass-card" style="padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-radius: 12px;">
           <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -211,6 +252,9 @@ window.views.counter = {
             <button class="btn ${this.activeTab === 'velocity' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-velocity" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-chart-column"></i> Shift Rush & Velocity
             </button>
+            <button class="btn ${this.activeTab === 'shifts' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-shifts" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-clock-rotate-left"></i> Shift Settlement Audit
+            </button>
           </div>
           <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); padding-right: 8px;" id="counter-subtab-indicator">
             <!-- Dynamic context indicator -->
@@ -219,6 +263,33 @@ window.views.counter = {
 
         <!-- Sub-Tab Content Mount -->
         <div id="counter-subtab-mount"></div>
+
+        <!-- Floating Multi-Select Bulk Action Bar -->
+        <div id="counter-bulk-action-bar" style="display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 1000; background: #ffffff; border: 1.5px solid #2563eb; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18); border-radius: 14px; padding: 10px 20px; align-items: center; gap: 16px; animation: slideUp 0.3s ease;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 28px; height: 28px; border-radius: 8px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 13px;">
+              <i class="fa-solid fa-check-double"></i>
+            </div>
+            <div>
+              <div id="counter-bulk-count" style="font-size: 13px; font-weight: 800; color: var(--text-dark);">0 bills selected</div>
+              <div id="counter-bulk-total" style="font-size: 11px; font-weight: 700; color: #2563eb;">Total: ₹0</div>
+            </div>
+          </div>
+
+          <div style="height: 24px; width: 1px; background: var(--border-color);"></div>
+
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-secondary" id="btn-bulk-export" style="height: 34px; padding: 0 12px; font-size: 11.5px; font-weight: 800; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-file-csv" style="color: #059669;"></i> Export Selected
+            </button>
+            <button type="button" class="btn btn-primary" id="btn-bulk-complete" style="height: 34px; padding: 0 14px; font-size: 11.5px; font-weight: 800; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-check"></i> Mark Completed
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-bulk-clear" style="height: 34px; padding: 0 10px; font-size: 11.5px; font-weight: 800; border-radius: 8px;" title="Clear Selection">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
 
       </div>
     `;
@@ -234,22 +305,26 @@ window.views.counter = {
     const btnExpense = document.getElementById("btn-counter-expense");
     const btnExportCsv = document.getElementById("btn-export-csv");
     const btnPrintSummary = document.getElementById("btn-print-daysummary");
+    const btnCloseShift = document.getElementById("btn-counter-close-shift");
 
     const tabBills = document.getElementById("subtab-counter-bills");
     const tabDrawer = document.getElementById("subtab-counter-drawer");
     const tabVelocity = document.getElementById("subtab-counter-velocity");
+    const tabShifts = document.getElementById("subtab-counter-shifts");
 
     const switchSubTab = (tab) => {
       this.activeTab = tab;
       if (tabBills) tabBills.className = this.activeTab === "bills" ? "btn btn-primary" : "btn btn-secondary";
       if (tabDrawer) tabDrawer.className = this.activeTab === "drawer" ? "btn btn-primary" : "btn btn-secondary";
       if (tabVelocity) tabVelocity.className = this.activeTab === "velocity" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabShifts) tabShifts.className = this.activeTab === "shifts" ? "btn btn-primary" : "btn btn-secondary";
       this.renderSubTab();
     };
 
     if (tabBills) tabBills.onclick = () => switchSubTab("bills");
     if (tabDrawer) tabDrawer.onclick = () => switchSubTab("drawer");
     if (tabVelocity) tabVelocity.onclick = () => switchSubTab("velocity");
+    if (tabShifts) tabShifts.onclick = () => switchSubTab("shifts");
     if (drawerCard) drawerCard.onclick = () => switchSubTab("drawer");
 
     // Quick Time Presets
@@ -270,6 +345,7 @@ window.views.counter = {
           if (datePicker) datePicker.value = this.activeDateStr;
         }
 
+        this.selectedOrderIds.clear();
         this.loadSavedDenominations();
         this.render();
       };
@@ -280,6 +356,7 @@ window.views.counter = {
         this.activeDateStr = e.target.value;
         this.selectedPeriod = "custom";
         document.querySelectorAll(".counter-time-pill").forEach(p => p.classList.remove("active"));
+        this.selectedOrderIds.clear();
         this.loadSavedDenominations();
         this.render();
       };
@@ -302,6 +379,31 @@ window.views.counter = {
 
     if (btnPrintSummary) {
       btnPrintSummary.onclick = () => this.showDaySummaryPrintModal();
+    }
+
+    if (btnCloseShift) {
+      btnCloseShift.onclick = () => this.openShiftCloseWizardModal();
+    }
+
+    // Bulk actions bar event listeners
+    const btnBulkExport = document.getElementById("btn-bulk-export");
+    const btnBulkComplete = document.getElementById("btn-bulk-complete");
+    const btnBulkClear = document.getElementById("btn-bulk-clear");
+
+    if (btnBulkExport) {
+      btnBulkExport.onclick = () => this.exportSelectedBillsToCsv();
+    }
+
+    if (btnBulkComplete) {
+      btnBulkComplete.onclick = () => this.bulkMarkCompleted();
+    }
+
+    if (btnBulkClear) {
+      btnBulkClear.onclick = () => {
+        this.selectedOrderIds.clear();
+        this.updateBulkActionBar();
+        this.renderTableOnly();
+      };
     }
   },
 
@@ -446,6 +548,21 @@ window.views.counter = {
     if (cardCountEl) cardCountEl.textContent = `${cardOrders.length} Card Swipes`;
     if (cardPctPill) cardPctPill.textContent = `${cardPct}% of total collections`;
 
+    // Update Visual Payment Split Ribbon
+    const ribbonCash = document.getElementById("ribbon-bar-cash");
+    const ribbonUpi = document.getElementById("ribbon-bar-upi");
+    const ribbonCard = document.getElementById("ribbon-bar-card");
+    const ribbonCashPct = document.getElementById("ribbon-cash-pct");
+    const ribbonUpiPct = document.getElementById("ribbon-upi-pct");
+    const ribbonCardPct = document.getElementById("ribbon-card-pct");
+
+    if (ribbonCash) ribbonCash.style.width = `${cashPct}%`;
+    if (ribbonUpi) ribbonUpi.style.width = `${upiPct}%`;
+    if (ribbonCard) ribbonCard.style.width = `${cardPct}%`;
+    if (ribbonCashPct) ribbonCashPct.textContent = `${cashPct}% (₹${Math.round(cashSales).toLocaleString("en-IN")})`;
+    if (ribbonUpiPct) ribbonUpiPct.textContent = `${upiPct}% (₹${Math.round(upiSales).toLocaleString("en-IN")})`;
+    if (ribbonCardPct) ribbonCardPct.textContent = `${cardPct}% (₹${Math.round(cardSales).toLocaleString("en-IN")})`;
+
     this.recalculateDrawerMath();
   },
 
@@ -461,6 +578,8 @@ window.views.counter = {
         ind.innerHTML = `<i class="fa-solid fa-shield-halved" style="color: #2563eb;"></i> Physical cash reconciliation`;
       } else if (this.activeTab === "velocity") {
         ind.innerHTML = `<i class="fa-solid fa-fire" style="color: #d97706;"></i> Rush & peak throughput`;
+      } else if (this.activeTab === "shifts") {
+        ind.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color: #6366f1;"></i> Shift closing audit log`;
       }
     }
 
@@ -470,86 +589,109 @@ window.views.counter = {
       this.renderDrawerTab(mount);
     } else if (this.activeTab === "velocity") {
       this.renderVelocityTab(mount);
+    } else if (this.activeTab === "shifts") {
+      this.renderShiftsTab(mount);
     }
   },
 
   // =========================================================================
-  // SUB-TAB 1: BILLS & ORDERS AUDIT STREAM
+  // SUB-TAB 1: BILLS & ORDERS AUDIT STREAM (WITH QUICK FILTER CHIPS & BULK)
   // =========================================================================
   renderBillsTab(mount) {
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
+    const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
+    const cashCount = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash").length;
+    const upiCount = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "upi").length;
+    const cardCount = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "card").length;
+    const dineInCount = validOrders.filter(o => (o.type || "Dine-in") === "Dine-in").length;
+    const takeawayCount = validOrders.filter(o => (o.type || "Dine-in") === "Takeaway").length;
+    const voidCount = periodOrders.filter(o => o.status === "Cancelled").length;
+
     mount.innerHTML = `
-      <div class="glass-card view-animate" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 14px;">
+      <div class="glass-card view-animate" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
         
-        <!-- Header & Filter Row -->
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <!-- Header & Top Filter Row -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div>
-            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0 0 2px 0;">
+            <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0 0 2px 0;">
               <i class="fa-solid fa-receipt" style="color: #2563eb; margin-right: 6px;"></i> Bills Audit & Orders Stream
             </h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-              Click any bill to expand items • Switch payment modes • WhatsApp receipt • Reprint 80mm bill.
+            <p style="font-size: 11.5px; color: var(--text-muted); margin: 0;">
+              Tap any bill to expand items • Select multiple for bulk operations • Switch payment • WhatsApp receipt.
             </p>
           </div>
 
-          <!-- Comprehensive Search and Filter controls -->
-          <div class="counter-search-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            
-            <!-- Payment Filter -->
-            <select id="counter-payment-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 110px;">
-              <option value="all" ${this.paymentFilter === 'all' ? 'selected' : ''}>All Modes</option>
-              <option value="Cash" ${this.paymentFilter === 'Cash' ? 'selected' : ''}>Cash</option>
-              <option value="UPI" ${this.paymentFilter === 'UPI' ? 'selected' : ''}>UPI</option>
-              <option value="Card" ${this.paymentFilter === 'Card' ? 'selected' : ''}>Card</option>
-            </select>
+          <!-- Live Search Box with Instant Clear -->
+          <div class="counter-search-box" style="position: relative; width: 260px;">
+            <input type="text" id="counter-search-input" class="form-input" placeholder="Search Bill# / Token / Phone / Item..." value="${this.searchQuery}" style="padding: 6px 30px 6px 32px; font-size: 12px; height: 36px; border-radius: 10px; width: 100%;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 12px; pointer-events: none;"></i>
+            ${this.searchQuery ? `
+              <button type="button" id="btn-clear-search" style="position: absolute; right: 8px; top: 8px; border: none; background: #e2e8f0; color: var(--text-dark); width: 20px; height: 20px; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            ` : ''}
+          </div>
+        </div>
 
-            <!-- Status Filter -->
-            <select id="counter-status-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 125px;">
-              <option value="all" ${this.statusFilter === 'all' ? 'selected' : ''}>All Statuses</option>
-              <option value="Completed" ${this.statusFilter === 'Completed' ? 'selected' : ''}>Completed</option>
-              <option value="Preparing" ${this.statusFilter === 'Preparing' ? 'selected' : ''}>Preparing</option>
-              <option value="Ready" ${this.statusFilter === 'Ready' ? 'selected' : ''}>Ready</option>
-              <option value="Cancelled" ${this.statusFilter === 'Cancelled' ? 'selected' : ''}>Cancelled (Void)</option>
-            </select>
+        <!-- 1-Tap Quick Filter Chips Strip -->
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: #f8fafc; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--border-color);">
+          <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); margin-right: 4px; text-transform: uppercase;">Quick Filter:</span>
+          
+          <button type="button" class="counter-quick-chip ${this.quickFilterChip === 'all' ? 'active' : ''}" data-chip="all">
+            All Bills <span class="chip-badge">${periodOrders.length}</span>
+          </button>
+          
+          <button type="button" class="counter-quick-chip ${this.quickFilterChip === 'cash' ? 'active' : ''}" data-chip="cash">
+            <i class="fa-solid fa-money-bill-wave" style="color: #059669;"></i> Cash <span class="chip-badge">${cashCount}</span>
+          </button>
 
-            <!-- Order Type Filter -->
-            <select id="counter-type-filter" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 110px;">
-              <option value="all" ${this.typeFilter === 'all' ? 'selected' : ''}>All Types</option>
-              <option value="Dine-in" ${this.typeFilter === 'Dine-in' ? 'selected' : ''}>Dine-in</option>
-              <option value="Takeaway" ${this.typeFilter === 'Takeaway' ? 'selected' : ''}>Takeaway</option>
-            </select>
+          <button type="button" class="counter-quick-chip ${this.quickFilterChip === 'upi' ? 'active' : ''}" data-chip="upi">
+            <i class="fa-solid fa-qrcode" style="color: #7c3aed;"></i> UPI QR <span class="chip-badge">${upiCount}</span>
+          </button>
 
-            <!-- Sort Order -->
-            <select id="counter-sort-by" class="form-input" style="height: 36px; font-size: 11.5px; font-weight: 700; border-radius: 10px; width: 125px;">
+          <button type="button" class="counter-quick-chip ${this.quickFilterChip === 'card' ? 'active' : ''}" data-chip="card">
+            <i class="fa-solid fa-credit-card" style="color: #2563eb;"></i> Card <span class="chip-badge">${cardCount}</span>
+          </button>
+
+          <button type="button" class="counter-quick-chip ${this.quickFilterChip === 'dinein' ? 'active' : ''}" data-chip="dinein">
+            <i class="fa-solid fa-utensils" style="color: #0284c7;"></i> Dine-in <span class="chip-badge">${dineInCount}</span>
+          </button>
+
+          <button type="button" class="counter-quick-chip ${this.quickFilterChip === 'takeaway' ? 'active' : ''}" data-chip="takeaway">
+            <i class="fa-solid fa-bag-shopping" style="color: #d97706;"></i> Takeaway <span class="chip-badge">${takeawayCount}</span>
+          </button>
+
+          ${voidCount > 0 ? `
+            <button type="button" class="counter-quick-chip ${this.quickFilterChip === 'void' ? 'active' : ''}" data-chip="void" style="border-color: #fca5a5;">
+              <i class="fa-solid fa-ban" style="color: #dc2626;"></i> Void Bills <span class="chip-badge" style="background: #fef2f2; color: #dc2626;">${voidCount}</span>
+            </button>
+          ` : ''}
+
+          <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+            <select id="counter-sort-by" class="form-input" style="height: 30px; font-size: 11px; font-weight: 700; border-radius: 8px; width: 120px; padding: 2px 6px;">
               <option value="newest" ${this.sortBy === 'newest' ? 'selected' : ''}>Newest First</option>
               <option value="oldest" ${this.sortBy === 'oldest' ? 'selected' : ''}>Oldest First</option>
               <option value="highest" ${this.sortBy === 'highest' ? 'selected' : ''}>Highest ₹</option>
               <option value="lowest" ${this.sortBy === 'lowest' ? 'selected' : ''}>Lowest ₹</option>
             </select>
-
-            <!-- Search Box -->
-            <div class="counter-search-box" style="position: relative; width: 220px;">
-              <input type="text" id="counter-search-input" class="form-input" placeholder="Search Bill# / Phone / Item" value="${this.searchQuery}" style="padding: 6px 12px 6px 30px; font-size: 12px; height: 36px; border-radius: 10px; width: 100%;">
-              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 11px; pointer-events: none;"></i>
-            </div>
-
-            <!-- Reset Filters Button -->
-            <button class="btn btn-secondary" id="btn-reset-filters" style="height: 36px; padding: 0 10px; font-size: 11.5px; border-radius: 10px;" title="Reset Search & Filters">
-              <i class="fa-solid fa-filter-circle-xmark"></i>
-            </button>
           </div>
         </div>
 
         <!-- Matching records summary banner -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 11.5px; color: var(--text-muted);">
           <span id="counter-records-count" style="font-weight: 700; color: var(--text-dark);">Showing 0 bills</span>
           <span id="counter-records-amount" style="font-weight: 800; color: #2563eb;">Total: ₹0</span>
         </div>
 
         <!-- Orders Table Container -->
-        <div class="table-container" style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 10px;">
+        <div class="table-container" style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 10px; border: 1px solid var(--border-color);">
           <table class="premium-table">
             <thead>
               <tr>
+                <th style="width: 36px; text-align: center;">
+                  <input type="checkbox" id="counter-select-all-checkbox" style="cursor: pointer; width: 15px; height: 15px;">
+                </th>
                 <th style="min-width: 120px;">Bill # / Token</th>
                 <th>Time & Date</th>
                 <th>Customer & Type</th>
@@ -575,11 +717,9 @@ window.views.counter = {
 
   bindBillsViewEvents(mount) {
     const searchInput = mount.querySelector("#counter-search-input");
-    const filterPayment = mount.querySelector("#counter-payment-filter");
-    const filterStatus = mount.querySelector("#counter-status-filter");
-    const filterType = mount.querySelector("#counter-type-filter");
+    const btnClearSearch = mount.querySelector("#btn-clear-search");
     const sortBy = mount.querySelector("#counter-sort-by");
-    const btnResetFilters = mount.querySelector("#btn-reset-filters");
+    const selectAllCheckbox = mount.querySelector("#counter-select-all-checkbox");
 
     if (searchInput) {
       searchInput.oninput = (e) => {
@@ -588,24 +728,11 @@ window.views.counter = {
       };
     }
 
-    if (filterPayment) {
-      filterPayment.onchange = (e) => {
-        this.paymentFilter = e.target.value;
-        this.renderTableOnly();
-      };
-    }
-
-    if (filterStatus) {
-      filterStatus.onchange = (e) => {
-        this.statusFilter = e.target.value;
-        this.renderTableOnly();
-      };
-    }
-
-    if (filterType) {
-      filterType.onchange = (e) => {
-        this.typeFilter = e.target.value;
-        this.renderTableOnly();
+    if (btnClearSearch) {
+      btnClearSearch.onclick = () => {
+        this.searchQuery = "";
+        if (searchInput) searchInput.value = "";
+        this.renderBillsTab(document.getElementById("counter-subtab-mount"));
       };
     }
 
@@ -616,50 +743,51 @@ window.views.counter = {
       };
     }
 
-    if (btnResetFilters) {
-      btnResetFilters.onclick = () => {
-        this.searchQuery = "";
-        this.paymentFilter = "all";
-        this.statusFilter = "all";
-        this.typeFilter = "all";
-        this.sortBy = "newest";
-
-        if (searchInput) searchInput.value = "";
-        if (filterPayment) filterPayment.value = "all";
-        if (filterStatus) filterStatus.value = "all";
-        if (filterType) filterType.value = "all";
-        if (sortBy) sortBy.value = "newest";
-
+    // Quick filter chips click
+    mount.querySelectorAll(".counter-quick-chip").forEach(chip => {
+      chip.onclick = () => {
+        mount.querySelectorAll(".counter-quick-chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        this.quickFilterChip = chip.getAttribute("data-chip");
         this.renderTableOnly();
-        window.showToast("Filters reset.", "info");
+      };
+    });
+
+    // Select all visible checkbox
+    if (selectAllCheckbox) {
+      selectAllCheckbox.onchange = (e) => {
+        const isChecked = e.target.checked;
+        const visibleOrderIds = this.getCurrentlyFilteredOrderIds();
+        if (isChecked) {
+          visibleOrderIds.forEach(id => this.selectedOrderIds.add(id));
+        } else {
+          visibleOrderIds.forEach(id => this.selectedOrderIds.delete(id));
+        }
+        this.updateBulkActionBar();
+        this.renderTableOnly();
       };
     }
   },
 
-  renderTableOnly() {
+  getCurrentlyFilteredOrderIds() {
     const allOrders = (window.db && window.db.get("orders")) || [];
-    const settings = (window.db && window.db.get("settings")) || {};
-    const currency = settings.currencySymbol || "₹";
-
-    // 1. Period filter
     let orders = this.getFilteredOrdersByPeriod(allOrders);
 
-    // 2. Payment filter
-    if (this.paymentFilter !== "all") {
-      orders = orders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === this.paymentFilter.toLowerCase());
+    // Apply quick chip filter
+    if (this.quickFilterChip === "cash") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "Cash").toLowerCase() === "cash");
+    } else if (this.quickFilterChip === "upi") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "").toLowerCase() === "upi");
+    } else if (this.quickFilterChip === "card") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "").toLowerCase() === "card");
+    } else if (this.quickFilterChip === "dinein") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.type || "Dine-in") === "Dine-in");
+    } else if (this.quickFilterChip === "takeaway") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.type || "Dine-in") === "Takeaway");
+    } else if (this.quickFilterChip === "void") {
+      orders = orders.filter(o => o.status === "Cancelled");
     }
 
-    // 3. Status filter
-    if (this.statusFilter !== "all") {
-      orders = orders.filter(o => (o.status || "").toLowerCase() === this.statusFilter.toLowerCase());
-    }
-
-    // 4. Order type filter
-    if (this.typeFilter !== "all") {
-      orders = orders.filter(o => (o.type || "Dine-in").toLowerCase() === this.typeFilter.toLowerCase());
-    }
-
-    // 5. Search Query
     if (this.searchQuery) {
       const q = this.searchQuery;
       orders = orders.filter(o => {
@@ -673,7 +801,70 @@ window.views.counter = {
       });
     }
 
-    // 6. Sorting
+    return orders.map(o => o.id);
+  },
+
+  updateBulkActionBar() {
+    const bar = document.getElementById("counter-bulk-action-bar");
+    const countEl = document.getElementById("counter-bulk-count");
+    const totalEl = document.getElementById("counter-bulk-total");
+    if (!bar) return;
+
+    if (this.selectedOrderIds.size === 0) {
+      bar.style.display = "none";
+      return;
+    }
+
+    bar.style.display = "flex";
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    const selectedOrders = allOrders.filter(o => this.selectedOrderIds.has(o.id));
+    const totalSum = selectedOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    if (countEl) countEl.textContent = `${this.selectedOrderIds.size} bills selected`;
+    if (totalEl) totalEl.textContent = `Total: ${currency}${Math.round(totalSum).toLocaleString("en-IN")}`;
+  },
+
+  renderTableOnly() {
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    // 1. Period filter
+    let orders = this.getFilteredOrdersByPeriod(allOrders);
+
+    // 2. Quick filter chip
+    if (this.quickFilterChip === "cash") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "Cash").toLowerCase() === "cash");
+    } else if (this.quickFilterChip === "upi") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "").toLowerCase() === "upi");
+    } else if (this.quickFilterChip === "card") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "").toLowerCase() === "card");
+    } else if (this.quickFilterChip === "dinein") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.type || "Dine-in") === "Dine-in");
+    } else if (this.quickFilterChip === "takeaway") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.type || "Dine-in") === "Takeaway");
+    } else if (this.quickFilterChip === "void") {
+      orders = orders.filter(o => o.status === "Cancelled");
+    }
+
+    // 3. Search Query
+    if (this.searchQuery) {
+      const q = this.searchQuery;
+      orders = orders.filter(o => {
+        const id = (o.id || "").toLowerCase();
+        const num = String(o.orderNumber || "").toLowerCase();
+        const tok = String(o.tokenNumber || "");
+        const name = (o.customerName || "").toLowerCase();
+        const phone = String(o.customerPhone || "");
+        const items = (o.items || []).map(i => i.name.toLowerCase()).join(" ");
+        return id.includes(q) || num.includes(q) || tok.includes(q) || name.includes(q) || phone.includes(q) || items.includes(q);
+      });
+    }
+
+    // 4. Sorting
     orders = [...orders].sort((a, b) => {
       if (this.sortBy === "newest") {
         return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
@@ -701,7 +892,7 @@ window.views.counter = {
     if (orders.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 45px; font-weight: 600;">
+          <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 45px; font-weight: 600;">
             <i class="fa-solid fa-receipt" style="font-size: 32px; opacity: 0.3; display: block; margin-bottom: 8px;"></i>
             No orders found matching your selected criteria.
           </td>
@@ -745,11 +936,12 @@ window.views.counter = {
 
       const isCancelled = o.status === "Cancelled";
       const isExpanded = this.expandedOrderId === o.id;
+      const isSelected = this.selectedOrderIds.has(o.id);
 
       // Expanded items row preview
       const expandedDetailsHtml = isExpanded ? `
         <tr class="bill-expanded-row" style="background: #f8fafc;">
-          <td colspan="9" style="padding: 12px 18px; border-top: none; border-bottom: 2px solid #cbd5e1;">
+          <td colspan="10" style="padding: 12px 18px; border-top: none; border-bottom: 2px solid #cbd5e1;">
             <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px;">
               <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 6px; margin-bottom: 8px;">
                 <span style="font-size: 12px; font-weight: 800; color: #2563eb;">Itemized Bill Breakdown:</span>
@@ -772,7 +964,10 @@ window.views.counter = {
       ` : '';
 
       return `
-        <tr class="bill-row-clickable ${isCancelled ? 'table-row-dimmed' : ''}" data-id="${o.id}" style="${isCancelled ? 'opacity: 0.6; background: #fff5f5;' : ''} cursor: pointer;">
+        <tr class="bill-row-clickable ${isCancelled ? 'table-row-dimmed' : ''} ${isSelected ? 'row-selected' : ''}" data-id="${o.id}" style="${isCancelled ? 'opacity: 0.6; background: #fff5f5;' : isSelected ? 'background: #eff6ff;' : ''} cursor: pointer;">
+          <td style="text-align: center;" onclick="event.stopPropagation();">
+            <input type="checkbox" class="counter-bill-checkbox" data-id="${o.id}" ${isSelected ? 'checked' : ''} style="cursor: pointer; width: 15px; height: 15px;">
+          </td>
           <td>
             <div style="font-weight: 800; color: var(--text-dark); font-size: 13.5px; display: flex; align-items: center; gap: 5px;">
               <i class="fa-solid fa-chevron-${isExpanded ? 'down' : 'right'}" style="font-size: 10px; color: #94a3b8;"></i>
@@ -840,6 +1035,20 @@ window.views.counter = {
       };
     });
 
+    // Bind individual checkboxes
+    tbody.querySelectorAll(".counter-bill-checkbox").forEach(chk => {
+      chk.onchange = (e) => {
+        const id = e.target.getAttribute("data-id");
+        if (e.target.checked) {
+          this.selectedOrderIds.add(id);
+        } else {
+          this.selectedOrderIds.delete(id);
+        }
+        this.updateBulkActionBar();
+        this.renderTableOnly();
+      };
+    });
+
     // Bind action listeners
     tbody.querySelectorAll(".btn-reprint-counter").forEach(btn => {
       btn.onclick = () => {
@@ -868,6 +1077,27 @@ window.views.counter = {
         this.promptVoidOrder(orderId);
       };
     });
+  },
+
+  exportSelectedBillsToCsv() {
+    if (this.selectedOrderIds.size === 0) return;
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const selectedOrders = allOrders.filter(o => this.selectedOrderIds.has(o.id));
+    this.generateAndDownloadCsv(selectedOrders, `Selected_Bills_${this.activeDateStr}`);
+  },
+
+  bulkMarkCompleted() {
+    if (this.selectedOrderIds.size === 0) return;
+    const count = this.selectedOrderIds.size;
+    if (confirm(`Mark ${count} selected bill(s) as Completed?`)) {
+      this.selectedOrderIds.forEach(id => {
+        window.db.updateOrderStatus(id, "Completed");
+      });
+      window.showToast(`${count} orders marked Completed!`, "success");
+      this.selectedOrderIds.clear();
+      this.updateBulkActionBar();
+      this.render();
+    }
   },
 
   // =========================================================================
@@ -977,50 +1207,45 @@ window.views.counter = {
             </div>
           </div>
 
-          <!-- Currency Denomination Note Counters Grid -->
+          <!-- Currency Denomination Note Counters Grid with Quick Stepper Chips (+1, +5, +10) -->
           <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 16px;">
-            <div style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 12.5px; font-weight: 800; color: var(--text-dark); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
               <span style="display: flex; align-items: center; gap: 6px;">
                 <i class="fa-solid fa-money-bill-1-wave" style="color: #059669;"></i> Physical Cash Note Breakdown:
               </span>
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Type counts to auto-calculate physical drawer total</span>
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Type counts or tap +1 / +5 to tally fast</span>
             </div>
             
             <div class="counter-denom-grid">
+              ${[500, 200, 100, 50, 20, 10].map(val => `
+                <div class="counter-denom-item">
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span class="counter-denom-label">₹${val}</span>
+                    <span id="denom-sub-${val}" style="font-size: 11.5px; font-weight: 800; color: #2563eb;">₹0</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 4px;">
+                    <input type="number" min="0" class="counter-denom-input" data-denom="${val}" value="${this.denominations[val] || ''}" placeholder="0" style="flex: 1;">
+                    <div style="display: flex; gap: 2px;">
+                      <button type="button" class="btn-denom-step" data-denom="${val}" data-step="1" title="Add 1 note">+1</button>
+                      <button type="button" class="btn-denom-step" data-denom="${val}" data-step="5" title="Add 5 notes">+5</button>
+                    </div>
+                  </div>
+                </div>
+              `).join("")}
+
+              <!-- Coins -->
               <div class="counter-denom-item">
-                <span class="counter-denom-label">₹500 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="500" value="${this.denominations[500] || ''}" placeholder="0">
-                <span id="denom-sub-500" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹200 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="200" value="${this.denominations[200] || ''}" placeholder="0">
-                <span id="denom-sub-200" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹100 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="100" value="${this.denominations[100] || ''}" placeholder="0">
-                <span id="denom-sub-100" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹50 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="50" value="${this.denominations[50] || ''}" placeholder="0">
-                <span id="denom-sub-50" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹20 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="20" value="${this.denominations[20] || ''}" placeholder="0">
-                <span id="denom-sub-20" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">₹10 x</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="10" value="${this.denominations[10] || ''}" placeholder="0">
-                <span id="denom-sub-10" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
-              </div>
-              <div class="counter-denom-item">
-                <span class="counter-denom-label">Coins ₹</span>
-                <input type="number" min="0" class="counter-denom-input" data-denom="coins" value="${this.denominations.coins || ''}" placeholder="0" style="width: 60px;">
-                <span id="denom-sub-coins" style="font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 50px; text-align: right;">₹0</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <span class="counter-denom-label">Coins (₹)</span>
+                  <span id="denom-sub-coins" style="font-size: 11.5px; font-weight: 800; color: #2563eb;">₹0</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 4px;">
+                  <input type="number" min="0" class="counter-denom-input" data-denom="coins" value="${this.denominations.coins || ''}" placeholder="0" style="flex: 1;">
+                  <div style="display: flex; gap: 2px;">
+                    <button type="button" class="btn-denom-step" data-denom="coins" data-step="10" title="Add ₹10 coins">+10</button>
+                    <button type="button" class="btn-denom-step" data-denom="coins" data-step="50" title="Add ₹50 coins">+50</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1097,6 +1322,21 @@ window.views.counter = {
         const denom = e.target.getAttribute("data-denom");
         const val = Math.max(0, parseInt(e.target.value, 10) || 0);
         this.denominations[denom] = val;
+        this.saveAndRecalcDenominations();
+      };
+    });
+
+    // Quick increment stepper buttons
+    mount.querySelectorAll(".btn-denom-step").forEach(btn => {
+      btn.onclick = () => {
+        const denom = btn.getAttribute("data-denom");
+        const step = parseInt(btn.getAttribute("data-step"), 10) || 1;
+        const current = parseInt(this.denominations[denom], 10) || 0;
+        this.denominations[denom] = current + step;
+
+        const input = mount.querySelector(`.counter-denom-input[data-denom="${denom}"]`);
+        if (input) input.value = this.denominations[denom];
+
         this.saveAndRecalcDenominations();
       };
     });
@@ -1460,8 +1700,232 @@ window.views.counter = {
   },
 
   // =========================================================================
+  // SUB-TAB 4: SHIFT SETTLEMENT AUDIT LOG (NEW ADVANCED FEATURE)
+  // =========================================================================
+  renderShiftsTab(mount) {
+    let shiftHistory = [];
+    try {
+      shiftHistory = JSON.parse(localStorage.getItem("crust_shift_history") || "[]");
+    } catch (e) {
+      shiftHistory = [];
+    }
+
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    const rowsHtml = shiftHistory.length === 0
+      ? `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px; font-weight: 600;">No shifts closed yet. Click "Close Register" to settle today's shift.</td></tr>`
+      : shiftHistory.map(s => {
+        const variance = Number(s.variance || 0);
+        let varBadge = `<span style="background: #ecfdf5; color: #059669; font-weight: 800; padding: 2px 8px; border-radius: 6px; font-size: 11px;">Balanced</span>`;
+        if (variance > 0) {
+          varBadge = `<span style="background: #eff6ff; color: #2563eb; font-weight: 800; padding: 2px 8px; border-radius: 6px; font-size: 11px;">+${currency}${variance} Surplus</span>`;
+        } else if (variance < 0) {
+          varBadge = `<span style="background: #fef2f2; color: #dc2626; font-weight: 800; padding: 2px 8px; border-radius: 6px; font-size: 11px;">-${currency}${Math.abs(variance)} Short</span>`;
+        }
+
+        return `
+          <tr>
+            <td style="font-weight: 800; color: var(--text-dark);">${s.date || '--'}</td>
+            <td style="font-size: 12px; color: var(--text-muted);">${s.closedAt ? new Date(s.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}</td>
+            <td style="font-weight: 700; color: #2563eb;">${s.cashierName || 'Cashier'}</td>
+            <td style="font-weight: 800; color: var(--text-dark);">${currency}${Number(s.totalSales || 0).toLocaleString("en-IN")}</td>
+            <td style="font-weight: 700;">${currency}${Number(s.expectedCash || 0).toLocaleString("en-IN")}</td>
+            <td style="font-weight: 800; color: #059669;">${currency}${Number(s.actualCash || 0).toLocaleString("en-IN")}</td>
+            <td>${varBadge}</td>
+          </tr>
+        `;
+      }).join("");
+
+    mount.innerHTML = `
+      <div class="glass-card view-animate" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h4 style="margin: 0; font-size: 15px; font-weight: 800; color: var(--text-dark);">
+              <i class="fa-solid fa-clock-rotate-left" style="color: #6366f1; margin-right: 6px;"></i> Cashier Shift Settlement Log
+            </h4>
+            <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);">Historical permanent record of shift closures, expected cash, counted cash, and variance.</p>
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-shift-close-trigger" style="height: 34px; font-size: 11.5px; padding: 0 14px; border-radius: 8px; font-weight: 800;">
+            <i class="fa-solid fa-file-invoice-dollar"></i> Close Register Now
+          </button>
+        </div>
+
+        <div class="table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 10px;">
+          <table class="premium-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time Closed</th>
+                <th>Cashier / Manager</th>
+                <th>Total Sales</th>
+                <th>Expected Cash</th>
+                <th>Counted Cash</th>
+                <th>Till Variance</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    const triggerBtn = mount.querySelector("#btn-shift-close-trigger");
+    if (triggerBtn) {
+      triggerBtn.onclick = () => this.openShiftCloseWizardModal();
+    }
+  },
+
+  // =========================================================================
   // ACTIONS: CHANGE PAYMENT MODE, VOID ORDER, CASH OUT, PRINTING, CSV
   // =========================================================================
+  openShiftCloseWizardModal() {
+    const allOrders = (window.db && window.db.get("orders")) || [];
+    const allExpenses = (window.db && window.db.get("expenses")) || [];
+    const settings = (window.db && window.db.get("settings")) || {};
+    const currency = settings.currencySymbol || "₹";
+
+    const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
+    const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
+
+    const netSales = validOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
+    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const upiOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "upi");
+    const upiSales = upiOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const cardOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "card");
+    const cardSales = cardOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    const targetDate = this.activeDateStr;
+    const periodExpenses = allExpenses.filter(e => {
+      const eDate = e.date || (e.createdAt ? this.getIstDateString(new Date(e.createdAt)) : "");
+      const isCash = (e.paymentMode || e.paymentMethod || "Cash").toLowerCase() === "cash";
+      return isCash && (this.selectedPeriod === "all" || eDate === targetDate);
+    });
+    const cashExpenses = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    const openingFloat = this.getOpeningFloat();
+    const expectedDrawerCash = openingFloat + cashSales - cashExpenses;
+
+    const d = this.denominations;
+    const sub500 = (d[500] || 0) * 500;
+    const sub200 = (d[200] || 0) * 200;
+    const sub100 = (d[100] || 0) * 100;
+    const sub50 = (d[50] || 0) * 50;
+    const sub20 = (d[20] || 0) * 20;
+    const sub10 = (d[10] || 0) * 10;
+    const subCoins = d.coins || 0;
+    const actualCash = sub500 + sub200 + sub100 + sub50 + sub20 + sub10 + subCoins;
+    const variance = actualCash - expectedDrawerCash;
+
+    const currentUser = (window.auth && window.auth.getUser && window.auth.getUser()) || {};
+    const defaultCashier = currentUser.name || "Cashier";
+
+    const modalHtml = `
+      <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 12px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: #1e40af; font-size: 14px;">Shift Settlement Summary (${this.activeDateStr})</strong>
+            <span style="font-size: 11px; color: var(--text-muted);">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; text-align: center;">
+            <div style="background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <span style="font-size: 10.5px; color: var(--text-muted); display: block;">Net Sales</span>
+              <strong style="font-size: 15px; color: #2563eb;">${currency}${Math.round(netSales).toLocaleString("en-IN")}</strong>
+            </div>
+            <div style="background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <span style="font-size: 10.5px; color: var(--text-muted); display: block;">Expected Cash</span>
+              <strong style="font-size: 15px; color: #059669;">${currency}${Math.round(expectedDrawerCash).toLocaleString("en-IN")}</strong>
+            </div>
+            <div style="background: #fff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <span style="font-size: 10.5px; color: var(--text-muted); display: block;">Counted Cash</span>
+              <strong style="font-size: 15px; color: ${variance === 0 ? '#059669' : variance > 0 ? '#2563eb' : '#dc2626'};">${currency}${Math.round(actualCash).toLocaleString("en-IN")}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Opening Cash Float:</span>
+            <strong>${currency}${openingFloat}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>(+) Cash Sales (${cashOrders.length} bills):</span>
+            <strong style="color: #059669;">+${currency}${cashSales}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>(-) Cash Expenses (${periodExpenses.length} entries):</span>
+            <strong style="color: #dc2626;">-${currency}${cashExpenses}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 6px; font-weight: 800;">
+            <span>Till Variance:</span>
+            <span style="color: ${variance === 0 ? '#059669' : variance > 0 ? '#2563eb' : '#dc2626'};">
+              ${variance === 0 ? 'Balanced (₹0)' : variance > 0 ? `+${currency}${variance} Surplus` : `-${currency}${Math.abs(variance)} Shortage`}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 5px;">Cashier / Manager Name *</label>
+          <input type="text" id="shift-cashier-name" class="form-input" value="${defaultCashier}" style="height: 38px; border-radius: 10px;">
+        </div>
+
+        <div>
+          <label style="font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 5px;">Closing Notes / Remarks (Optional)</label>
+          <textarea id="shift-closing-notes" class="form-input" placeholder="e.g. Shift ended smoothly, ₹50 difference due to coin shortage" style="height: 60px; border-radius: 10px; padding: 8px;"></textarea>
+        </div>
+      </div>
+    `;
+
+    window.customModal.show({
+      title: "End Shift & Settle Register (Z-Report)",
+      bodyHtml: modalHtml,
+      confirmText: "Settle & Record Shift",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        const nameInput = document.getElementById("shift-cashier-name");
+        const notesInput = document.getElementById("shift-closing-notes");
+        const cashierName = nameInput ? nameInput.value.trim() : defaultCashier;
+        const notes = notesInput ? notesInput.value.trim() : "";
+
+        if (!cashierName) {
+          window.showToast("Please provide Cashier name.", "error");
+          return false;
+        }
+
+        const shiftRecord = {
+          id: `SHIFT-${Date.now()}`,
+          date: this.activeDateStr,
+          closedAt: new Date().toISOString(),
+          cashierName: cashierName,
+          totalSales: netSales,
+          cashSales: cashSales,
+          upiSales: upiSales,
+          cardSales: cardSales,
+          openingFloat: openingFloat,
+          cashExpenses: cashExpenses,
+          expectedCash: expectedDrawerCash,
+          actualCash: actualCash,
+          variance: variance,
+          notes: notes
+        };
+
+        try {
+          const history = JSON.parse(localStorage.getItem("crust_shift_history") || "[]");
+          history.unshift(shiftRecord);
+          localStorage.setItem("crust_shift_history", JSON.stringify(history.slice(0, 100)));
+        } catch (e) {}
+
+        window.showToast(`Shift settled successfully for ${cashierName}!`, "success");
+        this.render();
+        this.showDaySummaryPrintModal();
+        return true;
+      }
+    });
+  },
+
   promptChangePaymentMode(orderId) {
     const orders = (window.db && window.db.get("orders")) || [];
     const order = orders.find(o => o.id === orderId);
@@ -1677,14 +2141,18 @@ window.views.counter = {
     const allOrders = (window.db && window.db.get("orders")) || [];
     let orders = this.getFilteredOrdersByPeriod(allOrders);
 
-    if (this.paymentFilter !== "all") {
-      orders = orders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === this.paymentFilter.toLowerCase());
-    }
-    if (this.statusFilter !== "all") {
-      orders = orders.filter(o => (o.status || "").toLowerCase() === this.statusFilter.toLowerCase());
-    }
-    if (this.typeFilter !== "all") {
-      orders = orders.filter(o => (o.type || "Dine-in").toLowerCase() === this.typeFilter.toLowerCase());
+    if (this.quickFilterChip === "cash") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "Cash").toLowerCase() === "cash");
+    } else if (this.quickFilterChip === "upi") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "").toLowerCase() === "upi");
+    } else if (this.quickFilterChip === "card") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.paymentMethod || "").toLowerCase() === "card");
+    } else if (this.quickFilterChip === "dinein") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.type || "Dine-in") === "Dine-in");
+    } else if (this.quickFilterChip === "takeaway") {
+      orders = orders.filter(o => o.status !== "Cancelled" && (o.type || "Dine-in") === "Takeaway");
+    } else if (this.quickFilterChip === "void") {
+      orders = orders.filter(o => o.status === "Cancelled");
     }
 
     if (orders.length === 0) {
@@ -1692,6 +2160,10 @@ window.views.counter = {
       return;
     }
 
+    this.generateAndDownloadCsv(orders, `Crust_Chilly_Bills_${this.activeDateStr}`);
+  },
+
+  generateAndDownloadCsv(orders, filename) {
     const headers = ["Order No", "Token No", "Date", "Time", "Customer Name", "Customer Phone", "Type", "Items", "Payment Mode", "Subtotal", "Discount", "Total", "Status"];
     const rows = orders.map(o => {
       const dt = new Date(o.createdAt || Date.now());
@@ -1721,7 +2193,7 @@ window.views.counter = {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Crust_Chilly_Bills_${this.activeDateStr}.csv`);
+    link.setAttribute("download", `${filename}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

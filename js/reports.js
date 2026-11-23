@@ -1,19 +1,33 @@
-// Crust & Chilly POS - Advanced Executive Sales & Profit Analytics Suite
-// Features: Executive Financial Scorecard, Tabbed Analysis Architecture (P&L Trends, Menu Engineering, Speed & Customers),
-// Real-Time P&L Waterfall Ledger, Multi-Stream Trajectory Line Charts, Distribution Share Doughnut,
-// Hourly Rush Bar Chart, Day of Week Matrix, Menu Item Margin & Contribution Engineering,
-// Channel & Payment Breakdown, Customer Loyalty Tracking, Zero-Velocity Watchlist, Printable P&L Slip, and CSV Export.
+// Crust & Chilly POS - Advanced Executive Sales & Profit Analytics Suite 2.0
+// Features: Executive Financial Scorecard with Period-over-Period Growth Deltas,
+// Store Health & Breakeven Analytics Gauge, Real-Time P&L Waterfall Ledger,
+// Calibrated COGS Benchmark Slider, Multi-Stream Trajectory Line Charts (Revenue, Cost, Profit, Cumulative),
+// 3-Mode Distribution Share Doughnut (Categories, Expenses, Payment Methods),
+// Interactive Menu Engineering & Margin Matrix with 1-Tap Category Pills & Role Filters,
+// Zero-Velocity Watchlist, Hourly Rush Curve (2 PM – 12 AM), Day of Week Profitability Matrix,
+// Operational Insights (Fulfillment Channels, Cashless Adoption, Discounts Impact),
+// Customer Loyalty Tracking, What-If Profit Simulation & Target Breakeven Calculator,
+// Printable Official P&L Statement, and Full CSV Export.
 
 window.views = window.views || {};
 window.views.reports = {
-  activeTab: "financial", // 'financial' | 'menu' | 'insights'
+  activeTab: "financial", // 'financial' | 'menu' | 'insights' | 'simulator'
   startDate: null,
   endDate: null,
   cogsPercent: 32, // Default 32% Food Cost / COGS benchmark
   activeChartMode: "both", // 'both' | 'revenue' | 'profit' | 'cumulative'
-  activeDonutMode: "categories", // 'categories' | 'expenses'
+  activeDonutMode: "categories", // 'categories' | 'expenses' | 'payments'
+  
+  // Menu Engineering filters
+  menuCategoryFilter: "all",
+  menuRoleFilter: "all", // 'all' | 'star' | 'horse' | 'puzzle' | 'slow'
   itemSearchQuery: "",
   itemSortKey: "profit", // 'profit' | 'gross' | 'qty' | 'margin'
+  
+  // What-If Simulator state
+  simSalesDelta: 0, // % change (-30 to +50)
+  simCogsRate: 32, // % food cost (20 to 45)
+  simExpenseDelta: 0, // % overhead change (-20 to +30)
   
   // Chart instances
   mainTrendChart: null,
@@ -34,6 +48,7 @@ window.views.reports = {
 
     this.startDate = this.getLocalDateStr(lastWeek);
     this.endDate = this.getLocalDateStr(today);
+    this.simCogsRate = this.cogsPercent;
 
     container.innerHTML = `
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px; max-width: 100%; width: 100%; overflow-x: hidden;">
@@ -78,7 +93,7 @@ window.views.reports = {
           </div>
         </div>
 
-        <!-- 5-Card Executive Financial Scorecard Grid -->
+        <!-- 5-Card Executive Financial Scorecard Grid with Growth Comparison -->
         <div class="rep-kpi-grid">
           
           <!-- Card 1: Gross Sales -->
@@ -95,7 +110,7 @@ window.views.reports = {
             </div>
             <div class="rep-kpi-badges">
               <span class="dash-sub-pill pill-neutral" id="rep-gross-orders-badge"><i class="fa-solid fa-receipt"></i> 0 Bills</span>
-              <span class="dash-sub-pill pill-neutral" id="rep-cancelled-badge" style="display: none; color: #ef4444;"><i class="fa-solid fa-ban"></i> 0 Cancelled</span>
+              <span id="rep-growth-gross-badge" class="growth-tag growth-up"><i class="fa-solid fa-arrow-trend-up"></i> +0% vs prev</span>
             </div>
           </div>
 
@@ -113,6 +128,7 @@ window.views.reports = {
             </div>
             <div class="rep-kpi-badges">
               <span class="dash-sub-pill pill-cash" id="rep-discounts-badge"><i class="fa-solid fa-tag"></i> Discounts: -₹0</span>
+              <span id="rep-growth-aov-badge" class="dash-sub-pill pill-neutral">AOV: ₹0</span>
             </div>
           </div>
 
@@ -126,7 +142,7 @@ window.views.reports = {
             </div>
             <div>
               <div class="rep-kpi-val" id="rep-cogs-val" style="color: #b45309;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-cogs-sub">Estimated food cost benchmark</div>
+              <div class="rep-kpi-sub" id="rep-cogs-sub">Benchmarked ingredient cost</div>
             </div>
             <div class="rep-kpi-badges">
               <span class="dash-sub-pill pill-neutral" id="rep-gross-margin-badge"><i class="fa-solid fa-percent"></i> 68% Gross Margin</span>
@@ -150,7 +166,7 @@ window.views.reports = {
             </div>
           </div>
 
-          <!-- Card 5: Net Operating Profit (The Core Business Metric) -->
+          <!-- Card 5: Net Operating Profit -->
           <div class="rep-kpi-card accent-green" id="rep-profit-card">
             <div class="rep-kpi-header">
               <span class="rep-kpi-label" style="font-weight: 800; color: #059669;">NET OPERATING PROFIT</span>
@@ -170,6 +186,35 @@ window.views.reports = {
 
         </div>
 
+        <!-- Store Health & Breakeven Analytics Ribbon -->
+        <div class="glass-card" style="padding: 10px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-shield-heart" style="color: #059669;"></i> Store Health Score:
+              </span>
+              <span id="rep-store-health-pill" style="font-size: 11.5px; font-weight: 900; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 8px;">
+                92/100 · Strong
+              </span>
+            </div>
+
+            <div style="height: 16px; width: 1px; background: var(--border-color);" class="hide-mobile"></div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">
+                <i class="fa-solid fa-scale-balanced" style="color: #2563eb;"></i> Daily Breakeven Target:
+              </span>
+              <strong id="rep-breakeven-pill" style="font-size: 12px; color: #2563eb;">₹0 / day (0 orders)</strong>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);" id="rep-period-comparison-label">
+              Comparing vs previous equivalent period
+            </span>
+          </div>
+        </div>
+
         <!-- Sub-Tabs Navigation Strip -->
         <div class="glass-card" style="padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-radius: 12px;">
           <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
@@ -180,7 +225,10 @@ window.views.reports = {
               <i class="fa-solid fa-burger"></i> Menu Item Margins
             </button>
             <button class="btn ${this.activeTab === 'insights' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-insights" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-fire"></i> Shift Rush & Customers
+              <i class="fa-solid fa-fire"></i> Traffic & Customers
+            </button>
+            <button class="btn ${this.activeTab === 'simulator' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-simulator" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-sliders"></i> What-If Profit Simulator
             </button>
           </div>
 
@@ -212,18 +260,21 @@ window.views.reports = {
     const tabFinancial = document.getElementById("subtab-rep-financial");
     const tabMenu = document.getElementById("subtab-rep-menu");
     const tabInsights = document.getElementById("subtab-rep-insights");
+    const tabSimulator = document.getElementById("subtab-rep-simulator");
 
     const switchSubTab = (tab) => {
       this.activeTab = tab;
       if (tabFinancial) tabFinancial.className = this.activeTab === "financial" ? "btn btn-primary" : "btn btn-secondary";
       if (tabMenu) tabMenu.className = this.activeTab === "menu" ? "btn btn-primary" : "btn btn-secondary";
       if (tabInsights) tabInsights.className = this.activeTab === "insights" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabSimulator) tabSimulator.className = this.activeTab === "simulator" ? "btn btn-primary" : "btn btn-secondary";
       this.renderSubTab();
     };
 
     if (tabFinancial) tabFinancial.onclick = () => switchSubTab("financial");
     if (tabMenu) tabMenu.onclick = () => switchSubTab("menu");
     if (tabInsights) tabInsights.onclick = () => switchSubTab("insights");
+    if (tabSimulator) tabSimulator.onclick = () => switchSubTab("simulator");
 
     // Quick Date Preset Buttons
     const highlightPreset = (activeBtn) => {
@@ -248,12 +299,12 @@ window.views.reports = {
           this.endDate = yStr;
         } else if (range === "last7") {
           const l7 = new Date();
-          l7.setDate(today.getDate() - 7);
+          l7.setDate(today.getDate() - 6);
           this.startDate = this.getLocalDateStr(l7);
           this.endDate = todayStr;
         } else if (range === "last30") {
           const l30 = new Date();
-          l30.setDate(today.getDate() - 30);
+          l30.setDate(today.getDate() - 29);
           this.startDate = this.getLocalDateStr(l30);
           this.endDate = todayStr;
         } else if (range === "thisMonth") {
@@ -311,6 +362,27 @@ window.views.reports = {
     }
   },
 
+  calculatePreviousPeriod(startDateStr, endDateStr) {
+    const [sY, sM, sD] = startDateStr.split('-').map(Number);
+    const [eY, eM, eD] = endDateStr.split('-').map(Number);
+    const sDate = new Date(sY, sM - 1, sD);
+    const eDate = new Date(eY, eM - 1, eD);
+    
+    const diffTime = Math.abs(eDate - sDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    const prevEnd = new Date(sDate);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - (diffDays - 1));
+
+    return {
+      prevStartStr: this.getLocalDateStr(prevStart),
+      prevEndStr: this.getLocalDateStr(prevEnd),
+      diffDays
+    };
+  },
+
   processDataAndRender() {
     const orders = (window.db && window.db.get("orders")) || [];
     const products = (window.db && window.db.get("products")) || [];
@@ -322,7 +394,7 @@ window.views.reports = {
     const startStr = this.startDate;
     const endStr = this.endDate;
 
-    // 1. Filter Orders in range
+    // 1. Current Period Filter
     const filteredOrders = orders.filter(o => {
       if (!o.createdAt) return false;
       const orderDate = new Date(o.createdAt);
@@ -333,13 +405,24 @@ window.views.reports = {
     const validOrders = filteredOrders.filter(o => o.status !== "Cancelled");
     const cancelledOrders = filteredOrders.filter(o => o.status === "Cancelled");
 
-    // 2. Filter Operating Expenses in range
     const periodExpenses = expenses.filter(e => {
       const dStr = e.date || (e.createdAt ? e.createdAt.substring(0, 10) : "");
       return dStr >= startStr && dStr <= endStr;
     });
 
-    // 3. Core Financial Calculations
+    // 2. Previous Period Filter (for automated growth comparison)
+    const { prevStartStr, prevEndStr, diffDays } = this.calculatePreviousPeriod(startStr, endStr);
+    const prevOrders = orders.filter(o => {
+      if (!o.createdAt) return false;
+      const orderDate = new Date(o.createdAt);
+      const d = !isNaN(orderDate.getTime()) ? this.getLocalDateStr(orderDate) : o.createdAt.substring(0, 10);
+      return d >= prevStartStr && d <= prevEndStr && o.status !== "Cancelled";
+    });
+
+    const prevGrossSales = prevOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const prevAov = prevOrders.length > 0 ? (prevGrossSales / prevOrders.length) : 0;
+
+    // 3. Current Financial Calculations
     let cashTotal = 0;
     let upiTotal = 0;
     let cardTotal = 0;
@@ -361,8 +444,7 @@ window.views.reports = {
 
     const flatDiscounts = validOrders.reduce((sum, o) => sum + (Number(o.discount) || 0), 0);
     const totalDiscounts = flatDiscounts;
-
-    const netSales = grossSales; // Realized order revenue
+    const netSales = grossSales;
     const totalOperatingExpenses = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     
     // COGS & Profit Benchmarking
@@ -371,15 +453,31 @@ window.views.reports = {
     const grossProfit = Math.max(0, grossSales - estimatedCOGS);
     const grossMarginPct = grossSales > 0 ? Math.round((grossProfit / grossSales) * 100) : (100 - this.cogsPercent);
     
-    // Net Operating Profit
     const netProfit = grossProfit - totalOperatingExpenses;
     const netMarginPct = grossSales > 0 ? ((netProfit / grossSales) * 100).toFixed(1) : "0.0";
     const aov = validOrders.length > 0 ? (grossSales / validOrders.length) : 0;
     const itemsPerOrder = validOrders.length > 0 ? (totalItemsCount / validOrders.length).toFixed(1) : "0";
 
-    // Cashless Adoption
-    const cashlessAmt = upiTotal + cardTotal;
-    const cashlessPercent = grossSales > 0 ? Math.round((cashlessAmt / grossSales) * 100) : 0;
+    // Growth deltas vs previous period
+    const grossGrowthPct = prevGrossSales > 0 ? (((grossSales - prevGrossSales) / prevGrossSales) * 100).toFixed(1) : null;
+    const aovGrowthPct = prevAov > 0 ? (((aov - prevAov) / prevAov) * 100).toFixed(1) : null;
+
+    // Daily breakeven target calculation
+    const daysInPeriod = Math.max(1, diffDays);
+    const dailyExpenses = totalOperatingExpenses / daysInPeriod;
+    const grossMarginRate = (grossMarginPct / 100) || 0.68;
+    const dailyBreakevenRevenue = grossMarginRate > 0 ? (dailyExpenses / grossMarginRate) : 0;
+    const breakevenOrdersCount = aov > 0 ? Math.ceil(dailyBreakevenRevenue / aov) : 0;
+
+    // Store Health Score (0 to 100)
+    let healthScore = 75;
+    if (netProfit > (grossSales * 0.25)) healthScore += 15;
+    else if (netProfit > 0) healthScore += 8;
+    else healthScore -= 20;
+
+    if (grossSales > 0 && (upiTotal + cardTotal) / grossSales >= 0.5) healthScore += 5; // cashless adoption
+    if (aov >= 200) healthScore += 5;
+    healthScore = Math.max(10, Math.min(99, healthScore));
 
     // Cache calculations on instance
     this.currentData = {
@@ -400,20 +498,27 @@ window.views.reports = {
       netMarginPct,
       aov,
       itemsPerOrder,
-      cashlessPercent,
       cashTotal,
       upiTotal,
-      cardTotal
+      cardTotal,
+      grossGrowthPct,
+      aovGrowthPct,
+      dailyBreakevenRevenue,
+      breakevenOrdersCount,
+      healthScore,
+      prevGrossSales,
+      daysInPeriod
     };
 
     // 4. Update Top 5 Scorecard Elements
     const grossSalesEl = document.getElementById("rep-gross-sales");
     const ordersSubEl = document.getElementById("rep-orders-sub");
     const grossOrdersBadge = document.getElementById("rep-gross-orders-badge");
-    const cancelledBadge = document.getElementById("rep-cancelled-badge");
+    const grossGrowthBadge = document.getElementById("rep-growth-gross-badge");
 
     const netSalesEl = document.getElementById("rep-net-sales");
     const discountsBadge = document.getElementById("rep-discounts-badge");
+    const aovBadge = document.getElementById("rep-growth-aov-badge");
 
     const cogsValEl = document.getElementById("rep-cogs-val");
     const cogsSubEl = document.getElementById("rep-cogs-sub");
@@ -427,20 +532,28 @@ window.views.reports = {
     const healthStatusBadge = document.getElementById("rep-health-status-badge");
     const profitCard = document.getElementById("rep-profit-card");
 
+    const storeHealthPill = document.getElementById("rep-store-health-pill");
+    const breakevenPill = document.getElementById("rep-breakeven-pill");
+    const compLabel = document.getElementById("rep-period-comparison-label");
+
     if (grossSalesEl) grossSalesEl.textContent = `${currency}${Math.round(grossSales).toLocaleString("en-IN")}`;
     if (ordersSubEl) ordersSubEl.textContent = `${validOrders.length} completed transactions`;
     if (grossOrdersBadge) grossOrdersBadge.innerHTML = `<i class="fa-solid fa-receipt"></i> ${validOrders.length} Bills`;
-    if (cancelledBadge) {
-      if (cancelledOrders.length > 0) {
-        cancelledBadge.style.display = "inline-flex";
-        cancelledBadge.innerHTML = `<i class="fa-solid fa-ban"></i> ${cancelledOrders.length} Cancelled`;
+    
+    if (grossGrowthBadge) {
+      if (grossGrowthPct !== null) {
+        const isUp = Number(grossGrowthPct) >= 0;
+        grossGrowthBadge.className = `growth-tag ${isUp ? 'growth-up' : 'growth-down'}`;
+        grossGrowthBadge.innerHTML = `<i class="fa-solid ${isUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${isUp ? '+' : ''}${grossGrowthPct}% vs prev`;
       } else {
-        cancelledBadge.style.display = "none";
+        grossGrowthBadge.className = "growth-tag";
+        grossGrowthBadge.innerHTML = `<i class="fa-solid fa-clock"></i> New period`;
       }
     }
 
     if (netSalesEl) netSalesEl.textContent = `${currency}${Math.round(netSales).toLocaleString("en-IN")}`;
     if (discountsBadge) discountsBadge.innerHTML = `<i class="fa-solid fa-tag"></i> Discounts: -${currency}${Math.round(totalDiscounts).toLocaleString("en-IN")}`;
+    if (aovBadge) aovBadge.textContent = `AOV: ${currency}${Math.round(aov)}`;
 
     if (cogsValEl) cogsValEl.textContent = `${currency}${Math.round(estimatedCOGS).toLocaleString("en-IN")}`;
     if (cogsSubEl) cogsSubEl.textContent = `Benchmarked at ${this.cogsPercent}% food cost`;
@@ -478,6 +591,20 @@ window.views.reports = {
       }
     }
 
+    if (storeHealthPill) {
+      storeHealthPill.textContent = `${healthScore}/100 · ${healthScore >= 80 ? 'Excellent' : healthScore >= 60 ? 'Moderate' : 'Needs Attention'}`;
+      storeHealthPill.style.background = healthScore >= 80 ? "#ecfdf5" : healthScore >= 60 ? "#fffbeb" : "#fef2f2";
+      storeHealthPill.style.color = healthScore >= 80 ? "#059669" : healthScore >= 60 ? "#b45309" : "#dc2626";
+    }
+
+    if (breakevenPill) {
+      breakevenPill.textContent = `${currency}${Math.round(dailyBreakevenRevenue).toLocaleString("en-IN")} / day (approx ${breakevenOrdersCount} orders)`;
+    }
+
+    if (compLabel) {
+      compLabel.textContent = `Comparing vs previous ${daysInPeriod} days (${prevStartStr} to ${prevEndStr})`;
+    }
+
     // 5. Render Active Sub-Tab
     this.renderSubTab();
   },
@@ -494,6 +621,8 @@ window.views.reports = {
         ind.innerHTML = `<i class="fa-solid fa-trophy" style="color: #eab308;"></i> Unit margins & sales role`;
       } else if (this.activeTab === "insights") {
         ind.innerHTML = `<i class="fa-solid fa-fire" style="color: #d97706;"></i> Rush, channels & loyalty`;
+      } else if (this.activeTab === "simulator") {
+        ind.innerHTML = `<i class="fa-solid fa-sliders" style="color: #7c3aed;"></i> What-if profit & target simulator`;
       }
     }
 
@@ -503,6 +632,8 @@ window.views.reports = {
       this.renderMenuTab(mount);
     } else if (this.activeTab === "insights") {
       this.renderInsightsTab(mount);
+    } else if (this.activeTab === "simulator") {
+      this.renderSimulatorTab(mount);
     }
   },
 
@@ -569,7 +700,7 @@ window.views.reports = {
             </div>
           </div>
 
-          <!-- Chart 2: Category Revenue / Operating Expense Breakdown Doughnut -->
+          <!-- Chart 2: Distribution Share Doughnut (Categories, Expenses, Payments) -->
           <div class="dash-chart-card" style="min-height: 350px;">
             <div class="chart-header">
               <div>
@@ -577,7 +708,7 @@ window.views.reports = {
                   <i class="fa-solid fa-chart-pie" style="color: #10b981;"></i> Distribution Share
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                  Sales categories vs operating expenses
+                  Category sales, operating costs, and payment modes
                 </div>
               </div>
 
@@ -585,6 +716,7 @@ window.views.reports = {
               <div class="dash-chart-toggle-group" id="rep-donut-mode-toggle">
                 <button type="button" class="dash-chart-toggle-btn ${this.activeDonutMode === 'categories' ? 'active' : ''}" data-mode="categories">Categories</button>
                 <button type="button" class="dash-chart-toggle-btn ${this.activeDonutMode === 'expenses' ? 'active' : ''}" data-mode="expenses">Expenses</button>
+                <button type="button" class="dash-chart-toggle-btn ${this.activeDonutMode === 'payments' ? 'active' : ''}" data-mode="payments">Payments</button>
               </div>
             </div>
             <div class="dash-chart-wrap" style="height: 260px;">
@@ -637,7 +769,7 @@ window.views.reports = {
   },
 
   // =========================================================================
-  // SUB-TAB 2: MENU ITEM MARGINS & ENGINEERING
+  // SUB-TAB 2: MENU ITEM MARGINS & ENGINEERING (WITH QUICK PILLS)
   // =========================================================================
   renderMenuTab(mount) {
     const products = (window.db && window.db.get("products")) || [];
@@ -649,7 +781,7 @@ window.views.reports = {
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
         
         <!-- Menu Item Margin & Profitability Engineering Matrix -->
-        <div class="glass-card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 14px;">
+        <div class="glass-card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
               <h3 style="font-size: 15px; font-weight: 900; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
@@ -662,9 +794,9 @@ window.views.reports = {
 
             <!-- Search & Sort Controls -->
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-              <div style="position: relative; width: 200px;">
+              <div style="position: relative; width: 220px;">
                 <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; font-size: 11px; color: var(--text-muted);"></i>
-                <input type="text" id="rep-item-search-input" class="form-input" placeholder="Search menu item..." value="${this.itemSearchQuery}" style="height: 35px; font-size: 12px; padding-left: 28px; border-radius: 10px; width: 100%;">
+                <input type="text" id="rep-item-search-input" class="form-input" placeholder="Search dish / category..." value="${this.itemSearchQuery}" style="height: 35px; font-size: 12px; padding-left: 28px; border-radius: 10px; width: 100%;">
               </div>
               <select id="rep-item-sort-select" class="form-input" style="height: 35px; font-size: 11.5px; border-radius: 10px; padding: 2px 8px; font-weight: 700; width: 180px;">
                 <option value="profit" ${this.itemSortKey === 'profit' ? 'selected' : ''}>Sort: Highest Profit First</option>
@@ -673,6 +805,24 @@ window.views.reports = {
                 <option value="margin" ${this.itemSortKey === 'margin' ? 'selected' : ''}>Sort: Highest Margin %</option>
               </select>
             </div>
+          </div>
+
+          <!-- 1-Tap Category Filter Pills Strip -->
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: #f8fafc; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Category:</span>
+            <button type="button" class="rep-quick-chip ${this.menuCategoryFilter === 'all' ? 'active' : ''}" data-cat="all">All</button>
+            ${categories.map(c => `
+              <button type="button" class="rep-quick-chip ${this.menuCategoryFilter === c.id ? 'active' : ''}" data-cat="${c.id}">${c.name}</button>
+            `).join("")}
+
+            <div style="height: 18px; width: 1px; background: var(--border-color); margin: 0 4px;"></div>
+
+            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Role:</span>
+            <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'all' ? 'active' : ''}" data-role="all">All Roles</button>
+            <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'star' ? 'active' : ''}" data-role="star">🌟 Stars</button>
+            <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'horse' ? 'active' : ''}" data-role="horse">🐎 Volume</button>
+            <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'puzzle' ? 'active' : ''}" data-role="puzzle">💡 High Margin</button>
+            <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'slow' ? 'active' : ''}" data-role="slow">⚠️ Low Velocity</button>
           </div>
 
           <!-- Item Profitability Table -->
@@ -747,12 +897,32 @@ window.views.reports = {
       };
     }
 
+    // Category pills click
+    mount.querySelectorAll(".rep-quick-chip[data-cat]").forEach(btn => {
+      btn.onclick = () => {
+        mount.querySelectorAll(".rep-quick-chip[data-cat]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.menuCategoryFilter = btn.getAttribute("data-cat");
+        this.renderItemProfitTableOnly();
+      };
+    });
+
+    // Role pills click
+    mount.querySelectorAll(".rep-quick-chip[data-role]").forEach(btn => {
+      btn.onclick = () => {
+        mount.querySelectorAll(".rep-quick-chip[data-role]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.menuRoleFilter = btn.getAttribute("data-role");
+        this.renderItemProfitTableOnly();
+      };
+    });
+
     this.renderItemProfitTableOnly();
     this.renderLowVelocityMenu(products, categories, validOrders, currency);
   },
 
   // =========================================================================
-  // SUB-TAB 3: SHIFT RUSH, CHANNELS & CUSTOMER INSIGHTS
+  // SUB-TAB 3: TRAFFIC, CHANNELS & CUSTOMER INSIGHTS
   // =========================================================================
   renderInsightsTab(mount) {
     const validOrders = (this.currentData && this.currentData.validOrders) || [];
@@ -887,6 +1057,226 @@ window.views.reports = {
     this.renderCustomerLoyalty(validOrders, currency);
   },
 
+  // =========================================================================
+  // SUB-TAB 4: WHAT-IF PROFIT SIMULATOR & BREAKEVEN TARGETS (NEW ADVANCED)
+  // =========================================================================
+  renderSimulatorTab(mount) {
+    if (!this.currentData) return;
+
+    const { grossSales, estimatedCOGS, totalOperatingExpenses, netProfit, currency, daysInPeriod } = this.currentData;
+
+    mount.innerHTML = `
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Header Info -->
+        <div class="glass-card" style="padding: 18px 20px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <h3 style="margin: 0; font-size: 16px; font-weight: 900; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-sliders" style="color: #7c3aed;"></i> Real-Time What-If Profit Simulator & Sensitivity Lab
+              </h3>
+              <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                Test sensitivity scenarios: Adjust projected sales growth, food cost targets, and overheads to see their direct impact on net profit.
+              </p>
+            </div>
+            <button type="button" class="btn btn-secondary" id="btn-reset-simulator" style="height: 34px; font-size: 11.5px; font-weight: 800; border-radius: 8px;">
+              <i class="fa-solid fa-arrow-rotate-left"></i> Reset Defaults
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulator Grid: Sliders on Left, Live Projected Outcome on Right -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
+          
+          <!-- Controls Panel -->
+          <div class="glass-card" style="padding: 20px; border-radius: 14px; display: flex; flex-direction: column; gap: 16px;">
+            <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+              <i class="fa-solid fa-gears" style="color: #2563eb; margin-right: 6px;"></i> Simulation Parameters
+            </h4>
+
+            <!-- Slider 1: Sales Volume Variation -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 12.5px; font-weight: 800; color: var(--text-dark);">
+                  Expected Sales Growth / Drop:
+                </label>
+                <span id="sim-val-sales" style="font-size: 13px; font-weight: 900; color: #2563eb;">+0%</span>
+              </div>
+              <input type="range" id="sim-slider-sales" class="sim-slider" min="-30" max="50" step="5" value="${this.simSalesDelta}">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                <span>-30% Drop</span>
+                <span>Current Baseline</span>
+                <span>+50% Growth</span>
+              </div>
+            </div>
+
+            <!-- Slider 2: Target Food Cost (COGS) % -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 12.5px; font-weight: 800; color: var(--text-dark);">
+                  Target Food Cost (COGS %):
+                </label>
+                <span id="sim-val-cogs" style="font-size: 13px; font-weight: 900; color: #b45309;">${this.simCogsRate}%</span>
+              </div>
+              <input type="range" id="sim-slider-cogs" class="sim-slider" min="20" max="45" step="1" value="${this.simCogsRate}">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                <span>20% (Ultra Lean)</span>
+                <span>32% (Standard)</span>
+                <span>45% (High Cost)</span>
+              </div>
+            </div>
+
+            <!-- Slider 3: Overhead Expenses Variation -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 12.5px; font-weight: 800; color: var(--text-dark);">
+                  Overhead Expense Adjustment:
+                </label>
+                <span id="sim-val-expenses" style="font-size: 13px; font-weight: 900; color: #dc2626;">+0%</span>
+              </div>
+              <input type="range" id="sim-slider-expenses" class="sim-slider" min="-25" max="35" step="5" value="${this.simExpenseDelta}">
+              <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                <span>-25% Cut</span>
+                <span>Current Expenses</span>
+                <span>+35% Increase</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Outcome Dashboard -->
+          <div class="glass-card" style="padding: 20px; border-radius: 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px;">
+            <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+              <i class="fa-solid fa-chart-pie" style="color: #059669; margin-right: 6px;"></i> Projected Financial Impact
+            </h4>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Projected Sales</span>
+                <div id="sim-out-sales" style="font-size: 18px; font-weight: 900; color: #2563eb; margin-top: 2px;">₹0</div>
+                <span id="sim-out-sales-delta" style="font-size: 10.5px; color: var(--text-muted);">Baseline: ₹0</span>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Projected Food Cost</span>
+                <div id="sim-out-cogs" style="font-size: 18px; font-weight: 900; color: #b45309; margin-top: 2px;">₹0</div>
+                <span id="sim-out-cogs-pct" style="font-size: 10.5px; color: var(--text-muted);">0% of sales</span>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Projected Overheads</span>
+                <div id="sim-out-expenses" style="font-size: 18px; font-weight: 900; color: #dc2626; margin-top: 2px;">₹0</div>
+                <span id="sim-out-expenses-delta" style="font-size: 10.5px; color: var(--text-muted);">Fixed overheads</span>
+              </div>
+
+              <div id="sim-out-profit-card" style="background: #ecfdf5; border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 10px 12px;">
+                <span style="font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase;">PROJECTED NET PROFIT</span>
+                <div id="sim-out-profit" style="font-size: 20px; font-weight: 900; color: #059669; margin-top: 2px;">₹0</div>
+                <span id="sim-out-profit-diff" style="font-size: 11px; font-weight: 800; color: #059669;">+₹0 boost</span>
+              </div>
+            </div>
+
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 14px; font-size: 11.5px; color: #1e40af;">
+              <i class="fa-solid fa-circle-info" style="margin-right: 5px;"></i>
+              <strong id="sim-tip-text">Pro-Tip: Reducing food cost by 3% yields the equivalent profit of a 10% sales surge!</strong>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+    this.bindSimulatorEvents(mount);
+    this.recalculateSimulation();
+  },
+
+  bindSimulatorEvents(mount) {
+    const sSales = mount.querySelector("#sim-slider-sales");
+    const sCogs = mount.querySelector("#sim-slider-cogs");
+    const sExpenses = mount.querySelector("#sim-slider-expenses");
+    const btnReset = mount.querySelector("#btn-reset-simulator");
+
+    if (sSales) {
+      sSales.oninput = (e) => {
+        this.simSalesDelta = Number(e.target.value);
+        mount.querySelector("#sim-val-sales").textContent = `${this.simSalesDelta >= 0 ? '+' : ''}${this.simSalesDelta}%`;
+        this.recalculateSimulation();
+      };
+    }
+
+    if (sCogs) {
+      sCogs.oninput = (e) => {
+        this.simCogsRate = Number(e.target.value);
+        mount.querySelector("#sim-val-cogs").textContent = `${this.simCogsRate}%`;
+        this.recalculateSimulation();
+      };
+    }
+
+    if (sExpenses) {
+      sExpenses.oninput = (e) => {
+        this.simExpenseDelta = Number(e.target.value);
+        mount.querySelector("#sim-val-expenses").textContent = `${this.simExpenseDelta >= 0 ? '+' : ''}${this.simExpenseDelta}%`;
+        this.recalculateSimulation();
+      };
+    }
+
+    if (btnReset) {
+      btnReset.onclick = () => {
+        this.simSalesDelta = 0;
+        this.simCogsRate = this.cogsPercent;
+        this.simExpenseDelta = 0;
+        this.renderSimulatorTab(mount);
+      };
+    }
+  },
+
+  recalculateSimulation() {
+    if (!this.currentData) return;
+
+    const { grossSales, totalOperatingExpenses, netProfit, currency } = this.currentData;
+
+    const projSales = Math.max(0, grossSales * (1 + (this.simSalesDelta / 100)));
+    const projCogs = projSales * (this.simCogsRate / 100);
+    const projExpenses = Math.max(0, totalOperatingExpenses * (1 + (this.simExpenseDelta / 100)));
+    const projGrossProfit = Math.max(0, projSales - projCogs);
+    const projNetProfit = projGrossProfit - projExpenses;
+    const profitDiff = projNetProfit - netProfit;
+
+    const outSales = document.getElementById("sim-out-sales");
+    const outSalesDelta = document.getElementById("sim-out-sales-delta");
+    const outCogs = document.getElementById("sim-out-cogs");
+    const outCogsPct = document.getElementById("sim-out-cogs-pct");
+    const outExpenses = document.getElementById("sim-out-expenses");
+    const outExpensesDelta = document.getElementById("sim-out-expenses-delta");
+    const outProfit = document.getElementById("sim-out-profit");
+    const outProfitDiff = document.getElementById("sim-out-profit-diff");
+    const profitCard = document.getElementById("sim-out-profit-card");
+
+    if (outSales) outSales.textContent = `${currency}${Math.round(projSales).toLocaleString("en-IN")}`;
+    if (outSalesDelta) outSalesDelta.textContent = `Baseline: ${currency}${Math.round(grossSales).toLocaleString("en-IN")}`;
+    if (outCogs) outCogs.textContent = `${currency}${Math.round(projCogs).toLocaleString("en-IN")}`;
+    if (outCogsPct) outCogsPct.textContent = `${this.simCogsRate}% target food cost`;
+    if (outExpenses) outExpenses.textContent = `${currency}${Math.round(projExpenses).toLocaleString("en-IN")}`;
+    if (outExpensesDelta) outExpensesDelta.textContent = `${this.simExpenseDelta >= 0 ? '+' : ''}${this.simExpenseDelta}% vs current overheads`;
+
+    if (outProfit) {
+      const isProfitable = projNetProfit >= 0;
+      outProfit.textContent = `${isProfitable ? '' : '-'}${currency}${Math.abs(Math.round(projNetProfit)).toLocaleString("en-IN")}`;
+      outProfit.style.color = isProfitable ? "#059669" : "#dc2626";
+
+      if (profitCard) {
+        profitCard.style.background = isProfitable ? "#ecfdf5" : "#fef2f2";
+        profitCard.style.borderColor = isProfitable ? "#a7f3d0" : "#fecaca";
+      }
+    }
+
+    if (outProfitDiff) {
+      const isPositive = profitDiff >= 0;
+      outProfitDiff.style.color = isPositive ? "#059669" : "#dc2626";
+      outProfitDiff.textContent = `${isPositive ? '+' : ''}${currency}${Math.round(profitDiff).toLocaleString("en-IN")} vs actual current`;
+    }
+  },
+
   renderWaterfallSteps(gross, discounts, net, cogs, grossProf, expenses, netProf, currency) {
     const container = document.getElementById("rep-waterfall-steps");
     if (!container) return;
@@ -980,6 +1370,7 @@ window.views.reports = {
             itemMap[name] = {
               name,
               productId: it.productId,
+              categoryId: prod ? prod.category : null,
               categoryName: cat ? cat.name : "General",
               price: Number(it.price || 0),
               unitsSold: 0,
@@ -1008,7 +1399,12 @@ window.views.reports = {
       };
     });
 
-    // Filter by search query
+    // 1. Filter by Category Pill
+    if (this.menuCategoryFilter !== "all") {
+      itemList = itemList.filter(i => i.categoryId === this.menuCategoryFilter);
+    }
+
+    // 2. Filter by search query
     if (this.itemSearchQuery) {
       itemList = itemList.filter(i => 
         i.name.toLowerCase().includes(this.itemSearchQuery) || 
@@ -1016,7 +1412,27 @@ window.views.reports = {
       );
     }
 
-    // Sort
+    // Determine thresholds for Menu Engineering Role
+    const maxQty = Math.max(...itemList.map(i => i.unitsSold), 1);
+    const maxProfit = Math.max(...itemList.map(i => i.profitContributed), 1);
+
+    // 3. Filter by Role Chip
+    if (this.menuRoleFilter !== "all") {
+      itemList = itemList.filter(i => {
+        const isStar = i.unitsSold >= maxQty * 0.4 && i.profitContributed >= maxProfit * 0.4;
+        const isHorse = !isStar && i.unitsSold >= maxQty * 0.35;
+        const isPuzzle = i.profitContributed >= maxProfit * 0.35 && i.unitsSold < maxQty * 0.4;
+        const isSlow = i.unitsSold <= 2;
+
+        if (this.menuRoleFilter === "star") return isStar;
+        if (this.menuRoleFilter === "horse") return isHorse;
+        if (this.menuRoleFilter === "puzzle") return isPuzzle;
+        if (this.menuRoleFilter === "slow") return isSlow;
+        return true;
+      });
+    }
+
+    // 4. Sort
     if (this.itemSortKey === "gross") {
       itemList.sort((a, b) => b.grossSales - a.grossSales);
     } else if (this.itemSortKey === "qty") {
@@ -1033,12 +1449,7 @@ window.views.reports = {
       return;
     }
 
-    // Determine thresholds for Menu Engineering Role
-    const maxQty = Math.max(...itemList.map(i => i.unitsSold), 1);
-    const maxProfit = Math.max(...itemList.map(i => i.profitContributed), 1);
-
     tbody.innerHTML = itemList.map((item, idx) => {
-      // Role Classification: Star, Horse, Opportunity/Puzzle, Slow
       let roleHtml = `<span class="badge-menu-horse">🐎 Volume Driver</span>`;
       if (item.unitsSold >= maxQty * 0.4 && item.profitContributed >= maxProfit * 0.4) {
         roleHtml = `<span class="badge-menu-star">🌟 Star Item</span>`;
@@ -1276,7 +1687,7 @@ window.views.reports = {
       this.donutBreakdownChart.destroy();
     }
 
-    const { validOrders, periodExpenses, categories, products } = this.currentData;
+    const { validOrders, periodExpenses, categories, products, cashTotal, upiTotal, cardTotal } = this.currentData;
     const textMuted = '#64748b';
     const borderColor = 'rgba(202, 213, 226, 0.6)';
 
@@ -1285,7 +1696,6 @@ window.views.reports = {
     let backgroundColors = [];
 
     if (this.activeDonutMode === "expenses") {
-      // Group by expense category
       const expCatMap = {};
       periodExpenses.forEach(e => {
         const cat = e.category || "Other expenses";
@@ -1301,6 +1711,10 @@ window.views.reports = {
         data = [1];
         backgroundColors = [borderColor];
       }
+    } else if (this.activeDonutMode === "payments") {
+      labels = ["Cash in Till", "UPI QR Online", "Card Swiped"];
+      data = [Math.round(cashTotal), Math.round(upiTotal), Math.round(cardTotal)];
+      backgroundColors = ["#10b981", "#8b5cf6", "#3b82f6"];
     } else {
       // Default: Categories
       const catSalesMap = {};
@@ -1862,7 +2276,7 @@ window.views.reports = {
       const net = Number(o.total) || 0;
       const cogs = net * cogsRate;
       const profit = net - cogs;
-      csv += `ORD-${o.orderNumber},"${o.createdAt}",` +
+      csv += `ORD-${o.orderNumber || o.id},"${o.createdAt}",` +
              `"${(o.customerName || 'Walk-in').replace(/"/g, '""')}",` +
              `"${(o.customerPhone || '').replace(/"/g, '""')}",` +
              `"${o.type || 'Dine-in'}","${o.paymentMethod || 'UPI'}",` +

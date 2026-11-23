@@ -1,19 +1,21 @@
 // Crust & Chilly POS - Advanced Executive Menu Management & Recipe Engineering Suite
-// Features: Executive KPI Overview, Smart Category Navigation, Real-Time Filtering & Search,
-// Accurate Food Costing (COGS Benchmark & Custom Cost Price), Inline Quick Edits,
-// 1-Click 86'd / In-Stock POS Toggles, Advanced Recipe Cost Calculator & Inventory Linkage,
-// Bulk Operations Suite (Percent & Fixed Modifiers + Smart Rounding), Category Manager,
-// Role Permissions Matrix, CSV Export, and Official Menu Price Sheet Printing.
+// Features: Executive KPI Overview & Profitability Gauge, Smart Multi-Select Bulk Actions,
+// Fast Inline Quick-Add, Category Navigation, Real-Time Filtering & Search, Accurate Food Costing (COGS),
+// 1-Click 86'd / In-Stock Toggles, Advanced Recipe Cost Calculator & Inventory Linkage,
+// Bulk Price Modifier Suite, Category Manager, Role Permissions Matrix, CSV Export, and Official Menu Sheet Printing.
 
 window.views = window.views || {};
 window.views.menu = {
   activeTab: "products", // 'products' | 'categories' | 'permissions'
   searchQuery: "",
   selectedCategory: "all",
-  statusFilter: "all", // 'all' | 'in-stock' | 'out-of-stock' | 'veg' | 'non-veg' | 'recipe-set' | 'recipe-missing'
+  statusFilter: "all", // 'all' | 'in-stock' | 'out-of-stock' | 'veg' | 'non-veg' | 'high-margin' | 'low-margin' | 'recipe-set' | 'recipe-missing'
+  marginTierFilter: null, // null | 'high' | 'med' | 'warn' | 'crit'
   sortBy: "name-asc", // 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'margin-desc' | 'recipe-desc'
   viewMode: "table", // 'table' | 'grid'
   benchmarkCogsPercent: 32, // Default 32% Food Cost / COGS benchmark matching Reports suite
+  selectedProductIds: new Set(), // Set of selected IDs for multi-select bulk operations
+  showQuickAddBar: false, // Inline fast quick-add bar toggle
 
   // Standard raw ingredient reference unit costs (INR) for warehouse stock valuation & portion costing
   ingredientCostMap: {
@@ -120,8 +122,12 @@ window.views.menu = {
           <!-- Quick Action Buttons -->
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             ${this.activeTab === 'products' ? `
-            <button class="btn btn-secondary" id="btn-menu-bulk-tools" title="Bulk Price Modifier & Quick Actions" style="height: 38px; border-radius: 12px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-bolt" style="color: #d97706;"></i> Bulk Tools
+            <!-- Fast Quick-Add Bar Toggle Button -->
+            <button class="btn ${this.showQuickAddBar ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-quick-add" title="Toggle 1-Row Fast Item Add Bar" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-bolt" style="color: ${this.showQuickAddBar ? '#fff' : '#2563eb'};"></i> Quick Add
+            </button>
+            <button class="btn btn-secondary" id="btn-menu-bulk-tools" title="Bulk Price Modifier & Quick Actions" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-wand-magic-sparkles" style="color: #d97706;"></i> Bulk Tools
             </button>
             <button class="btn btn-secondary" id="btn-menu-export-csv" title="Download Menu Catalog as CSV" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-file-csv" style="color: #059669;"></i> Export CSV
@@ -139,6 +145,9 @@ window.views.menu = {
 
         <!-- Render Mount Point -->
         <div id="menu-content-mount"></div>
+
+        <!-- Multi-Select Bulk Operations Floating Action Bar -->
+        <div id="menu-bulk-floating-mount"></div>
       </div>
     `;
 
@@ -152,6 +161,7 @@ window.views.menu = {
     const btnPerm = document.getElementById("menu-sub-permissions");
     const btnAdd = document.getElementById("btn-add-menu-entity");
     const addText = document.getElementById("btn-add-text");
+    const btnQuickToggle = document.getElementById("btn-toggle-quick-add");
     const btnBulk = document.getElementById("btn-menu-bulk-tools");
     const btnExport = document.getElementById("btn-menu-export-csv");
     const btnPrint = document.getElementById("btn-menu-print-sheet");
@@ -166,10 +176,13 @@ window.views.menu = {
         if (addText) addText.textContent = this.activeTab === "categories" ? "Add Category" : "Add New Dish";
       }
 
+      if (btnQuickToggle) btnQuickToggle.style.display = this.activeTab === "products" ? "inline-flex" : "none";
       if (btnBulk) btnBulk.style.display = this.activeTab === "products" ? "inline-flex" : "none";
       if (btnExport) btnExport.style.display = this.activeTab === "products" ? "inline-flex" : "none";
       if (btnPrint) btnPrint.style.display = this.activeTab === "products" ? "inline-flex" : "none";
 
+      this.selectedProductIds.clear();
+      this.updateBulkActionBar();
       this.render();
     };
 
@@ -191,6 +204,14 @@ window.views.menu = {
       btnPerm.onclick = () => {
         this.activeTab = "permissions";
         updateTabUI();
+      };
+    }
+
+    if (btnQuickToggle) {
+      btnQuickToggle.onclick = () => {
+        this.showQuickAddBar = !this.showQuickAddBar;
+        btnQuickToggle.className = `btn ${this.showQuickAddBar ? 'btn-primary' : 'btn-secondary'}`;
+        this.render();
       };
     }
 
@@ -228,6 +249,8 @@ window.views.menu = {
     } else if (this.activeTab === "permissions") {
       this.renderPermissions(mount);
     }
+
+    this.updateBulkActionBar();
   },
 
   // =========================================================================
@@ -255,6 +278,12 @@ window.views.menu = {
     let customCostCount = 0;
     let recipesMappedCount = 0;
 
+    // Margin Tier Buckets
+    let highMarginCount = 0; // >= 65%
+    let medMarginCount = 0;  // 50-64%
+    let warnMarginCount = 0; // 35-49%
+    let critMarginCount = 0; // < 35%
+
     products.forEach(p => {
       const price = Number(p.price) || 0;
       totalPriceSum += price;
@@ -266,6 +295,11 @@ window.views.menu = {
       totalFoodCostSum += costInfo.foodCost;
       if (costInfo.isCustom || costInfo.isFromRecipe) customCostCount++;
       if (costInfo.hasRecipe) recipesMappedCount++;
+
+      if (costInfo.marginTier === "high") highMarginCount++;
+      else if (costInfo.marginTier === "med") medMarginCount++;
+      else if (costInfo.marginTier === "warn") warnMarginCount++;
+      else critMarginCount++;
     });
 
     const avgPrice = totalCount > 0 ? (totalPriceSum / totalCount).toFixed(0) : "0";
@@ -291,10 +325,22 @@ window.views.menu = {
       filtered = filtered.filter(p => p.veg !== false);
     } else if (this.statusFilter === "non-veg") {
       filtered = filtered.filter(p => p.veg === false);
+    } else if (this.statusFilter === "high-margin") {
+      filtered = filtered.filter(p => this.calculateProductCost(p).marginTier === "high");
+    } else if (this.statusFilter === "low-margin") {
+      filtered = filtered.filter(p => {
+        const t = this.calculateProductCost(p).marginTier;
+        return t === "warn" || t === "crit";
+      });
     } else if (this.statusFilter === "recipe-set") {
       filtered = filtered.filter(p => p.recipe && Object.keys(p.recipe).length > 0);
     } else if (this.statusFilter === "recipe-missing") {
       filtered = filtered.filter(p => !p.recipe || Object.keys(p.recipe).length === 0);
+    }
+
+    // Specific Margin Tier Filter from Visual Gauge
+    if (this.marginTierFilter) {
+      filtered = filtered.filter(p => this.calculateProductCost(p).marginTier === this.marginTierFilter);
     }
 
     // Search query filter
@@ -325,6 +371,8 @@ window.views.menu = {
           return (b.price || 0) - (a.price || 0);
         case "margin-desc":
           return costB.marginPct - costA.marginPct;
+        case "margin-asc":
+          return costA.marginPct - costB.marginPct;
         case "recipe-desc":
           return costB.recipeCount - costA.recipeCount;
         default:
@@ -355,7 +403,7 @@ window.views.menu = {
     if (filtered.length === 0) {
       rowsHtml = `
         <tr>
-          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 45px; font-weight: 600;">
+          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 45px; font-weight: 600;">
             <i class="fa-solid fa-utensils" style="font-size: 34px; opacity: 0.3; display: block; margin-bottom: 10px;"></i>
             No menu items found matching the selected search keyword or filter chip.
           </td>
@@ -367,9 +415,15 @@ window.views.menu = {
         const costInfo = this.calculateProductCost(p);
         const isAvail = p.available !== false;
         const isVeg = p.veg !== false;
+        const isSelected = this.selectedProductIds.has(p.id);
 
         return `
           <tr class="${!isAvail ? 'table-row-dimmed' : ''}">
+            <!-- Multi-Select Checkbox -->
+            <td style="width: 40px; text-align: center;">
+              <input type="checkbox" class="menu-item-select-chk" data-id="${p.id}" ${isSelected ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;">
+            </td>
+
             <!-- Dish & Category -->
             <td>
               <div style="display: flex; align-items: center; gap: 10px;">
@@ -377,13 +431,18 @@ window.views.menu = {
                   <div class="menu-diet-dot"></div>
                 </div>
                 <div>
-                  <div style="font-weight: 800; color: var(--text-dark); font-size: 13.5px;">${p.name}</div>
+                  <div style="font-weight: 800; color: var(--text-dark); font-size: 13.5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <span>${p.name}</span>
+                    ${p.jain ? `<span class="menu-tag-pill menu-tag-jain">Jain 🌿</span>` : ''}
+                    ${p.spicyLevel && p.spicyLevel !== 'none' ? `<span class="menu-tag-pill menu-tag-spicy">${p.spicyLevel} 🌶️</span>` : ''}
+                    ${p.special ? `<span class="menu-tag-pill menu-tag-special">Special ⭐</span>` : ''}
+                    ${p.bogo ? `<span class="menu-tag-pill menu-tag-bogo">BOGO 🎁</span>` : ''}
+                  </div>
                   <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                     <code>${p.id}</code>
                     <span>•</span>
                     <span style="color: #2563eb; font-weight: 700;">${cat ? cat.name : 'Unassigned'}</span>
                     ${p.subCategory ? `<span>•</span><span style="color: #475569; font-weight: 600;">${p.subCategory}</span>` : ''}
-                    ${p.bogo ? `<span style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; font-size: 9.5px; font-weight: 800; padding: 0 4px; border-radius: 4px;">BOGO</span>` : ''}
                   </div>
                 </div>
               </div>
@@ -418,10 +477,6 @@ window.views.menu = {
                   </button>
                   <span>| Profit: <strong style="color: #059669;">${currency}${costInfo.grossProfit.toFixed(0)}</strong></span>
                 </div>
-                ${(p.ingredientCost !== undefined || p.packagingCost !== undefined) ? `
-                <div style="font-size: 10px; color: #64748b; font-weight: 600;">
-                  Ing: ₹${p.ingredientCost !== undefined && p.ingredientCost !== null ? p.ingredientCost : '--'} + Pack: ₹${p.packagingCost !== undefined && p.packagingCost !== null ? p.packagingCost : '--'}
-                </div>` : ''}
               </div>
             </td>
 
@@ -480,12 +535,14 @@ window.views.menu = {
         const costInfo = this.calculateProductCost(p);
         const isAvail = p.available !== false;
         const isVeg = p.veg !== false;
+        const isSelected = this.selectedProductIds.has(p.id);
 
         return `
-          <div class="menu-item-card ${!isAvail ? 'out-of-stock' : ''}">
+          <div class="menu-item-card ${!isAvail ? 'out-of-stock' : ''}" style="${isSelected ? 'border-color: #2563eb; background: #eff6ff;' : ''}">
             <!-- Header Row -->
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
               <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <input type="checkbox" class="menu-item-select-chk" data-id="${p.id}" ${isSelected ? 'checked' : ''} style="margin-top: 4px; cursor: pointer; width: 15px; height: 15px; accent-color: #2563eb;">
                 <div class="menu-diet-box ${isVeg ? 'veg' : 'non-veg'}" style="margin-top: 3px;" title="${isVeg ? 'Pure Veg' : 'Non-Veg'}">
                   <div class="menu-diet-dot"></div>
                 </div>
@@ -494,6 +551,13 @@ window.views.menu = {
                   <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
                     <code>${p.id}</code> • <strong style="color: #2563eb;">${cat ? cat.name : 'Unassigned'}</strong>
                     ${p.subCategory ? ` • <span>${p.subCategory}</span>` : ''}
+                  </div>
+                  <!-- Tags -->
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
+                    ${p.jain ? `<span class="menu-tag-pill menu-tag-jain">Jain 🌿</span>` : ''}
+                    ${p.spicyLevel && p.spicyLevel !== 'none' ? `<span class="menu-tag-pill menu-tag-spicy">${p.spicyLevel} 🌶️</span>` : ''}
+                    ${p.special ? `<span class="menu-tag-pill menu-tag-special">Special ⭐</span>` : ''}
+                    ${p.bogo ? `<span class="menu-tag-pill menu-tag-bogo">BOGO 🎁</span>` : ''}
                   </div>
                 </div>
               </div>
@@ -600,7 +664,7 @@ window.views.menu = {
               <div class="menu-kpi-val" style="color: #059669;">${avgMargin}% <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Avg Profit</span></div>
               <div class="menu-kpi-sub" style="color: #b45309; display: flex; align-items: center; gap: 4px;">
                 <span>${currency}${avgCost} Avg Cost (${this.benchmarkCogsPercent}% COGS)</span>
-                ${customCostCount > 0 ? `<span style="color: #2563eb;">• ${customCostCount} Custom/Recipe</span>` : ''}
+                ${customCostCount > 0 ? `<span style="color: #2563eb;">• ${customCostCount} Custom</span>` : ''}
               </div>
             </div>
             <div class="menu-kpi-icon" style="background: #f0fdf4; color: #16a34a;">
@@ -608,7 +672,7 @@ window.views.menu = {
             </div>
           </div>
 
-          <!-- Card 4: Recipe & Inventory Readiness -->
+          <!-- Card 4: Recipe & Dietary Health -->
           <div class="menu-kpi-card">
             <div>
               <div class="menu-kpi-title">Recipe & Dietary Health</div>
@@ -625,6 +689,76 @@ window.views.menu = {
 
         </div>
 
+        <!-- Profitability Health Gauge Ribbon -->
+        <div class="glass-card" style="padding: 12px 18px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11.5px; font-weight: 800; color: var(--text-dark); text-transform: uppercase;">
+              <i class="fa-solid fa-gauge-high" style="color: #2563eb; margin-right: 4px;"></i> Profit Health:
+            </span>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn ${this.marginTierFilter === 'high' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('high')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
+                🟢 High Margin (${highMarginCount})
+              </button>
+              <button type="button" class="btn ${this.marginTierFilter === 'med' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('med')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
+                🔵 Standard (${medMarginCount})
+              </button>
+              <button type="button" class="btn ${this.marginTierFilter === 'warn' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('warn')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
+                🟡 Low Margin (${warnMarginCount})
+              </button>
+              ${critMarginCount > 0 ? `
+              <button type="button" class="btn ${this.marginTierFilter === 'crit' ? 'btn-danger' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('crit')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
+                🔴 Critical (<35%) (${critMarginCount})
+              </button>
+              ` : ''}
+              ${this.marginTierFilter ? `
+                <button type="button" onclick="views.menu.filterByMarginTier(null)" style="background: none; border: none; color: #dc2626; font-size: 11px; font-weight: 800; cursor: pointer; text-decoration: underline;">
+                  Clear Tier
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 11px; font-weight: 750; color: var(--text-muted);">COGS Benchmark:</span>
+            <div class="cogs-calibrator-pill" style="display: inline-flex; background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 10px; padding: 2px;">
+              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 28 ? 'active' : ''}" data-rate="28" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 28 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 28 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">28%</button>
+              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 30 ? 'active' : ''}" data-rate="30" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 30 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 30 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">30%</button>
+              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 32 ? 'active' : ''}" data-rate="32" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 32 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 32 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">32%</button>
+              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 35 ? 'active' : ''}" data-rate="35" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 35 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 35 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">35%</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fast Inline Quick-Add Dish Bar (When toggled) -->
+        ${this.showQuickAddBar ? `
+          <div class="menu-quick-add-bar view-animate" id="menu-quick-add-container">
+            <div style="font-weight: 850; font-size: 12.5px; color: #2563eb; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-bolt"></i> Quick Add Dish:
+            </div>
+            
+            <input type="text" id="qa-dish-name" class="form-input" placeholder="Dish Name (e.g. Cheese Sandwich)" style="height: 34px; font-size: 12px; border-radius: 8px; flex: 2; min-width: 160px;" required>
+            
+            <select id="qa-dish-cat" class="form-select" style="height: 34px; font-size: 12px; border-radius: 8px; flex: 1; min-width: 130px;">
+              ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("")}
+            </select>
+
+            <input type="number" id="qa-dish-price" class="form-input" placeholder="Price (₹)" min="1" step="any" style="height: 34px; font-size: 12.5px; font-weight: 800; border-radius: 8px; width: 100px;" required>
+
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 750; cursor: pointer;">
+              <input type="checkbox" id="qa-dish-veg" checked style="accent-color: #16a34a; width: 15px; height: 15px;">
+              <span class="menu-diet-box veg"><span class="menu-diet-dot"></span></span> Veg
+            </label>
+
+            <button type="button" class="btn btn-primary" id="btn-qa-submit" style="height: 34px; padding: 0 14px; font-size: 12px; border-radius: 8px; font-weight: 800;">
+              <i class="fa-solid fa-plus"></i> Save Dish
+            </button>
+
+            <button type="button" class="btn btn-secondary" onclick="views.menu.toggleQuickAddBar()" style="height: 34px; padding: 0 10px; font-size: 12px; border-radius: 8px;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        ` : ''}
+
         <!-- Toolbar & Filter Engine -->
         <div class="glass-card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
           
@@ -636,17 +770,6 @@ window.views.menu = {
               <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 12px; pointer-events: none;"></i>
             </div>
 
-            <!-- Food Cost COGS Benchmark Switcher -->
-            <div style="display: flex; align-items: center; gap: 6px;" title="Determines default food cost percentage across menu dishes without an explicit custom cost price">
-              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Food Cost Benchmark:</span>
-              <div class="cogs-calibrator-pill" style="display: inline-flex; background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 10px; padding: 2px;">
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 28 ? 'active' : ''}" data-rate="28" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 28 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 28 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">28%</button>
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 30 ? 'active' : ''}" data-rate="30" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 30 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 30 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">30%</button>
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 32 ? 'active' : ''}" data-rate="32" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 32 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 32 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">32%</button>
-                <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 35 ? 'active' : ''}" data-rate="35" style="padding: 3px 8px; border: none; background: ${this.benchmarkCogsPercent === 35 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 35 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;">35%</button>
-              </div>
-            </div>
-
             <!-- Sort By Selector -->
             <div style="display: flex; align-items: center; gap: 8px;">
               <label for="menu-sort-select" style="font-size: 12px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Sort by:</label>
@@ -656,6 +779,7 @@ window.views.menu = {
                 <option value="price-asc" ${this.sortBy === 'price-asc' ? 'selected' : ''}>Price (Low to High)</option>
                 <option value="price-desc" ${this.sortBy === 'price-desc' ? 'selected' : ''}>Price (High to Low)</option>
                 <option value="margin-desc" ${this.sortBy === 'margin-desc' ? 'selected' : ''}>Profit Margin % (Highest)</option>
+                <option value="margin-asc" ${this.sortBy === 'margin-asc' ? 'selected' : ''}>Profit Margin % (Lowest)</option>
                 <option value="recipe-desc" ${this.sortBy === 'recipe-desc' ? 'selected' : ''}>Recipe Ingredients (Most)</option>
               </select>
             </div>
@@ -694,6 +818,9 @@ window.views.menu = {
               <i class="fa-solid fa-drumstick-bite" style="color: #dc2626;"></i> Non-Veg (${nonVegCount})
             </button>
             ` : ''}
+            <button class="menu-filter-chip ${this.statusFilter === 'high-margin' ? 'active' : ''}" data-filter="high-margin">
+              <i class="fa-solid fa-star" style="color: #059669;"></i> High Margin >65% (${highMarginCount})
+            </button>
             <button class="menu-filter-chip ${this.statusFilter === 'recipe-set' ? 'active' : ''}" data-filter="recipe-set">
               <i class="fa-solid fa-mortar-pestle" style="color: #2563eb;"></i> Recipe Mapped (${recipesMappedCount})
             </button>
@@ -713,6 +840,9 @@ window.views.menu = {
               <table class="premium-table">
                 <thead>
                   <tr>
+                    <th style="width: 40px; text-align: center;">
+                      <input type="checkbox" id="menu-select-all-chk" title="Select All Filtered Dishes" style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;">
+                    </th>
                     <th style="min-width: 220px;">Dish & Category</th>
                     <th>Selling Price</th>
                     <th>Food Cost & Margin</th>
@@ -736,10 +866,10 @@ window.views.menu = {
       </div>
     `;
 
-    this.bindProductViewEvents(mount, products);
+    this.bindProductViewEvents(mount, products, filtered);
   },
 
-  bindProductViewEvents(mount, products) {
+  bindProductViewEvents(mount, products, filtered) {
     // Bind Search Input
     const searchInput = mount.querySelector("#menu-search-input");
     if (searchInput) {
@@ -867,6 +997,77 @@ window.views.menu = {
       };
     });
 
+    // Bind Multi-Select Checkboxes
+    mount.querySelectorAll(".menu-item-select-chk").forEach(chk => {
+      chk.onchange = () => {
+        const id = chk.getAttribute("data-id");
+        if (chk.checked) {
+          this.selectedProductIds.add(id);
+        } else {
+          this.selectedProductIds.delete(id);
+        }
+        this.updateBulkActionBar();
+      };
+    });
+
+    // Bind Select All Checkbox
+    const selectAllChk = mount.querySelector("#menu-select-all-chk");
+    if (selectAllChk) {
+      selectAllChk.checked = filtered.length > 0 && filtered.every(p => this.selectedProductIds.has(p.id));
+      selectAllChk.onchange = () => {
+        if (selectAllChk.checked) {
+          filtered.forEach(p => this.selectedProductIds.add(p.id));
+        } else {
+          filtered.forEach(p => this.selectedProductIds.delete(p.id));
+        }
+        mount.querySelectorAll(".menu-item-select-chk").forEach(c => {
+          c.checked = selectAllChk.checked;
+        });
+        this.updateBulkActionBar();
+      };
+    }
+
+    // Bind Quick Add Submit Button
+    const btnQaSubmit = mount.querySelector("#btn-qa-submit");
+    if (btnQaSubmit) {
+      btnQaSubmit.onclick = () => {
+        const nameInput = mount.querySelector("#qa-dish-name");
+        const catSelect = mount.querySelector("#qa-dish-cat");
+        const priceInput = mount.querySelector("#qa-dish-price");
+        const vegChk = mount.querySelector("#qa-dish-veg");
+
+        const name = nameInput.value.trim();
+        const price = Number(priceInput.value);
+        const category = catSelect.value;
+        const veg = vegChk.checked;
+
+        if (!name) {
+          window.showToast("Please enter a dish name.", "error");
+          nameInput.focus();
+          return;
+        }
+        if (!price || isNaN(price) || price <= 0) {
+          window.showToast("Please enter a valid price.", "error");
+          priceInput.focus();
+          return;
+        }
+
+        window.db.saveProduct({
+          name,
+          price,
+          category,
+          veg,
+          available: true
+        });
+
+        window.showToast(`Dish "${name}" added to menu!`, "success");
+        nameInput.value = "";
+        priceInput.value = "";
+        nameInput.focus();
+        this.render();
+      };
+    }
+
     // Bind Edit product
     mount.querySelectorAll(".btn-edit-product").forEach(btn => {
       btn.onclick = () => {
@@ -893,6 +1094,7 @@ window.views.menu = {
         if (!prod) return;
         if (confirm(`Are you sure you want to permanently delete "${prod.name}"?`)) {
           window.db.deleteProduct(id);
+          this.selectedProductIds.delete(id);
           window.showToast(`Dish "${prod.name}" deleted from menu.`, "info");
           this.render();
         }
@@ -905,6 +1107,213 @@ window.views.menu = {
         const id = btn.getAttribute("data-id");
         this.openRecipeModal(id);
       };
+    });
+  },
+
+  // Toggle Quick Add Bar
+  toggleQuickAddBar() {
+    this.showQuickAddBar = !this.showQuickAddBar;
+    const btn = document.getElementById("btn-toggle-quick-add");
+    if (btn) btn.className = `btn ${this.showQuickAddBar ? 'btn-primary' : 'btn-secondary'}`;
+    this.render();
+  },
+
+  // Filter by Margin Tier
+  filterByMarginTier(tier) {
+    this.marginTierFilter = (this.marginTierFilter === tier) ? null : tier;
+    this.render();
+  },
+
+  // MULTI-SELECT FLOATING ACTION BAR
+  updateBulkActionBar() {
+    if (typeof document === "undefined") return;
+    const mount = document.getElementById("menu-bulk-floating-mount");
+    if (!mount) return;
+
+    if (this.selectedProductIds.size === 0) {
+      mount.innerHTML = "";
+      return;
+    }
+
+    const count = this.selectedProductIds.size;
+    const categories = (window.db && window.db.get("categories")) || [];
+
+    mount.innerHTML = `
+      <div class="menu-bulk-floating-bar view-animate">
+        <span style="font-size: 13px; font-weight: 900; background: #2563eb; color: #fff; padding: 3px 10px; border-radius: 8px;">
+          ${count} Dishes Selected
+        </span>
+
+        <button type="button" class="menu-bulk-btn" onclick="views.menu.bulkSetAvailability(true)" title="Mark all selected dishes as In-Stock (Live in POS)">
+          <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Mark Live
+        </button>
+
+        <button type="button" class="menu-bulk-btn" onclick="views.menu.bulkSetAvailability(false)" title="Mark all selected dishes as 86'd (Hidden from POS)">
+          <i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Mark 86'd
+        </button>
+
+        <button type="button" class="menu-bulk-btn" onclick="views.menu.openSelectedPriceAdjustModal()" title="Adjust price for selected dishes">
+          <i class="fa-solid fa-pen" style="color: #38bdf8;"></i> Adjust Price
+        </button>
+
+        <button type="button" class="menu-bulk-btn" onclick="views.menu.openSelectedCategoryModal()" title="Reassign category for selected dishes">
+          <i class="fa-solid fa-tags" style="color: #f59e0b;"></i> Move Category
+        </button>
+
+        <button type="button" class="menu-bulk-btn danger" onclick="views.menu.bulkDeleteSelected()" title="Delete all selected dishes">
+          <i class="fa-solid fa-trash-can"></i> Delete
+        </button>
+
+        <button type="button" onclick="views.menu.clearSelection()" style="background: none; border: none; color: #cbd5e1; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline; margin-left: 4px;">
+          Deselect All
+        </button>
+      </div>
+    `;
+  },
+
+  clearSelection() {
+    this.selectedProductIds.clear();
+    this.updateBulkActionBar();
+    if (typeof document === "undefined") return;
+    const selectAllChk = document.getElementById("menu-select-all-chk");
+    if (selectAllChk) selectAllChk.checked = false;
+    document.querySelectorAll(".menu-item-select-chk").forEach(c => { c.checked = false; });
+  },
+
+  bulkSetAvailability(available) {
+    const products = (window.db && window.db.get("products")) || [];
+    let updated = 0;
+    products.forEach(p => {
+      if (this.selectedProductIds.has(p.id)) {
+        p.available = available;
+        window.db.saveProduct(p);
+        updated++;
+      }
+    });
+    window.showToast(`Marked ${updated} dishes as ${available ? 'Live (In Stock)' : '86\'d (Out of Stock)'}.`, "success");
+    this.render();
+  },
+
+  bulkDeleteSelected() {
+    const count = this.selectedProductIds.size;
+    if (!confirm(`Are you sure you want to permanently delete all ${count} selected dishes?`)) return;
+
+    this.selectedProductIds.forEach(id => {
+      window.db.deleteProduct(id);
+    });
+
+    window.showToast(`Deleted ${count} dishes from the menu.`, "info");
+    this.clearSelection();
+    this.render();
+  },
+
+  openSelectedPriceAdjustModal() {
+    const count = this.selectedProductIds.size;
+    const bodyHtml = `
+      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+        <p style="margin: 0; color: var(--text-muted);">Adjust pricing for <strong>${count} selected dishes</strong>:</p>
+        
+        <div>
+          <label class="form-label" for="bulk-sel-adj-type" style="font-weight: 700; margin-bottom: 4px;">Type of Adjustment:</label>
+          <select id="bulk-sel-adj-type" class="form-select" style="height: 36px; border-radius: 8px;">
+            <option value="inc-pct">Increase by Percentage (%)</option>
+            <option value="dec-pct">Decrease by Percentage (%)</option>
+            <option value="inc-fixed">Add Fixed Amount (₹)</option>
+            <option value="dec-fixed">Subtract Fixed Amount (₹)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label" for="bulk-sel-adj-val" style="font-weight: 700; margin-bottom: 4px;">Value (e.g. 10):</label>
+          <input type="number" id="bulk-sel-adj-val" class="form-input" placeholder="e.g. 10" min="1" step="any" style="height: 36px; font-size: 13px; font-weight: 800; border-radius: 8px;">
+        </div>
+
+        <div>
+          <label class="form-label" for="bulk-sel-rounding" style="font-weight: 700; margin-bottom: 4px;">Smart Rounding:</label>
+          <select id="bulk-sel-rounding" class="form-select" style="height: 36px; border-radius: 8px;">
+            <option value="none">Exact Integer (Round to ₹1)</option>
+            <option value="5">Round to nearest ₹5</option>
+            <option value="10">Round to nearest ₹10</option>
+          </select>
+        </div>
+      </div>
+    `;
+
+    window.customModal.show({
+      title: `Bulk Price Adjustment (${count} Items)`,
+      bodyHtml: bodyHtml,
+      confirmText: "Apply Adjustment",
+      onConfirm: () => {
+        const type = document.getElementById("bulk-sel-adj-type").value;
+        const rawVal = document.getElementById("bulk-sel-adj-val").value;
+        const rounding = document.getElementById("bulk-sel-rounding").value;
+        const val = Number(rawVal);
+
+        if (!rawVal || isNaN(val) || val <= 0) {
+          window.showToast("Please enter a valid positive value.", "error");
+          return false;
+        }
+
+        const products = (window.db && window.db.get("products")) || [];
+        products.forEach(p => {
+          if (this.selectedProductIds.has(p.id)) {
+            let curr = Number(p.price) || 0;
+            if (type === "inc-pct") curr = curr * (1 + val / 100);
+            else if (type === "dec-pct") curr = Math.max(1, curr * (1 - val / 100));
+            else if (type === "inc-fixed") curr = curr + val;
+            else if (type === "dec-fixed") curr = Math.max(1, curr - val);
+
+            if (rounding === "5") curr = Math.round(curr / 5) * 5;
+            else if (rounding === "10") curr = Math.round(curr / 10) * 10;
+            else curr = Math.round(curr);
+
+            p.price = Math.max(1, curr);
+            window.db.saveProduct(p);
+          }
+        });
+
+        window.showToast(`Updated pricing for ${count} dishes.`, "success");
+        this.render();
+        return true;
+      }
+    });
+  },
+
+  openSelectedCategoryModal() {
+    const count = this.selectedProductIds.size;
+    const categories = (window.db && window.db.get("categories")) || [];
+
+    const bodyHtml = `
+      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+        <p style="margin: 0; color: var(--text-muted);">Assign <strong>${count} selected dishes</strong> to category:</p>
+        <div>
+          <label class="form-label" for="bulk-sel-cat" style="font-weight: 700; margin-bottom: 4px;">Destination Category:</label>
+          <select id="bulk-sel-cat" class="form-select" style="height: 38px; border-radius: 8px;">
+            ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+    `;
+
+    window.customModal.show({
+      title: `Move ${count} Dishes to Category`,
+      bodyHtml: bodyHtml,
+      confirmText: "Move Dishes",
+      onConfirm: () => {
+        const catId = document.getElementById("bulk-sel-cat").value;
+        const products = (window.db && window.db.get("products")) || [];
+
+        products.forEach(p => {
+          if (this.selectedProductIds.has(p.id)) {
+            p.category = catId;
+            window.db.saveProduct(p);
+          }
+        });
+
+        window.showToast(`Reassigned ${count} dishes.`, "success");
+        this.render();
+        return true;
+      }
     });
   },
 
@@ -922,6 +1331,9 @@ window.views.menu = {
       bogo: product.bogo || false,
       available: product.available !== false,
       veg: product.veg !== false,
+      jain: product.jain || false,
+      spicyLevel: product.spicyLevel || "none",
+      special: product.special || false,
       recipe: { ...(product.recipe || {}) }
     });
     window.showToast(`Duplicated "${product.name}" as "${newName}".`, "success");
@@ -981,10 +1393,6 @@ window.views.menu = {
           </div>
         </div>
 
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: -6px;">
-          <span>Total Cost = Raw Ingredient Cost + Packaging Cost (Used for accurate Gross Profit calculation).</span>
-        </div>
-
         <div class="form-group" style="margin-bottom: 0;">
           <label class="form-label" for="prod-modal-category" style="font-weight: 700; margin-bottom: 5px;">Menu Category</label>
           <select id="prod-modal-category" class="form-select" style="height: 38px; border-radius: 10px; font-weight: 600;">
@@ -992,18 +1400,45 @@ window.views.menu = {
           </select>
         </div>
 
-        <!-- Dietary Type -->
-        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
-          <label class="form-label" style="font-weight: 700; margin-bottom: 6px; display: block;">Dietary Classification</label>
-          <div style="display: flex; gap: 20px;">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700;">
-              <input type="radio" name="prod-diet" id="prod-diet-veg" value="veg" ${isVeg ? 'checked' : ''}>
-              <span class="menu-diet-box veg"><span class="menu-diet-dot"></span></span> Pure Vegetarian
+        <!-- Dietary & Dietary Tags -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <label class="form-label" style="font-weight: 700; margin: 0;">Dietary Classification:</label>
+            <div style="display: flex; gap: 16px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700;">
+                <input type="radio" name="prod-diet" id="prod-diet-veg" value="veg" ${isVeg ? 'checked' : ''}>
+                <span class="menu-diet-box veg"><span class="menu-diet-dot"></span></span> Pure Veg
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700;">
+                <input type="radio" name="prod-diet" id="prod-diet-nonveg" value="nonveg" ${!isVeg ? 'checked' : ''}>
+                <span class="menu-diet-box non-veg"><span class="menu-diet-dot"></span></span> Non-Veg
+              </label>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 16px; flex-wrap: wrap; border-top: 1px dashed var(--border-color); padding-top: 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">
+              <input type="checkbox" id="prod-tag-jain" ${product && product.jain ? 'checked' : ''} style="accent-color: #16a34a;">
+              <span>Jain Friendly 🌿</span>
             </label>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700;">
-              <input type="radio" name="prod-diet" id="prod-diet-nonveg" value="nonveg" ${!isVeg ? 'checked' : ''}>
-              <span class="menu-diet-box non-veg"><span class="menu-diet-dot"></span></span> Non-Vegetarian / Egg
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">
+              <input type="checkbox" id="prod-tag-special" ${product && product.special ? 'checked' : ''} style="accent-color: #d97706;">
+              <span>Chef Special ⭐</span>
             </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; font-size: 12px;">
+              <input type="checkbox" id="prod-tag-bogo" ${product && product.bogo ? 'checked' : ''} style="accent-color: #2563eb;">
+              <span>BOGO Offer 🎁</span>
+            </label>
+
+            <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">Spice:</span>
+              <select id="prod-tag-spice" class="form-select" style="height: 28px; font-size: 11px; padding: 2px 6px; border-radius: 6px;">
+                <option value="none" ${product && product.spicyLevel === 'none' ? 'selected' : ''}>None</option>
+                <option value="Mild" ${product && product.spicyLevel === 'Mild' ? 'selected' : ''}>Mild</option>
+                <option value="Medium" ${product && product.spicyLevel === 'Medium' ? 'selected' : ''}>Medium</option>
+                <option value="Extra" ${product && product.spicyLevel === 'Extra' ? 'selected' : ''}>Extra Spicy</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1045,6 +1480,11 @@ window.views.menu = {
         const subCatInput = document.getElementById("prod-modal-subcat");
         const subCategory = subCatInput && subCatInput.value.trim() ? subCatInput.value.trim() : (product ? (product.subCategory || "Regular") : "Regular");
 
+        const jain = document.getElementById("prod-tag-jain") ? document.getElementById("prod-tag-jain").checked : false;
+        const special = document.getElementById("prod-tag-special") ? document.getElementById("prod-tag-special").checked : false;
+        const bogo = document.getElementById("prod-tag-bogo") ? document.getElementById("prod-tag-bogo").checked : false;
+        const spicyLevel = document.getElementById("prod-tag-spice") ? document.getElementById("prod-tag-spice").value : "none";
+
         const ingredientCost = rawIng && !isNaN(rawIng) ? Number(rawIng) : null;
         const packagingCost = rawPack && !isNaN(rawPack) ? Number(rawPack) : null;
         const grossProfit = (Number(price) && costPrice !== null) ? Number((Number(price) - costPrice).toFixed(1)) : null;
@@ -1061,6 +1501,10 @@ window.views.menu = {
           subCategory,
           available,
           veg,
+          jain,
+          special,
+          bogo,
+          spicyLevel,
           recipe: product ? product.recipe : {}
         });
 
@@ -1098,6 +1542,7 @@ window.views.menu = {
       const price = Number(product.price) || 0;
       const profit = Math.max(0, price - totalCost);
       const margin = price > 0 ? Math.round((profit / price) * 100) : 0;
+
       return {
         rawIngCost: Math.round(rawIngCost * 100) / 100,
         packagingCost: Math.round(packagingCost * 100) / 100,
@@ -1864,6 +2309,7 @@ window.views.menu = {
             <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${p.veg !== false ? '#16a34a' : '#dc2626'};"></span>
             <strong style="color: #0f172a;">${p.name}</strong>
             ${p.subCategory ? `<span style="font-size: 11px; color: #64748b;">(${p.subCategory})</span>` : ''}
+            ${p.jain ? `<span style="font-size: 9.5px; font-weight: 800; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 1px 4px; border-radius: 4px;">Jain</span>` : ''}
             ${p.bogo ? `<span style="font-size: 10px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 6px; margin-left: 4px;">BOGO</span>` : ''}
             ${p.available === false ? `<span style="font-size: 10px; color: #dc2626; margin-left: 4px;">(Out of Stock)</span>` : ''}
           </div>

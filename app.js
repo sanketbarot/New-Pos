@@ -94,6 +94,12 @@ window.customModal = {
   }
 };
 
+// Clean Light Mode Theme Enforcement (Dark mode removed per user request)
+try {
+  localStorage.removeItem("cc_pos_theme");
+  document.body.removeAttribute("data-theme");
+} catch (e) {}
+
 // Initialize views object namespace safely
 window.views = window.views || {};
 
@@ -105,6 +111,10 @@ const app = {
   init() {
     window.app = this; // Expose on window for db & external callbacks
     window.customModal.init();
+    try {
+      localStorage.removeItem("cc_pos_theme");
+      document.body.removeAttribute("data-theme");
+    } catch (e) {}
 
     // Bind Session authentication
     const loginForm = document.getElementById("login-form");
