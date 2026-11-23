@@ -55,44 +55,44 @@ const INITIAL_PRODUCTS = [
 
   // 2. Tikka Pav (cat2)
   // Classic
-  { id: "p21", name: "Veg Delight", price: 149, ingredientCost: 70, packagingCost: 5, costPrice: 75, grossProfit: 74, category: "cat2", subCategory: "Classic", available: true, veg: true, recipe: {} },
-  { id: "p22", name: "Makhani", price: 149, ingredientCost: 70, packagingCost: 5, costPrice: 75, grossProfit: 74, category: "cat2", subCategory: "Classic", available: true, veg: true, recipe: {} },
+  { id: "p21", name: "Veg Delight Tikka Pav", price: 149, ingredientCost: 70, packagingCost: 5, costPrice: 75, grossProfit: 74, category: "cat2", subCategory: "Classic", available: true, veg: true, recipe: {} },
+  { id: "p22", name: "Makhani Tikka Pav", price: 149, ingredientCost: 70, packagingCost: 5, costPrice: 75, grossProfit: 74, category: "cat2", subCategory: "Classic", available: true, veg: true, recipe: {} },
   // Signature
-  { id: "p23", name: "Pizzeria", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p24", name: "1000 Island", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p25", name: "Cheese Jalapeno", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p26", name: "Spicy Schezwan", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p27", name: "Indian Style", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p23", name: "Pizzeria Tikka Pav", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p24", name: "1000 Island Tikka Pav", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p25", name: "Cheese Jalapeno Tikka Pav", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p26", name: "Spicy Schezwan Tikka Pav", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p27", name: "Indian Style Tikka Pav", price: 159, ingredientCost: 75, packagingCost: 5, costPrice: 80, grossProfit: 79, category: "cat2", subCategory: "Signature", available: true, veg: true, recipe: {} },
   // Premium
-  { id: "p28", name: "Tandoori", price: 179, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 81.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p29", name: "Peri Peri", price: 179, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 81.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p30", name: "Hot & Spicy Chilli Garlic", price: 179, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 81.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p31", name: "Afghani Garlic", price: 189, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 91.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p32", name: "Crust & Chilly Special", price: 199, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 101.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p28", name: "Tandoori Tikka Pav", price: 179, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 81.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p29", name: "Peri Peri Tikka Pav", price: 179, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 81.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p30", name: "Hot & Spicy Chilli Garlic Tikka Pav", price: 179, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 81.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p31", name: "Afghani Garlic Tikka Pav", price: 189, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 91.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p32", name: "Crust & Chilly Special Tikka Pav", price: 199, ingredientCost: 92.5, packagingCost: 5, costPrice: 97.5, grossProfit: 101.5, category: "cat2", subCategory: "Premium", available: true, veg: true, recipe: {} },
 
   // 3. Sandwich (cat3)
   // Classic
   { id: "p33", name: "Veg Sandwich", price: 99, ingredientCost: 80, packagingCost: 5, costPrice: 85, grossProfit: 14, category: "cat3", subCategory: "Classic", available: true, veg: true, recipe: {} },
-  { id: "p34", name: "Cheese Chutney", price: 119, ingredientCost: 80, packagingCost: 5, costPrice: 85, grossProfit: 34, category: "cat3", subCategory: "Classic", available: true, veg: true, recipe: {} },
-  { id: "p35", name: "Coleslaw Cheese", price: 129, ingredientCost: 80, packagingCost: 5, costPrice: 85, grossProfit: 44, category: "cat3", subCategory: "Classic", available: true, veg: true, recipe: {} },
-  { id: "p36", name: "Veg Cheese", price: 129, ingredientCost: 80, packagingCost: 5, costPrice: 85, grossProfit: 44, category: "cat3", subCategory: "Classic", available: true, veg: true, recipe: {} },
+  { id: "p34", name: "Cheese Chutney Sandwich", price: 119, ingredientCost: 80, packagingCost: 5, costPrice: 85, grossProfit: 34, category: "cat3", subCategory: "Classic", available: true, veg: true, recipe: {} },
+  { id: "p35", name: "Coleslaw Cheese Sandwich", price: 129, ingredientCost: 80, packagingCost: 5, costPrice: 85, grossProfit: 44, category: "cat3", subCategory: "Classic", available: true, veg: true, recipe: {} },
+  { id: "p36", name: "Veg Cheese Sandwich", price: 129, ingredientCost: 80, packagingCost: 5, costPrice: 85, grossProfit: 44, category: "cat3", subCategory: "Classic", available: true, veg: true, recipe: {} },
   // Signature
-  { id: "p37", name: "Junglee", price: 179, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 74, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p38", name: "Pizzeria", price: 189, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 84, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p39", name: "1000 Island", price: 189, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 84, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p40", name: "Peri Peri", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p41", name: "Tandoori", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p42", name: "Spicy Schezwan", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p43", name: "Afghani", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p44", name: "Cheese Jalapeno", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p45", name: "Makhani", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
-  { id: "p46", name: "Hot & Spicy Chilli Garlic", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p37", name: "Junglee Sandwich", price: 179, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 74, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p38", name: "Pizzeria Sandwich", price: 189, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 84, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p39", name: "1000 Island Sandwich", price: 189, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 84, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p40", name: "Peri Peri Sandwich", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p41", name: "Tandoori Sandwich", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p42", name: "Spicy Schezwan Sandwich", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p43", name: "Afghani Sandwich", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p44", name: "Cheese Jalapeno Sandwich", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p45", name: "Makhani Sandwich", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
+  { id: "p46", name: "Hot & Spicy Chilli Garlic Sandwich", price: 199, ingredientCost: 100, packagingCost: 5, costPrice: 105, grossProfit: 94, category: "cat3", subCategory: "Signature", available: true, veg: true, recipe: {} },
   // Premium
-  { id: "p47", name: "Tandoori Paneer", price: 219, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 94, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p48", name: "Peri Peri Paneer", price: 219, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 94, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p49", name: "Indian Style Paneer", price: 219, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 94, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p50", name: "Afghani Garlic Paneer", price: 229, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 104, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
-  { id: "p51", name: "Spicy Schezwan Paneer", price: 229, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 104, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p47", name: "Tandoori Paneer Sandwich", price: 219, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 94, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p48", name: "Peri Peri Paneer Sandwich", price: 219, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 94, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p49", name: "Indian Style Paneer Sandwich", price: 219, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 94, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p50", name: "Afghani Garlic Paneer Sandwich", price: 229, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 104, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
+  { id: "p51", name: "Spicy Schezwan Paneer Sandwich", price: 229, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 104, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
   { id: "p52", name: "Crust & Chilly Premium Sandwich", price: 239, ingredientCost: 120, packagingCost: 5, costPrice: 125, grossProfit: 114, category: "cat3", subCategory: "Premium", available: true, veg: true, recipe: {} },
 
   // 4. Frankie (cat4)
@@ -167,7 +167,7 @@ const db = {
     this.syncToFirebase(key, val);
   },
 
-  // Normalize catalog items - ensure clean catalog without BOGO
+  // Normalize catalog items - ensure clean catalog without BOGO and correct category suffixes
   normalizeProducts(productsList) {
     if (!Array.isArray(productsList)) {
       return { updated: false, list: [] };
@@ -179,6 +179,25 @@ const db = {
         delete p.bogo;
         updated = true;
       }
+
+      // Ensure Tikka Pav items end with "Tikka Pav"
+      if (p.category === "cat2") {
+        const cleanName = (p.name || "").trim();
+        if (!cleanName.toLowerCase().includes("tikka pav")) {
+          p.name = `${cleanName} Tikka Pav`;
+          updated = true;
+        }
+      }
+
+      // Ensure Sandwich items end with "Sandwich"
+      if (p.category === "cat3") {
+        const cleanName = (p.name || "").trim();
+        if (!cleanName.toLowerCase().includes("sandwich")) {
+          p.name = `${cleanName} Sandwich`;
+          updated = true;
+        }
+      }
+
       return p;
     });
 
@@ -217,7 +236,7 @@ const db = {
       } else {
         const normResult = this.normalizeProducts(currentProducts);
         if (normResult.updated) {
-          localStorage.setItem(DB_PREFIX + "products", JSON.stringify(normResult.list));
+          this.set("products", normResult.list);
         }
       }
     }
@@ -901,7 +920,7 @@ const db = {
 window.db = db;
 
 // Database startup: Safe non-destructive load
-const TARGET_MENU_VERSION = "crust_chilly_v12";
+const TARGET_MENU_VERSION = "crust_chilly_v14";
 if (localStorage.getItem("cc_pos_menu_version") !== TARGET_MENU_VERSION) {
   // Update version flag without clearing orders, transactions, or user session
   db.init(false);
