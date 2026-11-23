@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Crust & Chilly - Business POS & Analytics</title>
+  <!-- Progressive Web App (PWA) Meta & Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Crust & Chilly">
+  <link rel="apple-touch-icon" href="logo.jpg">
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=13.0">
+</head>
+
+<body>
+
+  <!-- Dynamic Toast Container for floating messages -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- AUTHENTICATION OVERLAY LAYER (Loads first if not logged in) -->
+  <div id="auth-view" class="auth-container">
+    <div class="auth-card view-animate">
+      <div class="auth-header">
+        <div class="auth-brand-logo"
+          style="width: 72px; height: 72px; border-radius: 50%; overflow: hidden; border: 1px solid var(--border-color); background: #fff; margin: 0 auto 10px auto; display: flex; align-items: center; justify-content: center;">
+          <img src="logo.jpg" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 6px;">Crust & Chilly</h1>
+        <p style="color: var(--text-muted); font-size: 13px;">Enter credentials to access POS Terminal</p>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-username">Username</label>
+          <input type="text" id="login-username" class="form-input" placeholder="Enter Username" required
+            autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <div style="position: relative; display: flex; align-items: center; width: 100%;">
+            <input type="password" id="login-password" class="form-input" placeholder="Enter Password" required
+              autocomplete="current-password" style="padding-right: 42px; width: 100%;">
+            <button type="button" id="btn-toggle-password"
+              style="position: absolute; right: 12px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; outline: none;">
+              <i class="fa-solid fa-eye" id="toggle-password-icon" style="font-size: 14px;"></i>
+            </button>
+          </div>
+        </div>
+        <div id="login-error-msg"
+          style="display: none; margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; font-size: 12px; font-weight: 700; text-align: center;">
+        </div>
+        <button type="submit" class="btn btn-primary w-100 mt-3" style="padding: 12px;">
+          <i class="fa-solid fa-right-to-bracket"></i> Authenticate
+        </button>
+        <div
+          style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-color); text-align: center;">
+          <button type="button" id="btn-quick-admin-login"
+            style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 12px; padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--primary-color); cursor: pointer; transition: all 0.2s ease;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> 1-Click Fill (sanketadmin)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN SYSTEM LAYOUT CONTAINER -->
+  <div id="app-container" style="display: none;">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand-section"
+        style="display: flex; align-items: center; gap: 10px; padding: 18px 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; background: var(--bg-darker);">
+        <div class="brand-logo"
+          style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; border: 1px solid var(--border-color); background: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <img src="logo.jpg" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <span class="brand-title"
+            style="font-size: 14px; font-weight: 800; line-height: 1.2; color: var(--text-dark); letter-spacing: 0.2px;">CRUST
+            & CHILLY</span>
+          <span
+            style="font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px; margin-top: 2px;">POS
+            SYSTEM</span>
+        </div>
+      </div>
+
+      <nav style="flex-grow: 1; display: flex; flex-direction: column;">
+        <ul class="nav-menu">
+          <li class="nav-item active" data-view="dashboard">
+            <a href="#dashboard"><i class="fa-solid fa-chart-pie"></i>Dashboard</a>
+          </li>
+          <li class="nav-item" data-view="pos">
+            <a href="#pos"><i class="fa-solid fa-receipt"></i>POS Terminal</a>
+          </li>
+          <li class="nav-item" data-view="orders">
+            <a href="#orders"><i class="fa-solid fa-kitchen-set"></i>KDS Kitchen</a>
+          </li>
+          <li class="nav-item" data-view="menu">
+            <a href="#menu"><i class="fa-solid fa-burger"></i>Menu Setup</a>
+          </li>
+          <li class="nav-item" data-view="counter">
+            <a href="#counter"><i class="fa-solid fa-cash-register"></i>Daily Counter & Bills History</a>
+          </li>
+          <li class="nav-item" data-view="reports">
+            <a href="#reports"><i class="fa-solid fa-chart-line"></i>Analytics</a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Today's Summary Card in Sidebar -->
+      <div class="sidebar-summary-card">
+        <div class="sidebar-summary-header">
+          <span>Today's Summary</span>
+          <span class="summary-live-dot" title="Live Today Summary"><i class="fa-solid fa-circle"></i></span>
+        </div>
+        <div class="sidebar-summary-body">
+          <div class="sidebar-summary-row">
+            <span class="summary-label">Total Orders</span>
+            <span class="summary-val" id="sidebar-summary-orders">0</span>
+          </div>
+          <div class="sidebar-summary-row">
+            <span class="summary-label">Total Sales</span>
+            <span class="summary-val" id="sidebar-summary-sales">₹0</span>
+          </div>
+          <div class="sidebar-summary-row">
+            <span class="summary-label">Avg. Order Value</span>
+            <span class="summary-val" id="sidebar-summary-avg">₹0</span>
+          </div>
+          <div class="sidebar-summary-growth" id="sidebar-summary-growth">
+            <i class="fa-solid fa-arrow-trend-up"></i> +0.0% vs yesterday
+          </div>
+        </div>
+      </div>
+
+      <!-- USER INFO BAR FOOTER -->
+      <div class="user-profile-section">
+        <div class="user-info">
+          <div class="user-avatar" id="header-avatar-letter">A</div>
+          <div class="user-details">
+            <span class="user-name" id="header-username">Sanket Barot</span>
+            <span class="user-role" id="header-role">Admin</span>
+          </div>
+        </div>
+        <button class="btn-logout" id="logout-button" title="Log Out Session">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT CONTAINER WRAPPER -->
+    <main class="main-workspace">
+      <!-- TOP NAVIGATION BAR -->
+      <header class="top-header">
+        <div class="header-title-area">
+          <h2 id="current-view-title">Dashboard</h2>
+        </div>
+        <div class="header-actions" style="display: flex; align-items: center; gap: 12px;">
+          <button id="header-sound-toggle-pill" class="sound-toggle-pill active"
+            title="Kitchen Audio Alerts: Active everywhere (Click to test / mute)"
+            style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; border: 1px solid #bfdbfe; background: #eff6ff; color: #1e40af; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn);">
+            <i class="fa-solid fa-volume-high" id="header-sound-icon" style="font-size: 11px; color: #2563eb;"></i>
+            <span id="header-sound-text">Sound: ON</span>
+          </button>
+          <button id="btn-pwa-install" class="btn-pwa-install" title="Install as Desktop or Mobile App"
+            style="display: none; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 14px; font-size: 12px; font-weight: 800; border: 1.5px solid #2563eb; background: #eff6ff; color: #2563eb; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn);">
+            <i class="fa-solid fa-download"></i> <span>Install App</span>
+          </button>
+          <button id="cloud-sync-pill" class="cloud-sync-pill connecting" title="Click to view Cloud Sync details"
+            style="display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: 14px; font-size: 12px; font-weight: 700; border: 1px solid var(--border-color); background: var(--bg-card); cursor: pointer; transition: all 0.2s ease; box-shadow: var(--neu-shadow-btn); color: var(--text-dark);">
+            <i class="fa-solid fa-circle-notch fa-spin" id="cloud-sync-icon"
+              style="font-size: 10px; color: #f59e0b;"></i>
+            <span id="cloud-sync-text">Syncing...</span>
+          </button>
+          <div class="date-time-widget" id="header-date-time">
+            Loading Date & Time...
+          </div>
+        </div>
+      </header>
+
+      <!-- DYNAMIC CONTENT VIEW VIEWPORT -->
+      <section class="view-viewport view-animate" id="view-viewport">
+        <!-- Rendered view files mount here dynamically -->
+      </section>
+
+      <!-- MOBILE BOTTOM NAVIGATION FOR OWNER PWA (3 SECTIONS) -->
+      <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+        <a href="#dashboard" class="mobile-nav-item active" data-view="dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#reports" class="mobile-nav-item" data-view="reports">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="#counter" class="mobile-nav-item" data-view="counter">
+          <i class="fa-solid fa-cash-register"></i>
+          <span>Counter & Bills</span>
+        </a>
+      </nav>
+    </main>
+  </div>
+
+  <!-- POPUP DIALOG MODAL LAYOUT -->
+  <div id="modal-container" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Dialog Title</h3>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Form elements or customized bill mock here -->
+      </div>
+      <div class="modal-footer" id="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="modal-submit-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Javascript Modules CDN Dependencies & Scripts -->
+  <!-- ChartJS CDN for premium graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Google Firebase Core & Cloud Firestore SDKs (Compat version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- App JS & DB files -->
+  <script src="js/qrcode.min.js?v=12.0"></script>
+  <script src="js/db.js?v=12.0"></script>
+  <script src="js/dashboard.js?v=13.0"></script>
+  <script src="js/counter.js?v=12.0"></script>
+  <script src="js/pos.js?v=12.0"></script>
+  <script src="js/orders.js?v=12.0"></script>
+  <script src="js/menu.js?v=12.0"></script>
+  <script src="js/reports.js?v=12.0"></script>
+  <script src="app.js?v=12.0"></script>
+</body>
+
+</html>
