@@ -725,10 +725,14 @@ service cloud.firestore {
     if (growthEl) {
       const formattedPercent = Math.abs(growthPercent).toFixed(1);
       const icon = isPositive ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
-      const color = isPositive ? "#16a34a" : "#ef4444";
+      const color = isPositive ? "#059669" : "#dc2626";
+      const bg = isPositive ? "#ecfdf5" : "#fef2f2";
+      const border = isPositive ? "#a7f3d0" : "#fecaca";
       const sign = isPositive ? "+" : "-";
       growthEl.style.color = color;
-      growthEl.innerHTML = `<i class="fa-solid ${icon}"></i> ${sign}${formattedPercent}% vs yesterday`;
+      growthEl.style.background = bg;
+      growthEl.style.borderColor = border;
+      growthEl.innerHTML = `<span class="growth-pill-badge" style="color: ${color};"><i class="fa-solid ${icon}"></i> ${sign}${formattedPercent}%</span> <span class="growth-pill-sub">vs yesterday</span>`;
     }
   }
 };

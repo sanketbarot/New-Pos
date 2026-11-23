@@ -22,7 +22,7 @@
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=21.0">
+  <link rel="stylesheet" href="style.css?v=23.0">
 </head>
 
 <body>
@@ -118,30 +118,42 @@
         </ul>
       </nav>
 
-      <!-- Today's Live Pulse Summary Card in Sidebar -->
-      <div class="sidebar-summary-card">
+      <!-- Today's Live Pulse Summary Card in Sidebar (Executive Micro-Dashboard) -->
+      <div class="sidebar-summary-card" onclick="views.counter && app.switchView('counter')" title="Click to view Cash Drawer & Bills History">
         <div class="sidebar-summary-header">
-          <span style="display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Today's Register Pulse
-          </span>
-          <span class="summary-live-dot" title="Real-Time Active Tracking"><i class="fa-solid fa-circle"></i></span>
+          <div class="summary-header-title">
+            <span class="summary-bolt-icon"><i class="fa-solid fa-bolt"></i></span>
+            <span class="summary-title-text">Register Pulse</span>
+          </div>
+          <div class="summary-live-badge" title="Live Real-Time Data Sync Active">
+            <span class="live-radar-ping"></span>
+            <span class="live-radar-dot"></span>
+            <span class="live-radar-text">LIVE</span>
+          </div>
         </div>
-        <div class="sidebar-summary-body">
-          <div class="sidebar-summary-row">
-            <span class="summary-label">Total Bills</span>
-            <span class="summary-val" id="sidebar-summary-orders">0</span>
+
+        <!-- Hero Metric: Today's Gross Sales -->
+        <div class="summary-hero-metric">
+          <div class="summary-hero-label">Today's Gross Sales</div>
+          <div class="summary-hero-val" id="sidebar-summary-sales">₹0</div>
+        </div>
+
+        <!-- Micro-Metrics 2-Column Grid -->
+        <div class="summary-stats-grid">
+          <div class="summary-stat-box">
+            <div class="stat-box-label"><i class="fa-solid fa-receipt"></i> Bills</div>
+            <div class="stat-box-val" id="sidebar-summary-orders">0</div>
           </div>
-          <div class="sidebar-summary-row">
-            <span class="summary-label">Gross Sales</span>
-            <span class="summary-val" id="sidebar-summary-sales">₹0</span>
+          <div class="summary-stat-box">
+            <div class="stat-box-label"><i class="fa-solid fa-chart-pie"></i> Avg Ticket</div>
+            <div class="stat-box-val" id="sidebar-summary-avg">₹0</div>
           </div>
-          <div class="sidebar-summary-row">
-            <span class="summary-label">Avg Ticket (AOV)</span>
-            <span class="summary-val" id="sidebar-summary-avg">₹0</span>
-          </div>
-          <div class="sidebar-summary-growth" id="sidebar-summary-growth">
-            <i class="fa-solid fa-arrow-trend-up"></i> +0.0% vs yesterday
-          </div>
+        </div>
+
+        <!-- Performance / Growth Pill -->
+        <div class="sidebar-summary-growth" id="sidebar-summary-growth">
+          <span class="growth-pill-badge"><i class="fa-solid fa-arrow-trend-up"></i> +0.0%</span>
+          <span class="growth-pill-sub">vs yesterday</span>
         </div>
       </div>
 
@@ -238,15 +250,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <!-- App JS & DB files -->
-  <script src="js/qrcode.min.js?v=21.0"></script>
-  <script src="js/db.js?v=21.0"></script>
-  <script src="js/dashboard.js?v=21.0"></script>
-  <script src="js/counter.js?v=21.0"></script>
-  <script src="js/pos.js?v=21.0"></script>
-  <script src="js/orders.js?v=21.0"></script>
-  <script src="js/menu.js?v=21.0"></script>
-  <script src="js/reports.js?v=21.0"></script>
-  <script src="app.js?v=21.0"></script>
+  <script src="js/qrcode.min.js?v=23.0"></script>
+  <script src="js/db.js?v=23.0"></script>
+  <script src="js/dashboard.js?v=23.0"></script>
+  <script src="js/counter.js?v=23.0"></script>
+  <script src="js/pos.js?v=23.0"></script>
+  <script src="js/orders.js?v=23.0"></script>
+  <script src="js/menu.js?v=23.0"></script>
+  <script src="js/reports.js?v=23.0"></script>
+  <script src="app.js?v=23.0"></script>
 </body>
 
 </html>

@@ -552,13 +552,13 @@ window.views.pos = {
               </div>
 
               <!-- Live On-Screen UPI QR Code preview box (Shown when UPI is active) -->
-              <div id="pos-onscreen-upi-box" class="pos-screen-upi-box" style="display: ${this.selectedPayment === 'UPI' ? 'flex' : 'none'};">
+              <div id="pos-onscreen-upi-box" class="pos-screen-upi-box" onclick="views.pos.openLargeCustomerQr()" style="display: ${this.selectedPayment === 'UPI' ? 'flex' : 'none'}; cursor: pointer;" title="Click to view large QR Code for customer to scan">
                 <div style="flex-grow: 1;">
                   <div style="font-size: 11.5px; font-weight: 800; color: #1e40af; display: flex; align-items: center; gap: 5px;">
                     <i class="fa-solid fa-qrcode"></i> Instant Customer Scan & Pay
                   </div>
                   <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">
-                    Amount: <strong id="pos-upi-screen-amt" style="color: #2563eb;">₹0.00</strong> • Scan via GPay/PhonePe
+                    Amount: <strong id="pos-upi-screen-amt" style="color: #2563eb;">₹0.00</strong> • <span style="color: #2563eb; font-weight: 700;">Tap to Enlarge 🔍</span>
                   </div>
                 </div>
                 <div class="pos-screen-upi-qr" id="pos-onscreen-qr-container">
@@ -1911,11 +1911,12 @@ window.views.pos = {
     });
 
     let flatDiscountAmount = 0;
+    let discountPercent = 0;
     if (this.discountMode === "flat") {
       flatDiscountAmount = Math.min(subtotal, this.discountFlatVal || 50);
     } else {
       const discountVal = Number(document.getElementById("bill-discount-input") ? document.getElementById("bill-discount-input").value : 0) || 0;
-      const discountPercent = Math.min(100, Math.max(0, discountVal));
+      discountPercent = Math.min(100, Math.max(0, discountVal));
       flatDiscountAmount = Math.round(subtotal * (discountPercent / 100) * 100) / 100;
     }
 
@@ -1974,9 +1975,15 @@ window.views.pos = {
 
   updateScreenUpiQr(amount) {
     const qrContainer = document.getElementById("pos-onscreen-qr-container");
+    const upiScreenAmt = document.getElementById("pos-upi-screen-amt");
     if (!qrContainer) return;
 
-    if (!amount || amount <= 0) {
+    const netAmount = Number(amount) || 0;
+    if (upiScreenAmt) {
+      upiScreenAmt.textContent = `₹${netAmount.toFixed(2)}`;
+    }
+
+    if (netAmount <= 0) {
       qrContainer.innerHTML = `<i class="fa-solid fa-qrcode" style="font-size: 24px; color: #94a3b8;"></i>`;
       return;
     }
@@ -1984,7 +1991,7 @@ window.views.pos = {
     const settings = window.db.get("settings") || {};
     const upiId = settings.upiId || "7487980840@okbizaxis";
     const shopName = settings.restaurantName || "Crust & Chilly";
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(shopName)}&am=${amount.toFixed(2)}&cu=INR`;
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(shopName)}&am=${netAmount.toFixed(2)}&cu=INR`;
 
     qrContainer.innerHTML = "";
     try {
@@ -1993,18 +2000,94 @@ window.views.pos = {
           text: upiUrl,
           width: 54,
           height: 54,
-          colorDark: "#000000",
+          colorDark: "#0f172a",
           colorLight: "#ffffff",
           correctLevel: QRCode.CorrectLevel.M
         });
-        const cvs = qrContainer.querySelector("canvas");
-        if (cvs) cvs.style.display = "none";
-        const img = qrContainer.querySelector("img");
-        if (img) img.style.display = "block";
+
+        // Ensure QR canvas or img is visible
+        setTimeout(() => {
+          const cvs = qrContainer.querySelector("canvas");
+          const img = qrContainer.querySelector("img");
+          if (img && img.getAttribute("src")) {
+            img.style.display = "block";
+            img.style.borderRadius = "4px";
+            if (cvs) cvs.style.display = "none";
+          } else if (cvs) {
+            cvs.style.display = "block";
+            cvs.style.borderRadius = "4px";
+          }
+        }, 30);
+      } else {
+        qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=54x54&data=${encodeURIComponent(upiUrl)}" style="width: 54px; height: 54px; border-radius: 4px; display: block;" alt="UPI QR">`;
       }
     } catch (e) {
-      qrContainer.innerHTML = `<i class="fa-solid fa-qrcode" style="font-size: 24px; color: #2563eb;"></i>`;
+      console.warn("Local QR render error, using fallback API:", e);
+      qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=54x54&data=${encodeURIComponent(upiUrl)}" style="width: 54px; height: 54px; border-radius: 4px; display: block;" alt="UPI QR">`;
     }
+  },
+
+  openLargeCustomerQr() {
+    const totEl = document.getElementById("bill-total");
+    const netTotal = parseFloat(totEl ? totEl.textContent.replace(/[^0-9.]/g, "") : 0) || 0;
+    if (netTotal <= 0) {
+      app.showToast("Add items to cart before scanning QR", "warning");
+      return;
+    }
+
+    const settings = window.db.get("settings") || {};
+    const upiId = settings.upiId || "7487980840@okbizaxis";
+    const shopName = settings.restaurantName || "Crust & Chilly";
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(shopName)}&am=${netTotal.toFixed(2)}&cu=INR`;
+
+    app.showModal({
+      title: `<i class="fa-solid fa-qrcode" style="color: #2563eb;"></i> Customer Scan & Pay`,
+      bodyHtml: `
+        <div style="text-align: center; padding: 12px 10px;">
+          <div style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 4px;">${shopName}</div>
+          <div style="font-size: 28px; font-weight: 900; color: #2563eb; margin-bottom: 14px; font-family: 'Outfit', sans-serif;">₹${netTotal.toFixed(2)}</div>
+          
+          <div id="modal-large-qr" style="width: 190px; height: 190px; margin: 0 auto; background: #fff; padding: 8px; border: 1.5px solid #bfdbfe; border-radius: 16px; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1); display: flex; align-items: center; justify-content: center;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=174x174&data=${encodeURIComponent(upiUrl)}" style="width: 174px; height: 174px; border-radius: 8px;" alt="QR Code">
+          </div>
+
+          <div style="margin-top: 14px; font-size: 12px; font-weight: 700; color: #475569;">
+            UPI ID: <span style="color: #0f172a; font-family: monospace; background: #f1f5f9; padding: 3px 8px; border-radius: 6px;">${upiId}</span>
+          </div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
+            Supports Google Pay, PhonePe, Paytm, BHIM & all UPI apps
+          </div>
+        </div>
+      `,
+      confirmText: "Payment Received",
+      cancelText: "Close",
+      onConfirm: () => {
+        app.showToast("UPI payment verified! Ready to print & place order.", "success");
+      }
+    });
+
+    setTimeout(() => {
+      const modalQrBox = document.getElementById("modal-large-qr");
+      if (modalQrBox && typeof QRCode !== "undefined") {
+        try {
+          modalQrBox.innerHTML = "";
+          new QRCode(modalQrBox, {
+            text: upiUrl,
+            width: 174,
+            height: 174,
+            colorDark: "#0f172a",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+          const img = modalQrBox.querySelector("img");
+          const cvs = modalQrBox.querySelector("canvas");
+          if (img) img.style.display = "block";
+          if (cvs && img) cvs.style.display = "none";
+        } catch (e) {
+          // fallback image remains
+        }
+      }
+    }, 50);
   },
 
   setupListeners() {
