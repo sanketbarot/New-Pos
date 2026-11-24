@@ -988,6 +988,7 @@ table th,
   letter-spacing: 0.5px;
   padding: 12px 16px;
   border-bottom: 1.5px solid var(--border-color);
+  vertical-align: middle;
 }
 
 table td,
@@ -997,6 +998,7 @@ table td,
   color: var(--text-main);
   font-size: 13px;
   background: #ffffff;
+  vertical-align: middle;
   transition: background-color 0.15s ease;
 }
 
@@ -1538,8 +1540,9 @@ table tr:hover td,
 /* 3. Executive KPI Hero Grid */
 .dash-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
+  width: 100%;
 }
 
 .dash-kpi-card {
@@ -1780,8 +1783,9 @@ table tr:hover td,
 /* 5. Charts & Analytics Styles */
 .dash-charts-row {
   display: grid;
-  grid-template-columns: 1.7fr 1fr 1fr;
+  grid-template-columns: 2fr 1.15fr;
   gap: 14px;
+  width: 100%;
 }
 
 .dash-chart-card {
@@ -2050,7 +2054,7 @@ table tr:hover td,
 }
 
 .pos-custom-header {
-  height: 64px;
+  height: 60px;
   background: var(--bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -2058,18 +2062,25 @@ table tr:hover td,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 16px;
   flex-shrink: 0;
   box-sizing: border-box;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
   z-index: 10;
-  gap: 12px;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
   transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
+.pos-custom-header::-webkit-scrollbar {
+  display: none;
+}
+
 .pos-header-search-area {
-  flex: 0 1 340px;
-  min-width: 220px;
+  flex: 1 1 260px;
+  max-width: 320px;
+  min-width: 180px;
 }
 
 .pos-search-wrapper {
@@ -2470,7 +2481,8 @@ table tr:hover td,
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
   box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.07);
 }
@@ -2574,8 +2586,16 @@ table tr:hover td,
 .pos-table-chips {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  max-width: 150px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
   margin-left: 2px;
+}
+
+.pos-table-chips::-webkit-scrollbar {
+  display: none;
 }
 
 .pos-table-chip {
@@ -2661,8 +2681,8 @@ table tr:hover td,
 }
 
 .cart-items-scroll {
-  flex: 1 1 0;
-  min-height: 0;
+  flex: 1 1 auto;
+  min-height: 110px;
   overflow-y: auto;
   margin: 4px 0;
   padding-right: 4px;
@@ -3021,6 +3041,13 @@ table tr:hover td,
 .cash-chip:hover {
   color: #2563eb;
   border-color: #93c5fd;
+}
+
+.cash-chip.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3) !important;
 }
 
 .cash-chip:active {
@@ -4350,15 +4377,34 @@ table tr:hover td,
   grid-template-columns: repeat(4, 1fr);
 }
 
-@media (max-width: 1200px) {
-  .kds-board, .kds-board.kds-4-lanes {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 1200px) and (min-width: 900px) {
+  .kds-board:not(.kds-4-lanes) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .kds-board.kds-4-lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 899px) and (min-width: 640px) {
+  .kds-board, .kds-board.kds-4-lanes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .kds-board:not(.kds-4-lanes) > .kds-column:last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 639px) {
   .kds-board, .kds-board.kds-4-lanes {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .kds-board:not(.kds-4-lanes) > .kds-column:last-child {
+    grid-column: auto;
   }
 }
 
@@ -5293,10 +5339,11 @@ table tr:hover td,
    ADVANCED SALES & PROFIT ANALYTICS SUITE STYLES
    ========================================================================== */
 
-/* 6-Card Executive Scorecard Grid */
-.rep-kpi-grid {
+/* 5-Card Executive Scorecard Grid (Desktop 1-Row Balance) */
+.rep-kpi-grid,
+.counter-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   width: 100%;
 }
@@ -6499,7 +6546,7 @@ input.cart-qty-input:focus,
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 0 !important;
 }
 
 .report-actions-group {
@@ -6648,11 +6695,12 @@ input.cart-qty-input:focus,
   .rep-kpi-grid,
   .menu-kpi-grid,
   .counter-kpi-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
   }
 
   .kds-board {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     height: auto !important;
   }
 }
@@ -6681,6 +6729,12 @@ input.cart-qty-input:focus,
     padding: 12px 14px 70px 14px !important;
   }
 
+  #counter-bulk-action-bar,
+  #menu-bulk-floating-mount > div,
+  .bulk-floating-bar {
+    bottom: 74px !important;
+  }
+
   .pos-custom-header {
     height: auto !important;
     padding: 10px 12px !important;
@@ -6705,7 +6759,8 @@ input.cart-qty-input:focus,
   .rep-kpi-grid,
   .menu-kpi-grid,
   .counter-kpi-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
   }
 
   .kds-board {
@@ -6716,6 +6771,56 @@ input.cart-qty-input:focus,
     width: 95% !important;
     border-radius: 16px !important;
   }
+}
+
+/* ==========================================================================
+   KDS 2.0 VISUAL RUSH PULSE & PLATING CHECKLIST STYLES (Sound-Free)
+   ========================================================================== */
+@keyframes kdsRushPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+    border-color: #ef4444 !important;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+    border-color: #dc2626 !important;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+    border-color: #ef4444 !important;
+  }
+}
+
+.kds-card-rush {
+  border: 2px solid #ef4444 !important;
+  animation: kdsRushPulse 1.8s infinite ease-in-out !important;
+}
+
+.kds-plating-progress-wrapper {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 4px 8px !important;
+  margin: 6px 0 6px 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.kds-order-item-check {
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+  border-radius: 6px !important;
+  padding: 3px 6px !important;
+}
+
+.kds-order-item-check:hover {
+  background: #f1f5f9 !important;
+}
+
+.kds-order-item-check.item-done {
+  text-decoration: line-through !important;
+  opacity: 0.55 !important;
+  background: #f8fafc !important;
 }
 
 /* Print Overrides */

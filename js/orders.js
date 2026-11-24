@@ -701,6 +701,21 @@ window.views.orders = {
           if (doneBanner) {
             doneBanner.style.display = allDone ? "block" : "none";
           }
+
+          // Live Progress Bar update
+          const progressBar = card.querySelector(".kds-prep-progress-fill");
+          const progressText = card.querySelector(".kds-prep-progress-text");
+          const progressPctEl = card.querySelector(".kds-prep-progress-pct");
+          if (progressBar && totalChecks > 0) {
+            const pct = Math.round((doneChecks / totalChecks) * 100);
+            progressBar.style.width = `${pct}%`;
+            progressBar.style.background = pct === 100 ? "#10b981" : "#3b82f6";
+            if (progressText) progressText.innerHTML = `<i class="fa-solid fa-list-check" style="color: ${pct === 100 ? '#059669' : '#2563eb'};"></i> Plated: ${doneChecks}/${totalChecks}`;
+            if (progressPctEl) {
+              progressPctEl.textContent = `${pct}%`;
+              progressPctEl.style.color = pct === 100 ? "#059669" : "#2563eb";
+            }
+          }
         }
       };
     });
@@ -1134,7 +1149,7 @@ window.views.orders = {
       const orderNotesModifiers = this.parseModifiers(order.notes);
 
       return `
-        <div class="kds-order-card ${allItemsDone ? 'all-items-done' : ''}" style="${cardBorderClass}" data-card-id="${order.id}">
+        <div class="kds-order-card ${allItemsDone ? 'all-items-done' : ''} ${isOverdue ? 'kds-card-rush' : ''}" style="${cardBorderClass}" data-card-id="${order.id}">
           
           <!-- Overtime Banner -->
           ${isOverdue ? `
@@ -1174,6 +1189,19 @@ window.views.orders = {
                     ${orderNotesModifiers.map(m => `<span class="kds-mod-pill ${m.class}">${m.label}</span>`).join("")}
                   </div>
                 ` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Plating Checklist Progress Bar -->
+          ${(order.items && order.items.length > 1) ? `
+            <div class="kds-plating-progress-wrapper" style="margin: 6px 0 6px 0; padding: 4px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; font-weight: 800; margin-bottom: 3px;">
+                <span class="kds-prep-progress-text" style="color: #475569;"><i class="fa-solid fa-list-check" style="color: #2563eb;"></i> Plated: ${(order.items || []).filter((_, i) => this.checkedItems[`${order.id}_${i}`] === true).length}/${(order.items || []).length}</span>
+                <span class="kds-prep-progress-pct" style="color: ${allItemsDone ? '#059669' : '#2563eb'};">${Math.round(((order.items || []).filter((_, i) => this.checkedItems[`${order.id}_${i}`] === true).length / Math.max(1, (order.items || []).length)) * 100)}%</span>
+              </div>
+              <div style="width: 100%; height: 5px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                <div class="kds-prep-progress-fill" style="width: ${Math.round(((order.items || []).filter((_, i) => this.checkedItems[`${order.id}_${i}`] === true).length / Math.max(1, (order.items || []).length)) * 100)}%; height: 100%; background: ${allItemsDone ? '#10b981' : '#3b82f6'}; border-radius: 4px; transition: width 0.25s ease;"></div>
               </div>
             </div>
           ` : ''}

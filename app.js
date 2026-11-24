@@ -143,25 +143,11 @@ const app = {
       } else {
         if (errorEl) {
           errorEl.style.display = "block";
-          errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Invalid username or password. Please check credentials or use the 1-Click Fill button below.`;
+          errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Invalid username or password. Please check credentials.`;
         }
         window.showToast("Invalid username or password.", "error");
       }
     };
-
-    // Quick 1-click Fill Admin Credentials
-    const quickAdminBtn = document.getElementById("btn-quick-admin-login");
-    if (quickAdminBtn) {
-      quickAdminBtn.onclick = () => {
-        if (userField) userField.value = "sanketadmin";
-        if (passField) passField.value = "Sanket@3901";
-        clearError();
-        const authResult = window.db.login("sanketadmin", "Sanket@3901");
-        if (authResult.success) {
-          this.runAppSession();
-        }
-      };
-    }
 
     // Toggle show/hide password view
     const togglePassBtn = document.getElementById("btn-toggle-password");

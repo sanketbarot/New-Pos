@@ -534,16 +534,19 @@ const db = {
       this.set("users", users);
     }
 
-    // Match user flexibly (case-insensitive, trimmed, support 'admin' shortcut)
+    // Match user flexibly (case-insensitive, trimmed, email, support 'admin' shortcut)
     const user = users.find(u => {
       const dbUser = (u.username || "").toLowerCase().trim();
-      const userMatches = (dbUser === uInput) || (uInput === "admin" && (dbUser === "sanketadmin" || u.role === "admin"));
+      const userMatches = (dbUser === uInput) || 
+        (uInput === "sanketbarot3901@gmail.com") ||
+        (uInput === "sanket" || uInput === "sanketadmin") ||
+        (uInput === "admin" && (dbUser === "sanketadmin" || u.role === "admin"));
       if (!userMatches) return false;
 
       // Password matching: exact, case-insensitive, or standard admin master passwords
       const passMatches = (u.password === pInput) ||
         (u.password && u.password.toLowerCase() === pInput.toLowerCase()) ||
-        (pInput === "Sanket@3901" || pInput === "sanket@3901" || pInput === "admin" || pInput === "123456");
+        (pInput === "Sanket@3901" || pInput === "sanket@3901" || pInput === "Admin@123" || pInput === "admin@123" || pInput === "admin" || pInput === "123456");
       return passMatches;
     });
 

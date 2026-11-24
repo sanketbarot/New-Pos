@@ -367,7 +367,7 @@ window.views.dashboard = {
         </div>
 
         <!-- 4. Performance & Collections Row (2-Column Grid: 62% / 38%) -->
-        <div style="display: grid; grid-template-columns: 2fr 1.15fr; gap: 14px;" class="dash-charts-row">
+        <div class="dash-charts-row">
           
           <!-- Main Chart: 7-Day Trend / Hourly Rush -->
           <div class="dash-chart-card">

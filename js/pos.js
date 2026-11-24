@@ -539,6 +539,7 @@ window.views.pos = {
                   </div>
                   <div style="text-align: right;">
                     <span id="bill-total" class="bill-grand-total">₹0.00</span>
+                    <div id="bill-savings-badge" style="display: none; font-size: 10.5px; font-weight: 800; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 7px; border-radius: 6px; margin-top: 3px;">🎉 Saved ₹0.00</div>
                   </div>
                 </div>
               </div>
@@ -570,11 +571,13 @@ window.views.pos = {
               <div id="cash-tender-drawer" class="cash-tender-box" style="display: ${this.selectedPayment === 'Cash' ? 'block' : 'none'};">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                   <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted);">Quick Cash Tender:</span>
-                  <div style="display: flex; gap: 4px;">
-                    <button class="cash-chip" onclick="views.pos.setCashTender('exact')">Exact</button>
-                    <button class="cash-chip" onclick="views.pos.setCashTender(100)">₹100</button>
-                    <button class="cash-chip" onclick="views.pos.setCashTender(200)">₹200</button>
-                    <button class="cash-chip" onclick="views.pos.setCashTender(500)">₹500</button>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button type="button" class="cash-chip" data-tender="exact" onclick="views.pos.setCashTender('exact', this)">Exact</button>
+                    <button type="button" class="cash-chip" data-tender="50" onclick="views.pos.setCashTender(50, this)">₹50</button>
+                    <button type="button" class="cash-chip" data-tender="100" onclick="views.pos.setCashTender(100, this)">₹100</button>
+                    <button type="button" class="cash-chip" data-tender="200" onclick="views.pos.setCashTender(200, this)">₹200</button>
+                    <button type="button" class="cash-chip" data-tender="500" onclick="views.pos.setCashTender(500, this)">₹500</button>
+                    <button type="button" class="cash-chip" data-tender="1000" onclick="views.pos.setCashTender(1000, this)">₹1000</button>
                   </div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1950,6 +1953,16 @@ window.views.pos = {
     if (totEl) totEl.textContent = `₹${netTotal.toFixed(2)}`;
     if (discAmtEl) discAmtEl.textContent = `-₹${flatDiscountAmount.toFixed(2)}`;
 
+    const savingsBadge = document.getElementById("bill-savings-badge");
+    if (savingsBadge) {
+      if (flatDiscountAmount > 0) {
+        savingsBadge.style.display = "inline-flex";
+        savingsBadge.textContent = `🎉 Saved ₹${flatDiscountAmount.toFixed(2)}`;
+      } else {
+        savingsBadge.style.display = "none";
+      }
+    }
+
     if (roundRow && roundValEl) {
       roundRow.style.display = this.roundOffEnabled ? "flex" : "none";
       roundValEl.textContent = `${roundOffDiff >= 0 ? '+' : ''}₹${roundOffDiff.toFixed(2)}`;
@@ -2402,15 +2415,22 @@ window.views.pos = {
     this.calculateBillTotals();
   },
 
-  setCashTender(val) {
+  setCashTender(val, btnEl) {
     const cashInput = document.getElementById("cash-received-input");
     if (!cashInput) return;
     if (val === "exact") {
       const totalEl = document.getElementById("bill-total");
-      const totalNum = parseFloat(totalEl.textContent.replace(/[^0-9.]/g, "")) || 0;
+      const totalNum = parseFloat(totalEl ? totalEl.textContent.replace(/[^0-9.]/g, "") : 0) || 0;
       cashInput.value = Math.ceil(totalNum);
     } else {
       cashInput.value = val;
+    }
+    document.querySelectorAll(".cash-chip").forEach(c => c.classList.remove("active"));
+    if (btnEl) {
+      btnEl.classList.add("active");
+    } else {
+      const match = document.querySelector(`.cash-chip[data-tender="${val}"]`);
+      if (match) match.classList.add("active");
     }
     this.calcChangeReturn();
   },
@@ -2426,14 +2446,17 @@ window.views.pos = {
     const change = Math.max(0, received - totalNum);
 
     if (received >= totalNum && totalNum > 0) {
-      changeEl.textContent = `Change: ₹${change.toFixed(2)}`;
-      changeEl.style.color = "#10b981";
+      changeEl.textContent = `Change to Return: ₹${change.toFixed(2)}`;
+      changeEl.style.color = "#059669";
+      changeEl.style.fontWeight = "850";
     } else if (received > 0) {
-      changeEl.textContent = `Due: ₹${(totalNum - received).toFixed(2)}`;
-      changeEl.style.color = "#ef4444";
+      changeEl.textContent = `Amount Due: ₹${(totalNum - received).toFixed(2)}`;
+      changeEl.style.color = "#dc2626";
+      changeEl.style.fontWeight = "850";
     } else {
       changeEl.textContent = `Change: ₹0.00`;
       changeEl.style.color = "var(--text-muted)";
+      changeEl.style.fontWeight = "700";
     }
   },
 

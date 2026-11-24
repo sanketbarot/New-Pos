@@ -1377,6 +1377,7 @@ window.views.menu = {
               const ing = parseFloat(this.value) || 0;
               const pack = parseFloat(document.getElementById('prod-modal-pack-cost').value) || 0;
               if (ing > 0 || pack > 0) document.getElementById('prod-modal-cost').value = (ing + pack).toFixed(1);
+              views.menu.calculateSuggestedPrice();
             ">
           </div>
           <div class="form-group" style="margin-bottom: 0;">
@@ -1385,11 +1386,32 @@ window.views.menu = {
               const ing = parseFloat(document.getElementById('prod-modal-ing-cost').value) || 0;
               const pack = parseFloat(this.value) || 0;
               if (ing > 0 || pack > 0) document.getElementById('prod-modal-cost').value = (ing + pack).toFixed(1);
+              views.menu.calculateSuggestedPrice();
             ">
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="prod-modal-subcat" style="font-weight: 700; margin-bottom: 5px; font-size: 11.5px;">Sub Category</label>
             <input type="text" id="prod-modal-subcat" class="form-input" value="${product && product.subCategory ? product.subCategory : ''}" placeholder="e.g. Classic / Special" style="height: 36px; font-size: 12px; font-weight: 700; border-radius: 10px;">
+          </div>
+        </div>
+
+        <!-- Target Margin & Selling Price Simulator -->
+        <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 750; color: #1e40af;">
+            <i class="fa-solid fa-calculator" style="color: #2563eb;"></i>
+            <span>Target Profit Margin:</span>
+            <select id="prod-modal-target-margin" style="border: 1.5px solid #93c5fd; border-radius: 8px; padding: 3px 8px; font-size: 11.5px; font-weight: 800; background: #fff; color: #1e40af; outline: none;" onchange="views.menu.calculateSuggestedPrice()">
+              <option value="50">50% Margin (2x Markup)</option>
+              <option value="55">55% Margin</option>
+              <option value="60" selected>60% Margin (2.5x Markup)</option>
+              <option value="65">65% Margin</option>
+              <option value="70">70% Margin (3.3x Markup)</option>
+              <option value="75">75% Margin (4x Markup)</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="prod-modal-suggested-text" style="font-size: 12px; font-weight: 850; color: #1e3a8a;">Suggested: ₹--</span>
+            <button type="button" class="btn btn-primary" id="btn-apply-suggested-price" style="padding: 3px 12px; font-size: 11.5px; height: 28px; border-radius: 8px; font-weight: 800; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);" onclick="views.menu.applySuggestedPrice()">Apply</button>
           </div>
         </div>
 
@@ -1513,6 +1535,45 @@ window.views.menu = {
         return true;
       }
     });
+
+    // Auto-calculate initial suggested price if cost exists
+    setTimeout(() => this.calculateSuggestedPrice(), 50);
+  },
+
+  calculateSuggestedPrice() {
+    const costInput = document.getElementById("prod-modal-cost");
+    const marginSelect = document.getElementById("prod-modal-target-margin");
+    const suggestedText = document.getElementById("prod-modal-suggested-text");
+    if (!costInput || !marginSelect || !suggestedText) return;
+
+    const cost = parseFloat(costInput.value) || 0;
+    const margin = parseFloat(marginSelect.value) || 60;
+    if (cost <= 0 || margin >= 100) {
+      suggestedText.textContent = "Suggested: ₹--";
+      suggestedText.dataset.price = "";
+      return;
+    }
+
+    const rawSuggested = cost / (1 - (margin / 100));
+    // Round to nearest integer (e.g. 79, 89, 99 or clean whole rupees)
+    const suggestedPrice = Math.ceil(rawSuggested);
+    suggestedText.textContent = `Suggested: ₹${suggestedPrice}`;
+    suggestedText.dataset.price = suggestedPrice;
+  },
+
+  applySuggestedPrice() {
+    const suggestedText = document.getElementById("prod-modal-suggested-text");
+    const priceInput = document.getElementById("prod-modal-price");
+    const marginSelect = document.getElementById("prod-modal-target-margin");
+    if (!suggestedText || !priceInput) return;
+    const val = suggestedText.dataset.price;
+    if (val) {
+      priceInput.value = val;
+      const margin = marginSelect ? marginSelect.value : "60";
+      window.showToast(`Applied suggested price of ₹${val} (${margin}% margin)`, "success");
+    } else {
+      window.showToast("Please enter cost price first to calculate suggested price.", "info");
+    }
   },
 
   // =========================================================================
