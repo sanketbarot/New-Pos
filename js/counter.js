@@ -33,14 +33,36 @@ window.views.counter = {
     coins: 0
   },
 
+  getLocalDateStr(d = new Date()) {
+    if (!d || isNaN(d.getTime())) d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  },
+
   getIstDateString(dateObj) {
-    const date = dateObj || new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const istDate = new Date(date.getTime() + istOffset);
-    const yyyy = istDate.getUTCFullYear();
-    const mm = String(istDate.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(istDate.getUTCDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return this.getLocalDateStr(dateObj);
+  },
+
+  getOrderDateStr(orderOrDate) {
+    if (!orderOrDate) return "";
+    if (typeof orderOrDate === "string") {
+      if (orderOrDate.length >= 10 && orderOrDate.includes("-")) {
+        const sub = orderOrDate.substring(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(sub)) return sub;
+      }
+      const d = new Date(orderOrDate);
+      if (!isNaN(d.getTime())) return this.getLocalDateStr(d);
+      return orderOrDate.substring(0, 10);
+    }
+    if (orderOrDate instanceof Date) {
+      return this.getLocalDateStr(orderOrDate);
+    }
+    if (orderOrDate && orderOrDate.createdAt) {
+      return this.getOrderDateStr(orderOrDate.createdAt);
+    }
+    return "";
   },
 
   loadSavedDenominations() {
@@ -63,30 +85,31 @@ window.views.counter = {
     this.selectedOrderIds.clear();
 
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px; max-width: 100%; width: 100%; overflow-x: hidden;">
         
         <!-- Top Command Bar: Period Navigation & Action Hub -->
-        <div class="glass-card counter-control-bar" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px;">
+        <div class="glass-card counter-control-bar" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px; background: #ffffff; border: 1px solid #f0f3f9;">
           
           <!-- Period Selector & Date Navigation -->
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 14px; font-weight: 800; color: var(--text-dark); white-space: nowrap; display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-cash-register" style="color: #2563eb;"></i> Daily Counter:
+              <span style="font-size: 13.5px; font-weight: 800; color: var(--text-dark); white-space: nowrap; display: flex; align-items: center; gap: 7px;">
+                <i class="fa-solid fa-cash-register" style="color: #2563eb; font-size: 15px;"></i> Daily Counter:
               </span>
             </div>
 
             <!-- Quick Time Presets -->
-            <div class="counter-time-pills" id="counter-time-pills-group">
-              <button type="button" class="counter-time-pill ${this.selectedPeriod === 'today' ? 'active' : ''}" data-period="today">Today</button>
-              <button type="button" class="counter-time-pill ${this.selectedPeriod === 'yesterday' ? 'active' : ''}" data-period="yesterday">Yesterday</button>
-              <button type="button" class="counter-time-pill ${this.selectedPeriod === 'week' ? 'active' : ''}" data-period="week">Last 7 Days</button>
-              <button type="button" class="counter-time-pill ${this.selectedPeriod === 'month' ? 'active' : ''}" data-period="month">This Month</button>
-              <button type="button" class="counter-time-pill ${this.selectedPeriod === 'all' ? 'active' : ''}" data-period="all">All Time</button>
+            <div class="rep-preset-pills" id="counter-time-pills-group" style="display: flex; gap: 5px; flex-wrap: wrap; align-items: center;">
+              <button type="button" class="btn-rep-preset counter-time-pill ${this.selectedPeriod === 'today' ? 'active' : ''}" data-period="today">Today</button>
+              <button type="button" class="btn-rep-preset counter-time-pill ${this.selectedPeriod === 'yesterday' ? 'active' : ''}" data-period="yesterday">Yesterday</button>
+              <button type="button" class="btn-rep-preset counter-time-pill ${this.selectedPeriod === 'week' ? 'active' : ''}" data-period="week">Last 7 Days</button>
+              <button type="button" class="btn-rep-preset counter-time-pill ${this.selectedPeriod === 'month' ? 'active' : ''}" data-period="month">This Month</button>
+              <button type="button" class="btn-rep-preset counter-time-pill ${this.selectedPeriod === 'all' ? 'active' : ''}" data-period="all">All Time</button>
             </div>
 
+            <!-- Date Picker -->
             <div style="display: flex; align-items: center; gap: 6px;">
-              <input type="date" id="counter-date-picker" class="form-input" value="${this.activeDateStr}" style="height: 34px; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; width: 135px;">
+              <input type="date" id="counter-date-picker" class="form-input" value="${this.activeDateStr}" style="height: 35px; font-size: 11.5px; font-weight: 700; padding: 4px 8px; border-radius: 10px; width: 135px;">
             </div>
           </div>
 
@@ -94,13 +117,13 @@ window.views.counter = {
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             
             <!-- End Shift / Close Register Wizard -->
-            <button class="btn btn-primary" id="btn-counter-close-shift" style="height: 36px; padding: 0 14px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);" title="End Shift & Settle Register (Z-Report)">
+            <button class="btn btn-primary" id="btn-counter-close-shift" style="height: 36px; padding: 0 16px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, #ff9b73 0%, #ff784b 100%); color: #ffffff; border: none; box-shadow: 0 3px 12px rgba(255, 138, 92, 0.35); cursor: pointer;" title="End Shift & Settle Register (Z-Report)">
               <i class="fa-solid fa-file-invoice-dollar"></i> Close Register
             </button>
 
             <!-- Quick Cash Out Expense Button -->
-            <button class="btn btn-secondary" id="btn-counter-expense" style="height: 36px; padding: 0 13px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;" title="Record Till Cash Expense / Payout">
-              <i class="fa-solid fa-hand-holding-dollar" style="color: #dc2626;"></i> + Cash Out
+            <button class="btn btn-secondary" id="btn-counter-expense" style="height: 36px; padding: 0 13px; font-size: 12px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; cursor: pointer;" title="Record Till Cash Expense / Payout">
+              <i class="fa-solid fa-hand-holding-dollar" style="color: #e11d48;"></i> + Cash Out
             </button>
 
             <!-- Export CSV -->
@@ -124,139 +147,127 @@ window.views.counter = {
         <div class="rep-kpi-grid counter-kpi-grid">
           
           <!-- Card 1: Net Sales Volume -->
-          <div class="rep-kpi-card accent-blue">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Net Counter Collection</span>
-              <div class="rep-kpi-icon icon-blue">
-                <i class="fa-solid fa-indian-rupee-sign"></i>
+          <div class="rep-kpi-card counter-kpi-card" id="counter-card-total">
+            <div class="dash-kpi-icon-wrap rep-ring-coral">
+              <i class="fa-solid fa-cash-register"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="counter-total-sales" style="color: #ff8a5c;">₹0</div>
+              <div class="rep-kpi-label">Net Counter Collection</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="counter-orders-active-pill"><i class="fa-solid fa-receipt"></i> 0 Valid Bills</span>
+                <span class="dash-sub-pill pill-neutral" id="counter-orders-void-pill" style="display: none; color: #dc2626;"><i class="fa-solid fa-ban"></i> 0 Void</span>
               </div>
-            </div>
-            <div>
-              <div class="rep-kpi-val" id="counter-total-sales" style="color: #2563eb;">₹0</div>
-              <div class="rep-kpi-sub" id="counter-orders-count">0 valid bills</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="counter-orders-active-pill"><i class="fa-solid fa-receipt"></i> 0 Completed</span>
-              <span class="dash-sub-pill pill-neutral" id="counter-orders-void-pill" style="display: none; color: #dc2626;"><i class="fa-solid fa-ban"></i> 0 Void</span>
             </div>
           </div>
 
           <!-- Card 2: Cash in Till -->
-          <div class="rep-kpi-card accent-green">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Cash Collected (Till)</span>
-              <div class="rep-kpi-icon icon-green">
-                <i class="fa-solid fa-money-bill-wave"></i>
-              </div>
+          <div class="rep-kpi-card counter-kpi-card" id="counter-card-cash">
+            <div class="dash-kpi-icon-wrap rep-ring-green">
+              <i class="fa-solid fa-money-bill-wave"></i>
             </div>
-            <div>
+            <div class="rep-kpi-info">
               <div class="rep-kpi-val" id="counter-cash-sales" style="color: #059669;">₹0</div>
-              <div class="rep-kpi-sub" id="counter-cash-count">0 Cash Bills</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-cash" id="counter-cash-pct-pill">0% of total collections</span>
+              <div class="rep-kpi-label">Cash in Drawer (Till)</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash" id="counter-cash-pct-pill">0% of total collections</span>
+              </div>
             </div>
           </div>
 
           <!-- Card 3: UPI / QR Online Collection -->
-          <div class="rep-kpi-card accent-purple">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">UPI / QR Collection</span>
-              <div class="rep-kpi-icon icon-purple">
-                <i class="fa-solid fa-qrcode"></i>
-              </div>
+          <div class="rep-kpi-card counter-kpi-card" id="counter-card-upi">
+            <div class="dash-kpi-icon-wrap rep-ring-purple">
+              <i class="fa-solid fa-qrcode"></i>
             </div>
-            <div>
+            <div class="rep-kpi-info">
               <div class="rep-kpi-val" id="counter-upi-sales" style="color: #7c3aed;">₹0</div>
-              <div class="rep-kpi-sub" id="counter-upi-count">0 UPI Bills</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-upi" id="counter-upi-pct-pill">0% of total collections</span>
+              <div class="rep-kpi-label">UPI / QR Collection</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-upi" id="counter-upi-pct-pill">0% of total collections</span>
+              </div>
             </div>
           </div>
 
           <!-- Card 4: Card Swipes -->
-          <div class="rep-kpi-card accent-indigo">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Card Swiped</span>
-              <div class="rep-kpi-icon icon-indigo">
-                <i class="fa-solid fa-credit-card"></i>
+          <div class="rep-kpi-card counter-kpi-card" id="counter-card-card">
+            <div class="dash-kpi-icon-wrap rep-ring-cyan">
+              <i class="fa-solid fa-credit-card"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="counter-card-sales" style="color: #0284c7;">₹0</div>
+              <div class="rep-kpi-label">Card Swipes (POS)</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="counter-card-pct-pill">0% of total</span>
               </div>
-            </div>
-            <div>
-              <div class="rep-kpi-val" id="counter-card-sales" style="color: #4f46e5;">₹0</div>
-              <div class="rep-kpi-sub" id="counter-card-count">0 Card Bills</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="counter-card-pct-pill">0% of total</span>
             </div>
           </div>
 
           <!-- Card 5: Cash Drawer Balance & Tally Status -->
-          <div class="rep-kpi-card accent-amber" id="counter-drawer-card" style="cursor: pointer;" title="Click to view Cash Drawer Reconciliation">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Drawer Expected vs Tally</span>
-              <div class="rep-kpi-icon icon-amber" id="counter-drawer-icon">
-                <i class="fa-solid fa-vault"></i>
-              </div>
+          <div class="rep-kpi-card counter-kpi-card" id="counter-drawer-card" style="cursor: pointer;" title="Click to view Cash Drawer Reconciliation">
+            <div class="dash-kpi-icon-wrap rep-ring-amber" id="counter-drawer-icon">
+              <i class="fa-solid fa-vault"></i>
             </div>
-            <div>
+            <div class="rep-kpi-info">
               <div class="rep-kpi-val" id="counter-drawer-expected" style="color: #b45309;">₹0</div>
-              <div class="rep-kpi-sub" id="counter-drawer-sub">Float + Cash In - Cash Out</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="growth-tag growth-up" id="counter-drawer-status-badge">Balanced</span>
+              <div class="rep-kpi-label">Drawer Expected vs Tally</div>
+              <div class="rep-kpi-badges">
+                <span class="growth-tag growth-up" id="counter-drawer-status-badge">Balanced</span>
+              </div>
             </div>
           </div>
 
         </div>
 
         <!-- Live Visual Payment Split Mini-Ribbon -->
-        <div class="glass-card" style="padding: 10px 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; color: var(--text-dark);">
-            <span style="display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Live Payment Split Distribution:
-            </span>
-            <div style="display: flex; gap: 14px; font-size: 11.5px;">
-              <span style="display: flex; align-items: center; gap: 5px;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
-                Cash: <strong id="ribbon-cash-pct" style="color: #059669;">0%</strong>
+        <div class="glass-card" style="padding: 12px 18px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Live Payment Split Distribution
               </span>
-              <span style="display: flex; align-items: center; gap: 5px;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #8b5cf6;"></span>
-                UPI: <strong id="ribbon-upi-pct" style="color: #7c3aed;">0%</strong>
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(Real-time cashflow share)</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <span style="font-size: 11.5px; font-weight: 750; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981;"></span>
+                Cash: <strong id="ribbon-cash-pct" style="color: #059669;">0% (₹0)</strong>
               </span>
-              <span style="display: flex; align-items: center; gap: 5px;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span>
-                Card: <strong id="ribbon-card-pct" style="color: #2563eb;">0%</strong>
+              <span style="font-size: 11.5px; font-weight: 750; color: #7c3aed; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #8b5cf6;"></span>
+                UPI QR: <strong id="ribbon-upi-pct" style="color: #7c3aed;">0% (₹0)</strong>
+              </span>
+              <span style="font-size: 11.5px; font-weight: 750; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #0284c7;"></span>
+                Card: <strong id="ribbon-card-pct" style="color: #0284c7;">0% (₹0)</strong>
               </span>
             </div>
           </div>
 
-          <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 6px; overflow: hidden; display: flex;">
-            <div id="ribbon-bar-cash" style="width: 0%; height: 100%; background: #10b981; transition: width 0.4s ease;" title="Cash Share"></div>
-            <div id="ribbon-bar-upi" style="width: 0%; height: 100%; background: #8b5cf6; transition: width 0.4s ease;" title="UPI Share"></div>
-            <div id="ribbon-bar-card" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.4s ease;" title="Card Share"></div>
+          <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 8px; overflow: hidden; display: flex; padding: 1.5px; border: 1px solid #e2e8f0;">
+            <div id="ribbon-bar-cash" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 6px; transition: width 0.4s ease;" title="Cash Share"></div>
+            <div id="ribbon-bar-upi" style="width: 0%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #7c3aed); border-radius: 6px; transition: width 0.4s ease;" title="UPI Share"></div>
+            <div id="ribbon-bar-card" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #0284c7); border-radius: 6px; transition: width 0.4s ease;" title="Card Share"></div>
           </div>
         </div>
 
         <!-- Sub-Tabs Navigation Strip -->
-        <div class="glass-card" style="padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-radius: 12px;">
-          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-            <button class="btn ${this.activeTab === 'bills' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-bills" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+        <div class="glass-card" style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="subtab-rep-btn ${this.activeTab === 'bills' ? 'active' : ''}" id="subtab-counter-bills">
               <i class="fa-solid fa-receipt"></i> Bills & Orders Stream
             </button>
-            <button class="btn ${this.activeTab === 'drawer' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-drawer" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="subtab-rep-btn ${this.activeTab === 'drawer' ? 'active' : ''}" id="subtab-counter-drawer">
               <i class="fa-solid fa-vault"></i> Cash Drawer & Denominations
             </button>
-            <button class="btn ${this.activeTab === 'velocity' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-velocity" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="subtab-rep-btn ${this.activeTab === 'velocity' ? 'active' : ''}" id="subtab-counter-velocity">
               <i class="fa-solid fa-chart-column"></i> Shift Rush & Velocity
             </button>
-            <button class="btn ${this.activeTab === 'shifts' ? 'btn-primary' : 'btn-secondary'}" id="subtab-counter-shifts" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="subtab-rep-btn ${this.activeTab === 'shifts' ? 'active' : ''}" id="subtab-counter-shifts">
               <i class="fa-solid fa-clock-rotate-left"></i> Shift Settlement Audit
             </button>
           </div>
-          <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); padding-right: 8px;" id="counter-subtab-indicator">
+          <div style="font-size: 11.5px; font-weight: 700; color: #64748b; padding-right: 8px;" id="counter-subtab-indicator">
             <!-- Dynamic context indicator -->
           </div>
         </div>
@@ -314,10 +325,10 @@ window.views.counter = {
 
     const switchSubTab = (tab) => {
       this.activeTab = tab;
-      if (tabBills) tabBills.className = this.activeTab === "bills" ? "btn btn-primary" : "btn btn-secondary";
-      if (tabDrawer) tabDrawer.className = this.activeTab === "drawer" ? "btn btn-primary" : "btn btn-secondary";
-      if (tabVelocity) tabVelocity.className = this.activeTab === "velocity" ? "btn btn-primary" : "btn btn-secondary";
-      if (tabShifts) tabShifts.className = this.activeTab === "shifts" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabBills) tabBills.className = `subtab-rep-btn ${this.activeTab === "bills" ? "active" : ""}`;
+      if (tabDrawer) tabDrawer.className = `subtab-rep-btn ${this.activeTab === "drawer" ? "active" : ""}`;
+      if (tabVelocity) tabVelocity.className = `subtab-rep-btn ${this.activeTab === "velocity" ? "active" : ""}`;
+      if (tabShifts) tabShifts.className = `subtab-rep-btn ${this.activeTab === "shifts" ? "active" : ""}`;
       this.renderSubTab();
     };
 
@@ -437,48 +448,57 @@ window.views.counter = {
 
   getFilteredOrdersByPeriod(allOrders) {
     const now = new Date();
-    const todayStr = this.getIstDateString(now);
+    const todayStr = this.getLocalDateStr(now);
 
     if (this.selectedPeriod === "all") {
       return allOrders;
     }
 
     if (this.selectedPeriod === "today") {
-      return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === todayStr);
+      return allOrders.filter(o => this.getOrderDateStr(o) === todayStr);
     }
 
     if (this.selectedPeriod === "yesterday") {
       const yest = new Date();
       yest.setDate(yest.getDate() - 1);
-      const yestStr = this.getIstDateString(yest);
-      return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === yestStr);
+      const yestStr = this.getLocalDateStr(yest);
+      return allOrders.filter(o => this.getOrderDateStr(o) === yestStr);
     }
 
     if (this.selectedPeriod === "week") {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
       sevenDaysAgo.setHours(0, 0, 0, 0);
-      return allOrders.filter(o => o.createdAt && new Date(o.createdAt) >= sevenDaysAgo);
-    }
-
-    if (this.selectedPeriod === "month") {
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
+      const startStr = this.getLocalDateStr(sevenDaysAgo);
       return allOrders.filter(o => {
-        if (!o.createdAt) return false;
-        const d = new Date(o.createdAt);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        const dStr = this.getOrderDateStr(o);
+        return dStr >= startStr && dStr <= todayStr;
       });
     }
 
+    if (this.selectedPeriod === "month") {
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const currentYear = String(now.getFullYear());
+      const prefix = `${currentYear}-${currentMonth}`;
+      return allOrders.filter(o => this.getOrderDateStr(o).startsWith(prefix));
+    }
+
     // Default to activeDateStr (Custom calendar selection)
-    const targetDate = this.activeDateStr;
-    return allOrders.filter(o => o.createdAt && this.getIstDateString(new Date(o.createdAt)) === targetDate);
+    const targetDate = this.activeDateStr || todayStr;
+    return allOrders.filter(o => this.getOrderDateStr(o) === targetDate);
   },
 
   render() {
-    this.renderKpis();
-    this.renderSubTab();
+    try {
+      this.renderKpis();
+    } catch (err) {
+      console.error("Counter: renderKpis failed:", err);
+    }
+    try {
+      this.renderSubTab();
+    } catch (err) {
+      console.error("Counter: renderSubTab failed:", err);
+    }
   },
 
   renderKpis() {
@@ -490,16 +510,43 @@ window.views.counter = {
     const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
     const cancelledOrders = periodOrders.filter(o => o.status === "Cancelled");
 
-    // Metrics calculations
+    // Dynamic Multi-Payment Attribution (Cash, UPI, Card, Split)
+    let cashSales = 0;
+    let upiSales = 0;
+    let cardSales = 0;
+    let cashBillsCount = 0;
+    let upiBillsCount = 0;
+    let cardBillsCount = 0;
+
+    validOrders.forEach(o => {
+      const pm = (o.paymentMethod || "Cash").toLowerCase();
+      const tot = Number(o.total) || 0;
+      if (pm === "cash") {
+        cashSales += tot;
+        cashBillsCount++;
+      } else if (pm === "upi") {
+        upiSales += tot;
+        upiBillsCount++;
+      } else if (pm === "card") {
+        cardSales += tot;
+        cardBillsCount++;
+      } else if (pm === "split" && o.splitDetails) {
+        const c = Number(o.splitDetails.cash) || 0;
+        const u = Number(o.splitDetails.upi) || 0;
+        const cr = Number(o.splitDetails.card) || 0;
+        cashSales += c;
+        upiSales += u;
+        cardSales += cr;
+        if (c > 0) cashBillsCount++;
+        if (u > 0) upiBillsCount++;
+        if (cr > 0) cardBillsCount++;
+      } else {
+        cashSales += tot;
+        cashBillsCount++;
+      }
+    });
+
     const netSales = validOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
-    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-    const upiOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "upi");
-    const upiSales = upiOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-    const cardOrders = validOrders.filter(o => (o.paymentMethod || "").toLowerCase() === "card");
-    const cardSales = cardOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
     // Percentage shares
     const cashPct = netSales > 0 ? Math.round((cashSales / netSales) * 100) : 0;
@@ -537,15 +584,15 @@ window.views.counter = {
     }
 
     if (cashEl) cashEl.textContent = `${currency}${Math.round(cashSales).toLocaleString("en-IN")}`;
-    if (cashCountEl) cashCountEl.textContent = `${cashOrders.length} Cash Bills`;
+    if (cashCountEl) cashCountEl.textContent = `${cashBillsCount} Cash Bills`;
     if (cashPctPill) cashPctPill.textContent = `${cashPct}% of total collections`;
 
     if (upiEl) upiEl.textContent = `${currency}${Math.round(upiSales).toLocaleString("en-IN")}`;
-    if (upiCountEl) upiCountEl.textContent = `${upiOrders.length} UPI QR Bills`;
+    if (upiCountEl) upiCountEl.textContent = `${upiBillsCount} UPI QR Bills`;
     if (upiPctPill) upiPctPill.textContent = `${upiPct}% of total collections`;
 
     if (cardEl) cardEl.textContent = `${currency}${Math.round(cardSales).toLocaleString("en-IN")}`;
-    if (cardCountEl) cardCountEl.textContent = `${cardOrders.length} Card Swipes`;
+    if (cardCountEl) cardCountEl.textContent = `${cardBillsCount} Card Swipes`;
     if (cardPctPill) cardPctPill.textContent = `${cardPct}% of total collections`;
 
     // Update Visual Payment Split Ribbon
@@ -609,15 +656,15 @@ window.views.counter = {
     const voidCount = periodOrders.filter(o => o.status === "Cancelled").length;
 
     mount.innerHTML = `
-      <div class="glass-card view-animate" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
+      <div class="glass-card view-animate" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
         
         <!-- Header & Top Filter Row -->
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div>
-            <h3 style="font-size: 15px; font-weight: 800; color: var(--text-dark); margin: 0 0 2px 0;">
-              <i class="fa-solid fa-receipt" style="color: #2563eb; margin-right: 6px;"></i> Bills Audit & Orders Stream
+            <h3 style="font-size: 15px; font-weight: 900; color: var(--text-dark); margin: 0 0 2px 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-receipt" style="color: #2563eb;"></i> Bills Audit & Orders Stream
             </h3>
-            <p style="font-size: 11.5px; color: var(--text-muted); margin: 0;">
+            <p style="font-size: 11.5px; color: var(--text-muted); margin: 0; font-weight: 600;">
               Tap any bill to expand items • Select multiple for bulk operations • Switch payment • WhatsApp receipt.
             </p>
           </div>
@@ -1365,9 +1412,21 @@ window.views.counter = {
     const periodOrders = this.getFilteredOrdersByPeriod(allOrders);
     const validOrders = periodOrders.filter(o => o.status !== "Cancelled");
 
-    // Cash Sales
-    const cashOrders = validOrders.filter(o => (o.paymentMethod || "Cash").toLowerCase() === "cash");
-    const cashSales = cashOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    // Cash Sales (with Split payments support)
+    let cashSales = 0;
+    let cashBillsCount = 0;
+    validOrders.forEach(o => {
+      const pm = (o.paymentMethod || "Cash").toLowerCase();
+      const tot = Number(o.total) || 0;
+      if (pm === "cash") {
+        cashSales += tot;
+        cashBillsCount++;
+      } else if (pm === "split" && o.splitDetails) {
+        const c = Number(o.splitDetails.cash) || 0;
+        cashSales += c;
+        if (c > 0) cashBillsCount++;
+      }
+    });
 
     // Filter cash expenses for active date
     const targetDate = this.activeDateStr;

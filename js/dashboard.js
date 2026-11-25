@@ -94,7 +94,7 @@ window.views.dashboard = {
 
   setTimeframe(period) {
     this.selectedTimeframe = period;
-    document.querySelectorAll(".dash-period-btn").forEach(btn => {
+    document.querySelectorAll(".dash-period-btn, .counter-quick-chip[data-period]").forEach(btn => {
       btn.classList.toggle("active", btn.getAttribute("data-period") === period);
     });
     this.calculateAndRenderMetrics();
@@ -159,274 +159,263 @@ window.views.dashboard = {
     });
 
     container.innerHTML = `
-      <div class="dash-container view-animate">
+      <div class="dash-container view-animate" style="display: flex; flex-direction: column; gap: 14px; max-width: 100%; width: 100%; padding-bottom: 60px;">
         
-        <!-- 1. Executive Top Header Card -->
-        <div class="dash-header-card">
-          <div class="dash-header-title-box">
-            <div class="dash-header-title-row">
-              <h1 class="dash-header-title">
-                <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Executive Command Center
-              </h1>
-              <div id="dash-shift-indicator" class="dash-shift-live-pill shift-open">
-                <i class="fa-solid fa-circle"></i>
-                <span>Live Shift Active</span>
-              </div>
+        <!-- 1. Executive Top Command Bar (Porcelain White matching Counter & Menu) -->
+        <div class="glass-card counter-control-bar" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px; background: #ffffff; border: 1px solid #f0f3f9;">
+          
+          <!-- Period Selector Strip -->
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 7px; margin-right: 4px;">
+              <span style="font-size: 13.5px; font-weight: 800; color: var(--text-dark); white-space: nowrap; display: flex; align-items: center; gap: 7px;">
+                <i class="fa-solid fa-chart-pie" style="color: #ff8a5c; font-size: 15px;"></i> Executive Control:
+              </span>
             </div>
-            <div class="dash-header-sub">
-              <span><i class="fa-regular fa-calendar" style="color: #2563eb;"></i> ${formattedDate}</span>
-              <span class="dot-sep">•</span>
-              <span id="dash-live-clock" style="font-weight: 750; color: var(--text-dark);"><i class="fa-regular fa-clock" style="color: #2563eb;"></i> --:--:--</span>
-              <span class="dot-sep">•</span>
-              <span style="color: var(--text-muted); font-weight: 600;">Real-Time Business Intelligence</span>
+            <div class="dash-period-pills" id="dash-period-selector" style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; background: transparent; border: none; padding: 0;">
+              <button class="counter-quick-chip ${this.selectedTimeframe === 'today' ? 'active' : ''}" data-period="today" onclick="views.dashboard.setTimeframe('today')">Today</button>
+              <button class="counter-quick-chip ${this.selectedTimeframe === 'yesterday' ? 'active' : ''}" data-period="yesterday" onclick="views.dashboard.setTimeframe('yesterday')">Yesterday</button>
+              <button class="counter-quick-chip ${this.selectedTimeframe === 'week' ? 'active' : ''}" data-period="week" onclick="views.dashboard.setTimeframe('week')">Last 7 Days</button>
+              <button class="counter-quick-chip ${this.selectedTimeframe === 'month' ? 'active' : ''}" data-period="month" onclick="views.dashboard.setTimeframe('month')">This Month</button>
+              <button class="counter-quick-chip ${this.selectedTimeframe === 'custom' ? 'active' : ''}" data-period="custom" onclick="views.dashboard.openCustomDateRangeModal()">Custom 📅</button>
             </div>
           </div>
-          
-          <div class="dash-header-controls">
-            <!-- Period Selector Pills -->
-            <div class="dash-period-pills" id="dash-period-selector">
-              <button class="dash-period-btn ${this.selectedTimeframe === 'today' ? 'active' : ''}" data-period="today" onclick="views.dashboard.setTimeframe('today')">Today</button>
-              <button class="dash-period-btn ${this.selectedTimeframe === 'yesterday' ? 'active' : ''}" data-period="yesterday" onclick="views.dashboard.setTimeframe('yesterday')">Yesterday</button>
-              <button class="dash-period-btn ${this.selectedTimeframe === 'week' ? 'active' : ''}" data-period="week" onclick="views.dashboard.setTimeframe('week')">7 Days</button>
-              <button class="dash-period-btn ${this.selectedTimeframe === 'month' ? 'active' : ''}" data-period="month" onclick="views.dashboard.setTimeframe('month')">This Month</button>
-              <button class="dash-period-btn ${this.selectedTimeframe === 'custom' ? 'active' : ''}" data-period="custom" onclick="views.dashboard.openCustomDateRangeModal()">Custom 📅</button>
+
+          <!-- Actions & Live Auto-Refresh -->
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            
+            <!-- Live Shift Indicator -->
+            <div id="dash-shift-indicator" class="dash-shift-live-pill shift-open" style="font-size: 11.5px; font-weight: 750; padding: 5px 12px; border-radius: 20px;">
+              <i class="fa-solid fa-circle"></i> <span>Live Shift Active</span>
             </div>
 
             <!-- Auto-Refresh Toggle -->
-            <button id="dash-autorefresh-btn" class="dash-auto-pill active" title="Toggle 30s Real-time Auto-Refresh" onclick="views.dashboard.toggleAutoRefresh()">
-              <i class="fa-solid fa-arrows-rotate fa-spin" id="dash-refresh-icon" style="font-size: 11px;"></i>
+            <button id="dash-autorefresh-btn" class="counter-quick-chip ${this.autoRefreshEnabled ? 'active' : ''}" title="Toggle 30s Real-time Auto-Refresh" onclick="views.dashboard.toggleAutoRefresh()" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;">
+              <i class="fa-solid fa-arrows-rotate ${this.autoRefreshEnabled ? 'fa-spin' : ''}" id="dash-refresh-icon" style="font-size: 11px;"></i>
               <span id="dash-countdown-text">Auto 30s</span>
             </button>
 
             <!-- Fast Action Buttons -->
-            <button class="btn btn-secondary" onclick="views.dashboard.openQuickExpenseModal()" title="Add Shop Expense" style="height: 36px; padding: 0 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+            <button class="btn btn-secondary" onclick="views.dashboard.openQuickExpenseModal()" title="Add Shop Expense" style="height: 36px; border-radius: 10px; padding: 0 13px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-plus-circle" style="color: #dc2626;"></i> Expense
             </button>
-            <button class="btn btn-secondary" onclick="views.dashboard.openCashDrawerAuditModal()" title="Audit Drawer & Denominations" style="height: 36px; padding: 0 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
-              <i class="fa-solid fa-cash-register" style="color: #059669;"></i> Audit Drawer
+            <button class="btn btn-secondary" onclick="views.dashboard.openCashDrawerAuditModal()" title="Audit Drawer & Denominations" style="height: 36px; border-radius: 10px; padding: 0 13px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-vault" style="color: #059669;"></i> Audit Drawer
             </button>
-            <button class="btn btn-secondary" onclick="views.dashboard.openDayEndReportModal()" title="Daily Z-Report Summary" style="height: 36px; padding: 0 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+            <button class="btn btn-secondary" onclick="views.dashboard.openDayEndReportModal()" title="Daily Z-Report Summary" style="height: 36px; border-radius: 10px; padding: 0 13px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-file-invoice-dollar" style="color: #2563eb;"></i> Z-Report
             </button>
-            <button class="btn btn-secondary" id="dash-btn-refresh" title="Refresh Dashboard Metrics" style="height: 36px; width: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 12px; font-weight: 700;">
+            <button class="btn btn-secondary" id="dash-btn-refresh" title="Refresh Dashboard Metrics" style="height: 36px; width: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 13px; font-weight: 700;">
               <i class="fa-solid fa-rotate-right"></i>
             </button>
           </div>
+
         </div>
 
-        <!-- 2. Executive High-Impact 5-KPI Grid -->
+        <!-- 2. Executive 5-Metric Scorecard Grid (Pastel Executive Design) -->
         <div class="dash-kpi-grid">
           
-          <!-- KPI 1: Gross Sales & Revenue Target -->
-          <div class="dash-kpi-card kpi-blue">
-            <div class="dash-kpi-top">
-              <span class="dash-kpi-title" id="dash-sales-label">Gross Revenue</span>
-              <div class="dash-kpi-icon-wrap icon-wrap-blue">
-                <i class="fa-solid fa-indian-rupee-sign"></i>
-              </div>
+          <!-- Card 1: Gross Sales Revenue (Tangerine Coral Ring) -->
+          <div class="rep-kpi-card dash-kpi-card" id="dash-card-sales">
+            <div class="dash-kpi-icon-wrap rep-ring-coral">
+              <i class="fa-solid fa-indian-rupee-sign"></i>
             </div>
-            <div>
-              <div class="dash-kpi-val-row">
-                <div class="dash-kpi-val" id="dash-sales-val">₹0</div>
-                <div id="dash-growth-indicator"></div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="dash-sales-val" style="color: #ff8a5c;">₹0</div>
+              <div class="rep-kpi-label">Gross Sales Realized</div>
+              <div class="rep-kpi-badges">
+                <span id="dash-growth-indicator"></span>
+                <span class="dash-sub-pill pill-cash" id="dash-card-goal-pill"><i class="fa-solid fa-bullseye"></i> Goal Track</span>
               </div>
-              <div class="dash-kpi-pacing-wrap">
-                <div class="dash-pacing-progress-bg">
-                  <div id="dash-target-bar" class="dash-pacing-progress-fill" style="width: 0%;"></div>
-                </div>
-                <div class="dash-pacing-sub-row">
-                  <span id="dash-target-amounts">Goal: ₹0</span>
-                  <span id="dash-target-badge" style="color: #2563eb; font-weight: 800;">0% Met</span>
-                </div>
-              </div>
-            </div>
-            <div class="dash-kpi-footer-tags">
-              <span class="dash-tag tag-neutral" id="dash-target-projected">Projected: ₹0</span>
-              <button id="dash-btn-set-target" type="button" style="background: none; border: none; color: #2563eb; font-size: 10.5px; font-weight: 800; cursor: pointer; padding: 0; margin-left: auto;">
-                <i class="fa-solid fa-pen-to-square"></i> Set Goal
-              </button>
             </div>
           </div>
 
-          <!-- KPI 2: Net Profit & Margin -->
-          <div class="dash-kpi-card kpi-green">
-            <div class="dash-kpi-top">
-              <span class="dash-kpi-title">Estimated Net Profit</span>
-              <div class="dash-kpi-icon-wrap icon-wrap-green">
-                <i class="fa-solid fa-arrow-trend-up"></i>
-              </div>
+          <!-- Card 2: Estimated Net Profit (Emerald Mint Ring) -->
+          <div class="rep-kpi-card dash-kpi-card" id="dash-card-profit">
+            <div class="dash-kpi-icon-wrap rep-ring-green">
+              <i class="fa-solid fa-arrow-trend-up"></i>
             </div>
-            <div>
-              <div class="dash-kpi-val-row">
-                <div class="dash-kpi-val" id="dash-profit-val" style="color: #059669;">₹0</div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="dash-profit-val" style="color: #10b981;">₹0</div>
+              <div class="rep-kpi-label">Estimated Net Profit</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash" id="dash-margin-pill"><i class="fa-solid fa-percent"></i> 0% Margin</span>
+                <span class="dash-sub-pill pill-neutral" id="dash-expense-pill"><i class="fa-solid fa-receipt"></i> Exp: ₹0</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;">
-                Gross revenue minus COGS & shop overheads
-              </div>
-            </div>
-            <div class="dash-kpi-footer-tags">
-              <span class="dash-tag tag-cash" id="dash-margin-pill"><i class="fa-solid fa-percent"></i> 0% Margin</span>
-              <span class="dash-tag tag-neutral" id="dash-expense-pill"><i class="fa-solid fa-receipt"></i> Expenses: ₹0</span>
             </div>
           </div>
 
-          <!-- KPI 3: Orders & Avg Ticket (AOV) -->
-          <div class="dash-kpi-card kpi-amber">
-            <div class="dash-kpi-top">
-              <span class="dash-kpi-title">Bills & Avg Ticket</span>
-              <div class="dash-kpi-icon-wrap icon-wrap-amber">
-                <i class="fa-solid fa-receipt"></i>
-              </div>
+          <!-- Card 3: Total Bills & AOV (Sunburst Amber Ring) -->
+          <div class="rep-kpi-card dash-kpi-card" id="dash-card-orders">
+            <div class="dash-kpi-icon-wrap rep-ring-amber">
+              <i class="fa-solid fa-receipt"></i>
             </div>
-            <div>
-              <div class="dash-kpi-val-row">
-                <div class="dash-kpi-val" id="dash-orders-val">0</div>
-                <span style="font-size: 12px; font-weight: 750; color: var(--text-muted);">Total Bills</span>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="dash-orders-val" style="color: #f59e0b;">0</div>
+              <div class="rep-kpi-label">Bills & Avg Ticket</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="dash-aov-pill"><i class="fa-solid fa-calculator"></i> Avg: ₹0</span>
+                <span class="dash-sub-pill pill-cash" id="dash-fulfillment-pill"><i class="fa-solid fa-check"></i> 100% Fulfilled</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;" id="dash-items-sold-sub">
-                0 items served across bills
-              </div>
-            </div>
-            <div class="dash-kpi-footer-tags">
-              <span class="dash-tag tag-neutral" id="dash-aov-pill"><i class="fa-solid fa-calculator"></i> Avg: ₹0/bill</span>
-              <span class="dash-tag tag-cash" id="dash-fulfillment-pill">100% Fulfilled</span>
             </div>
           </div>
 
-          <!-- KPI 4: Kitchen Queue & SLA -->
-          <div class="dash-kpi-card kpi-purple">
-            <div class="dash-kpi-top">
-              <span class="dash-kpi-title">Kitchen Live Queue</span>
-              <div class="dash-kpi-icon-wrap icon-wrap-purple">
-                <i class="fa-solid fa-fire-burner"></i>
-              </div>
+          <!-- Card 4: Kitchen Live Queue (Orchid Purple Ring) -->
+          <div class="rep-kpi-card dash-kpi-card" id="dash-card-kitchen">
+            <div class="dash-kpi-icon-wrap rep-ring-purple">
+              <i class="fa-solid fa-fire-burner"></i>
             </div>
-            <div>
-              <div class="dash-kpi-val-row">
-                <div class="dash-kpi-val" id="dash-active-val" style="color: #7c3aed;">0</div>
-                <span style="font-size: 12px; font-weight: 750; color: var(--text-muted);">Orders in Prep</span>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="dash-active-val" style="color: #8b5cf6;">0</div>
+              <div class="rep-kpi-label">Kitchen Live Prep</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="dash-queue-status"><i class="fa-solid fa-stopwatch"></i> Avg: --m</span>
+                <span class="dash-sub-pill pill-cash" id="dash-delay-pill"><i class="fa-solid fa-circle-check"></i> On-Time</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;">
-                Target SLA: 15 mins turnaround
-              </div>
-            </div>
-            <div class="dash-kpi-footer-tags">
-              <span class="dash-tag tag-neutral" id="dash-queue-status"><i class="fa-solid fa-stopwatch"></i> Avg: --m</span>
-              <span class="dash-tag tag-cash" id="dash-delay-pill"><i class="fa-solid fa-circle-check"></i> On-Time</span>
             </div>
           </div>
 
-          <!-- KPI 5: Expected Cash in Drawer -->
-          <div class="dash-kpi-card kpi-teal">
-            <div class="dash-kpi-top">
-              <span class="dash-kpi-title">Cash in Drawer</span>
-              <div class="dash-kpi-icon-wrap icon-wrap-teal">
-                <i class="fa-solid fa-vault"></i>
-              </div>
+          <!-- Card 5: Cash Drawer & Digital (Sky Cyan Ring) -->
+          <div class="rep-kpi-card dash-kpi-card" id="dash-card-drawer" style="cursor: pointer;" onclick="views.dashboard.openCashDrawerAuditModal()" title="Click to Audit Cash Drawer">
+            <div class="dash-kpi-icon-wrap rep-ring-cyan">
+              <i class="fa-solid fa-vault"></i>
             </div>
-            <div>
-              <div class="dash-kpi-val-row">
-                <div class="dash-kpi-val" id="dash-drawer-val" style="color: #0d9488;">₹0</div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="dash-drawer-val" style="color: #0284c7;">₹0</div>
+              <div class="rep-kpi-label">Cash in Till (Drawer)</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash" id="dash-cash-sales-pill"><i class="fa-solid fa-money-bill-wave"></i> Cash: ₹0</span>
+                <span class="dash-sub-pill pill-neutral" id="dash-digital-sub" style="color: #2563eb;">UPI: ₹0</span>
               </div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px;" id="dash-digital-sub">
-                UPI / Online: ₹0
-              </div>
-            </div>
-            <div class="dash-kpi-footer-tags">
-              <span class="dash-tag tag-cash" id="dash-cash-sales-pill"><i class="fa-solid fa-money-bill-wave"></i> Cash: ₹0</span>
-              <button type="button" onclick="views.dashboard.openCashDrawerAuditModal()" style="background: none; border: none; color: #0d9488; font-size: 10.5px; font-weight: 800; cursor: pointer; padding: 0; margin-left: auto;">
-                <i class="fa-solid fa-arrow-right"></i> Audit Drawer
-              </button>
             </div>
           </div>
 
         </div>
 
-        <!-- 3. Smart Store Pulse & Table Occupancy Ribbon (NEW ADVANCED FEATURE) -->
-        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 20px; box-shadow: var(--neu-shadow-raised); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <div style="width: 38px; height: 38px; border-radius: 12px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #bfdbfe;">
-              <i class="fa-solid fa-bolt"></i>
+        <!-- 3. Smart Store Pulse & Revenue Target Pacing Ribbon (Executive Pastel Suite) -->
+        <div class="glass-card" style="padding: 14px 20px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9; box-shadow: 0 4px 16px -2px rgba(22, 27, 46, 0.04); display: flex; flex-direction: column; gap: 12px;">
+          
+          <!-- Top Row: Operational Status, Shift & Badges -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            
+            <!-- Left: Shift Pulse Title & Operating Hours -->
+            <div style="display: flex; align-items: center; gap: 11px;">
+              <div style="width: 36px; height: 36px; border-radius: 11px; background: #fff5f2; color: #ff8a5c; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 1px solid #ffd6cc; flex-shrink: 0; box-shadow: 0 2px 6px rgba(255, 138, 92, 0.15);">
+                <i class="fa-solid fa-bolt"></i>
+              </div>
+              <div>
+                <div style="font-size: 13.5px; font-weight: 850; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+                  <span id="dash-peak-banner-text">Continuous Service Active • All Shifts Monitored</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-top: 1px;">
+                  <span>Store Hours: 12:00 PM – 3:00 AM (15-Hr Continuous)</span>
+                  <span class="dot-sep">•</span>
+                  <span id="dash-items-sold-sub" style="color: #2563eb; font-weight: 750;">0 items served across bills</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <div style="font-size: 13.5px; font-weight: 850; color: var(--text-dark);" id="dash-peak-banner-text">Continuous Service Active • All Shifts Monitored</div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Store Operating Hours: 12:00 PM – 3:00 AM (15-Hour Continuous Service)</div>
+
+            <!-- Right: Table Occupancy & Projected Close Pills + Actions -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <!-- Table Occupancy Pill -->
+              <span id="dash-table-occupancy-pill" style="font-size: 11.5px; font-weight: 750; color: #166534; background: #f0fdf4; border: 1px solid #86efac; padding: 4px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-chair" style="color: #16a34a;"></i> <strong>0/8</strong> Tables Active (0% Occ.)
+              </span>
+
+              <!-- Projected Closing Pill -->
+              <span style="font-size: 11.5px; font-weight: 750; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 4px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-chart-line"></i> <span id="dash-target-projected">Projected 3 AM: ₹0</span>
+              </span>
+
+              <!-- Set Target Goal Button -->
+              <button id="dash-btn-set-target" type="button" title="Configure Daily Revenue Target" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 20px; padding: 4px 12px; font-size: 11.5px; font-weight: 750; color: var(--text-dark); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease;">
+                <i class="fa-solid fa-bullseye" style="color: #ff8a5c;"></i> Set Goal
+              </button>
+
+              <!-- Open POS Button -->
+              <a href="#pos" class="btn btn-primary" style="height: 30px; padding: 0 13px; font-size: 11.5px; font-weight: 800; border-radius: 9px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #ff9b73 0%, #ff784b 100%); color: #ffffff; border: none; box-shadow: 0 2px 8px rgba(255, 138, 92, 0.3);">
+                <i class="fa-solid fa-receipt"></i> Open POS
+              </a>
+            </div>
+
+          </div>
+
+          <!-- Bottom Row: Full-Width Daily Revenue Pacing Progress Bar -->
+          <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border: 1px solid #eef2f8; padding: 9px 14px; border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 800;">
+              <span style="color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-flag-checkered" style="color: #ff8a5c;"></i>
+                <span id="dash-target-amounts">Today's Revenue Goal: ₹15,000</span>
+              </span>
+              <span id="dash-target-badge" style="color: #ff8a5c; font-weight: 850; background: #fff5f2; border: 1px solid #ffd6cc; padding: 2px 8px; border-radius: 10px;">0% Met</span>
+            </div>
+            <div class="dash-pacing-progress-bg" style="width: 100%; height: 9px; background: #e2e8f0; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; padding: 1px;">
+              <div id="dash-target-bar" class="dash-pacing-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #ff8a5c 0%, #10b981 100%); border-radius: 5px; transition: width 0.4s ease;"></div>
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <!-- Live Table Occupancy Pill -->
-            <div id="dash-table-occupancy-pill" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 20px; font-size: 12px; font-weight: 800; color: #166534;">
-              <i class="fa-solid fa-chair" style="color: #16a34a;"></i> 0/8 Tables Active (0% Occ.)
-            </div>
-            
-            <a href="#pos" class="btn btn-primary" style="height: 34px; padding: 0 14px; font-size: 11.5px; border-radius: 10px; text-decoration: none;">
-              <i class="fa-solid fa-receipt"></i> Open POS
-            </a>
-          </div>
         </div>
 
         <!-- 4. Performance & Collections Row (2-Column Grid: 62% / 38%) -->
-        <div class="dash-charts-row">
+        <div class="dash-charts-row" style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px;">
           
           <!-- Main Chart: 7-Day Trend / Hourly Rush -->
-          <div class="dash-chart-card">
-            <div class="dash-chart-header">
-              <div class="dash-chart-title">
+          <div class="glass-card dash-chart-card" style="padding: 18px 20px; border-radius: 18px; background: #ffffff; border: 1px solid #f0f3f9;">
+            <div class="dash-chart-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+              <div class="dash-chart-title" style="font-size: 14px; font-weight: 850; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> 
                 <span id="dash-chart-title-text">Revenue Trajectory</span>
               </div>
-              <div class="dash-chart-toggle-group">
-                <button class="dash-chart-toggle-btn active" data-mode="trend" onclick="views.dashboard.setChartMode('trend')">7-Day Trend</button>
-                <button class="dash-chart-toggle-btn" data-mode="hourlyRush" onclick="views.dashboard.setChartMode('hourlyRush')">Hourly Sales</button>
-                <button class="dash-chart-toggle-btn" data-mode="hourlyOrders" onclick="views.dashboard.setChartMode('hourlyOrders')">Hourly Bills</button>
-                <button class="dash-chart-toggle-btn" data-mode="monthly" onclick="views.dashboard.setChartMode('monthly')">30-Day</button>
+              <div class="dash-chart-toggle-group" style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                <button class="dash-chart-toggle-btn ${this.activeChartMode === 'trend' ? 'active' : ''}" data-mode="trend" onclick="views.dashboard.setChartMode('trend')">7-Day Trend</button>
+                <button class="dash-chart-toggle-btn ${this.activeChartMode === 'hourlyRush' ? 'active' : ''}" data-mode="hourlyRush" onclick="views.dashboard.setChartMode('hourlyRush')">Hourly Sales</button>
+                <button class="dash-chart-toggle-btn ${this.activeChartMode === 'hourlyOrders' ? 'active' : ''}" data-mode="hourlyOrders" onclick="views.dashboard.setChartMode('hourlyOrders')">Hourly Bills</button>
+                <button class="dash-chart-toggle-btn ${this.activeChartMode === 'monthly' ? 'active' : ''}" data-mode="monthly" onclick="views.dashboard.setChartMode('monthly')">30-Day</button>
               </div>
             </div>
-            <div class="dash-chart-canvas-wrap" style="height: 270px;">
+            <div class="dash-chart-canvas-wrap" style="height: 270px; width: 100%;">
               <canvas id="salesTrendsChartCanvas"></canvas>
             </div>
           </div>
 
           <!-- Payment Split & Fulfillment Channels Card -->
-          <div class="dash-chart-card">
-            <div class="dash-chart-header">
-              <div class="dash-chart-title">
+          <div class="glass-card dash-chart-card" style="padding: 18px 20px; border-radius: 18px; background: #ffffff; border: 1px solid #f0f3f9;">
+            <div class="dash-chart-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div class="dash-chart-title" style="font-size: 14px; font-weight: 850; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-wallet" style="color: #10b981;"></i> Collections & Channels
               </div>
-              <span class="dash-tag tag-cash">Mix</span>
+              <span class="dash-tag tag-cash" style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px;">Mix</span>
             </div>
-            <div class="dash-chart-canvas-wrap" style="height: 175px;">
+            <div class="dash-chart-canvas-wrap" style="height: 170px; width: 100%;">
               <canvas id="paymentPieChartCanvas"></canvas>
             </div>
 
             <!-- Fulfillment Channels Progress -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);">
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f0f3f9;">
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 750; color: var(--text-dark);">
-                  <span><i class="fa-solid fa-chair" style="color: #2563eb;"></i> Dine-in (<span id="channel-dine-count">0 orders</span>)</span>
-                  <span id="channel-dine-sales" style="color: #2563eb; font-weight: 800;">₹0</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 750; color: var(--text-dark);">
+                  <span><i class="fa-solid fa-chair" style="color: #2563eb; margin-right: 4px;"></i> Dine-in (<span id="channel-dine-count">0 orders</span>)</span>
+                  <span id="channel-dine-sales" style="color: #2563eb; font-weight: 850;">₹0</span>
                 </div>
-                <div class="dash-pacing-progress-bg" style="margin-top: 3px; height: 5px;">
-                  <div id="channel-dine-bar" class="dash-pacing-progress-fill" style="width: 0%; background: #2563eb;"></div>
+                <div class="dash-pacing-progress-bg" style="margin-top: 4px; height: 6px; background: #f1f5f9; border-radius: 6px; overflow: hidden;">
+                  <div id="channel-dine-bar" class="dash-pacing-progress-fill" style="width: 0%; height: 100%; background: #2563eb; border-radius: 6px; transition: width 0.3s ease;"></div>
                 </div>
               </div>
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 750; color: var(--text-dark);">
-                  <span><i class="fa-solid fa-bag-shopping" style="color: #10b981;"></i> Takeaway (<span id="channel-take-count">0 orders</span>)</span>
-                  <span id="channel-take-sales" style="color: #059669; font-weight: 800;">₹0</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 750; color: var(--text-dark);">
+                  <span><i class="fa-solid fa-bag-shopping" style="color: #10b981; margin-right: 4px;"></i> Takeaway (<span id="channel-take-count">0 orders</span>)</span>
+                  <span id="channel-take-sales" style="color: #059669; font-weight: 850;">₹0</span>
                 </div>
-                <div class="dash-pacing-progress-bg" style="margin-top: 3px; height: 5px;">
-                  <div id="channel-take-bar" class="dash-pacing-progress-fill" style="width: 0%; background: #10b981;"></div>
+                <div class="dash-pacing-progress-bg" style="margin-top: 4px; height: 6px; background: #f1f5f9; border-radius: 6px; overflow: hidden;">
+                  <div id="channel-take-bar" class="dash-pacing-progress-fill" style="width: 0%; height: 100%; background: #10b981; border-radius: 6px; transition: width 0.3s ease;"></div>
                 </div>
               </div>
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 750; color: var(--text-dark);">
-                  <span><i class="fa-solid fa-motorcycle" style="color: #f59e0b;"></i> Delivery (<span id="channel-del-count">0 orders</span>)</span>
-                  <span id="channel-del-sales" style="color: #d97706; font-weight: 800;">₹0</span>
+                <div style="display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 750; color: var(--text-dark);">
+                  <span><i class="fa-solid fa-motorcycle" style="color: #f59e0b; margin-right: 4px;"></i> Delivery (<span id="channel-del-count">0 orders</span>)</span>
+                  <span id="channel-del-sales" style="color: #d97706; font-weight: 850;">₹0</span>
                 </div>
-                <div class="dash-pacing-progress-bg" style="margin-top: 3px; height: 5px;">
-                  <div id="channel-del-bar" class="dash-pacing-progress-fill" style="width: 0%; background: #f59e0b;"></div>
+                <div class="dash-pacing-progress-bg" style="margin-top: 4px; height: 6px; background: #f1f5f9; border-radius: 6px; overflow: hidden;">
+                  <div id="channel-del-bar" class="dash-pacing-progress-fill" style="width: 0%; height: 100%; background: #f59e0b; border-radius: 6px; transition: width 0.3s ease;"></div>
                 </div>
               </div>
             </div>
@@ -438,8 +427,8 @@ window.views.dashboard = {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;" class="dash-menu-stock-grid">
           
           <!-- Best Selling Menu Items Leaderboard -->
-          <div class="dash-card-box">
-            <div class="dash-card-box-header">
+          <div class="glass-card dash-card-box" style="padding: 18px 20px; border-radius: 18px; background: #ffffff; border: 1px solid #f0f3f9;">
+            <div class="dash-card-box-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
               <h3 style="font-size: 14px; font-weight: 850; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Best Selling Menu Items
               </h3>
@@ -457,8 +446,8 @@ window.views.dashboard = {
           <!-- Raw Material Inventory Health Watch & Expenses -->
           <div style="display: flex; flex-direction: column; gap: 14px;">
             
-            <div class="dash-card-box">
-              <div class="dash-card-box-header">
+            <div class="glass-card dash-card-box" style="padding: 18px 20px; border-radius: 18px; background: #ffffff; border: 1px solid #f0f3f9;">
+              <div class="dash-card-box-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                 <h3 style="font-size: 14px; font-weight: 850; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
                   <i class="fa-solid fa-boxes-stacked" style="color: #dc2626;"></i> Raw Material Stock Health
                 </h3>
@@ -470,13 +459,13 @@ window.views.dashboard = {
             </div>
 
             <!-- Overhead Expenses Quick Watch -->
-            <div class="dash-card-box">
-              <div class="dash-card-box-header">
+            <div class="glass-card dash-card-box" style="padding: 18px 20px; border-radius: 18px; background: #ffffff; border: 1px solid #f0f3f9;">
+              <div class="dash-card-box-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                 <h3 style="font-size: 14px; font-weight: 850; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
                   <i class="fa-solid fa-receipt" style="color: #2563eb;"></i> Period Expenses Log
                 </h3>
-                <button type="button" class="dash-tool-chip chip-expense" onclick="views.dashboard.openQuickExpenseModal()">
-                  + Add Expense
+                <button type="button" class="btn btn-secondary" onclick="views.dashboard.openQuickExpenseModal()" style="height: 30px; padding: 0 10px; font-size: 11px; font-weight: 800; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px;">
+                  <i class="fa-solid fa-plus"></i> Expense
                 </button>
               </div>
               <div id="dash-expenses-summary-list" style="display: flex; flex-direction: column; gap: 7px; max-height: 140px; overflow-y: auto;">
@@ -488,9 +477,9 @@ window.views.dashboard = {
 
         </div>
 
-        <!-- 6. Recent Register Bills Stream (Always visible below tabs for fast checking) -->
-        <div class="dash-stream-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <!-- 6. Recent Register Bills Stream (Searchable & Filterable) -->
+        <div class="glass-card dash-stream-card" style="padding: 18px 20px; border-radius: 18px; background: #ffffff; border: 1px solid #f0f3f9;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <h3 style="font-size: 14px; font-weight: 850; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-clock-rotate-left" style="color: #2563eb;"></i> Live Register Bills Stream
@@ -498,9 +487,14 @@ window.views.dashboard = {
               <span class="dash-tag tag-neutral" id="dash-recent-count-tag">Showing 8 Bills</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <input type="text" id="dash-recent-search-input" class="dash-search-input" placeholder="🔍 Search bill #, name, mode..." oninput="views.dashboard.onSearchBills(this.value)">
-              <a href="#counter" style="font-size: 12px; font-weight: 800; color: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 4px; white-space: nowrap;">
-                View All History <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+              <div style="position: relative; display: inline-flex; align-items: center;">
+                <input type="text" id="dash-recent-search-input" class="dash-search-input" placeholder="🔍 Search bill #, phone, mode..." oninput="views.dashboard.onSearchBills(this.value)">
+                <button type="button" id="dash-search-clear-btn" onclick="document.getElementById('dash-recent-search-input').value=''; views.dashboard.onSearchBills('');" title="Clear Search" style="display: none; position: absolute; right: 10px; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 12px; padding: 0;">
+                  <i class="fa-solid fa-circle-xmark"></i>
+                </button>
+              </div>
+              <a href="#counter" class="btn btn-secondary" style="height: 32px; padding: 0 12px; font-size: 11.5px; font-weight: 800; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                All History <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
               </a>
             </div>
           </div>
@@ -773,15 +767,17 @@ window.views.dashboard = {
     const targetPct = targetGoal > 0 ? Math.min(100, Math.round((grossSales / targetGoal) * 100)) : 0;
 
     const targetBadgeEl = document.getElementById("dash-target-badge");
+    const cardGoalPill = document.getElementById("dash-card-goal-pill");
     const targetAmountsEl = document.getElementById("dash-target-amounts");
     const targetBarEl = document.getElementById("dash-target-bar");
     const projectedCloseEl = document.getElementById("dash-target-projected");
 
     if (targetBadgeEl) targetBadgeEl.textContent = `${targetPct}% Met`;
-    if (targetAmountsEl) targetAmountsEl.textContent = `Goal: ${currencySymbol}${Math.round(targetGoal).toLocaleString("en-IN")}`;
+    if (cardGoalPill) cardGoalPill.innerHTML = `<i class="fa-solid fa-bullseye"></i> ${targetPct}% Goal`;
+    if (targetAmountsEl) targetAmountsEl.textContent = `Today's Revenue Goal: ${currencySymbol}${Math.round(targetGoal).toLocaleString("en-IN")}`;
     if (targetBarEl) {
       targetBarEl.style.width = `${targetPct}%`;
-      targetBarEl.style.background = targetPct >= 100 ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #2563eb, #10b981)";
+      targetBarEl.style.background = targetPct >= 100 ? "linear-gradient(90deg, #10b981, #059669)" : "linear-gradient(90deg, #ff8a5c, #10b981)";
     }
 
     // Run-rate & Projected Closing
@@ -899,10 +895,12 @@ window.views.dashboard = {
     const delayPillEl = document.getElementById("dash-delay-pill");
     if (delayPillEl) {
       if (overdueCount > 0) {
-        delayPillEl.className = "dash-tag tag-danger";
+        delayPillEl.className = "dash-sub-pill pill-neutral";
+        delayPillEl.style.color = "#dc2626";
         delayPillEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${overdueCount} Delayed!`;
       } else {
-        delayPillEl.className = "dash-tag tag-cash";
+        delayPillEl.className = "dash-sub-pill pill-cash";
+        delayPillEl.style.color = "";
         delayPillEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> On-Time`;
       }
     }
@@ -1008,7 +1006,7 @@ window.views.dashboard = {
 
     const shifts = [
       { name: "12 PM – 5 PM", label: "Lunch Shift", icon: "fa-sun", color: "#f59e0b", orders: 0, sales: 0, match: h => h >= 12 && h < 17 },
-      { name: "5 PM – 7 PM", label: "Evening Snacks", icon: "fa-mug-hot", color: "#ea580c", orders: 0, sales: 0, match: h => h >= 17 && h < 19 },
+      { name: "5 PM – 7 PM", label: "Evening Snacks", icon: "fa-mug-hot", color: "#ff7343", orders: 0, sales: 0, match: h => h >= 17 && h < 19 },
       { name: "7 PM – 10 PM", label: "Dinner Rush", icon: "fa-utensils", color: "#7c3aed", orders: 0, sales: 0, match: h => h >= 19 && h < 22 },
       { name: "10 PM – 12 AM", label: "Late Night", icon: "fa-moon", color: "#4f46e5", orders: 0, sales: 0, match: h => h >= 22 && h < 24 },
       { name: "12 AM – 3 AM", label: "Midnight Rush", icon: "fa-cloud-moon", color: "#2563eb", orders: 0, sales: 0, match: h => h >= 0 && h < 3 }
@@ -1143,10 +1141,10 @@ window.views.dashboard = {
         expensesList.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 11.5px;">No overhead expenses recorded for this period.</div>`;
       } else {
         expensesList.innerHTML = periodExpenses.slice(0, 6).map(e => `
-          <div style="padding: 7px 10px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px;">
+          <div style="padding: 9px 12px; background: #ffffff; border: 1px solid #f0f3f9; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; box-shadow: 0 2px 6px rgba(22, 27, 46, 0.02);">
             <div>
               <span style="font-weight: 800; color: var(--text-dark);">${e.description}</span>
-              <span style="color: var(--text-muted); margin-left: 6px;">(${e.category || 'General'}) • ${e.paymentMethod || 'Cash'}</span>
+              <span style="color: var(--text-muted); margin-left: 6px; font-size: 11px;">(${e.category || 'General'}) • ${e.paymentMethod || 'Cash'}</span>
             </div>
             <span style="font-weight: 850; color: #dc2626;">-${currencySymbol}${Math.round(e.amount)}</span>
           </div>
@@ -1356,26 +1354,30 @@ window.views.dashboard = {
       const pct = Math.max(5, Math.min(100, Math.round((curVal / (maxVal || 1)) * 100)));
 
       return `
-        <div style="padding: 8px 12px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; display: flex; flex-direction: column; gap: 4px;">
+        <div style="padding: 10px 14px; background: #ffffff; border: 1px solid #f0f3f9; border-radius: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 6px rgba(22, 27, 46, 0.02);">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-              <span class="rank-badge ${rankBadges[idx]}">${rankIcons[idx]}</span>
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <span class="rank-badge ${rankBadges[idx]}" style="font-size: 13px; font-weight: 850;">${rankIcons[idx]}</span>
               <div style="min-width: 0;">
-                <div style="font-weight: 800; font-size: 12.5px; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-weight: 800; font-size: 13px; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   ${item.name}
                 </div>
-                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">${item.category} · <span style="color: #059669; font-weight: 700;">${item.marginPct}% Margin</span></span>
+                <div style="font-size: 10.5px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 5px; margin-top: 1px;">
+                  <span style="color: #2563eb; font-weight: 750;">${item.category}</span>
+                  <span style="color: #cbd5e1;">•</span>
+                  <span style="color: #059669; font-weight: 750; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1px 6px; border-radius: 6px;">${item.marginPct}% Margin</span>
+                </div>
               </div>
             </div>
             <div style="text-align: right; flex-shrink: 0;">
-              <div style="font-weight: 850; color: #2563eb; font-size: 12.5px;">${item.quantity} sold</div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">
+              <div style="font-weight: 850; color: #ff8a5c; font-size: 13px;">${item.quantity} sold</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 1px;">
                 ${currencySymbol}${Math.round(item.revenue).toLocaleString("en-IN")} · <strong style="color: #059669;">+${currencySymbol}${Math.round(item.profit).toLocaleString("en-IN")}</strong>
               </div>
             </div>
           </div>
-          <div class="dash-pacing-progress-bg" style="height: 5px;">
-            <div class="dash-pacing-progress-fill" style="width: ${pct}%;"></div>
+          <div class="dash-pacing-progress-bg" style="height: 5px; background: #f1f5f9; border-radius: 6px; overflow: hidden;">
+            <div class="dash-pacing-progress-fill" style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #ff8a5c, #ff784b); border-radius: 6px; transition: width 0.3s ease;"></div>
           </div>
         </div>
       `;
@@ -1427,16 +1429,16 @@ window.views.dashboard = {
     }
 
     container.innerHTML = lowItems.slice(0, 4).map(item => `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 10px; font-size: 11.5px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: #ffffff; border: 1px solid #f0f3f9; border-radius: 12px; font-size: 11.5px; box-shadow: 0 2px 6px rgba(22, 27, 46, 0.02);">
         <div style="min-width: 0; flex: 1;">
           <div style="font-weight: 800; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</div>
-          <div style="font-size: 10px; color: var(--text-muted);">Reorder Min: ${item.minStock || 5} ${item.unit || 'units'}</div>
+          <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px;">Reorder Min: ${item.minStock || 5} ${item.unit || 'units'}</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
           <span style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px;">
             ${item.stock} ${item.unit || ''}
           </span>
-          <button type="button" onclick="views.dashboard.openQuickRestockModal('${item.id}', '${item.name}')" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; border-radius: 8px; padding: 3px 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">
+          <button type="button" onclick="views.dashboard.openQuickRestockModal('${item.id}', '${item.name}')" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; border-radius: 8px; padding: 4px 9px; font-size: 11px; font-weight: 800; cursor: pointer;">
             + Restock
           </button>
         </div>
@@ -1490,6 +1492,8 @@ window.views.dashboard = {
   // Live Register Bills Stream (Searchable)
   onSearchBills(query) {
     this.recentBillsSearchQuery = (query || "").trim().toLowerCase();
+    const clearBtn = document.getElementById("dash-search-clear-btn");
+    if (clearBtn) clearBtn.style.display = this.recentBillsSearchQuery ? "inline-block" : "none";
     const filteredOrders = this.getFilteredOrders();
     const settings = window.db.get("settings") || {};
     this.renderRecentBills(filteredOrders, settings.currencySymbol || "₹");
@@ -1543,11 +1547,13 @@ window.views.dashboard = {
       const payPillClass = isCash ? "tag-cash" : "tag-upi";
       const payIcon = isCash ? "fa-money-bill-wave" : "fa-qrcode";
 
-      let statusColor = "#f59e0b";
+      let statusColor = "#d97706";
       let statusBg = "#fffbeb";
-      if (o.status === "Completed") { statusColor = "#2563eb"; statusBg = "#eff6ff"; }
-      else if (o.status === "Ready") { statusColor = "#10b981"; statusBg = "#ecfdf5"; }
-      else if (o.status === "Cancelled") { statusColor = "#94a3b8"; statusBg = "#f1f5f9"; }
+      let statusBorder = "#fde68a";
+      if (o.status === "Completed") { statusColor = "#059669"; statusBg = "#ecfdf5"; statusBorder = "#a7f3d0"; }
+      else if (o.status === "Ready") { statusColor = "#10b981"; statusBg = "#ecfdf5"; statusBorder = "#a7f3d0"; }
+      else if (o.status === "Preparing") { statusColor = "#4361ee"; statusBg = "#eff6ff"; statusBorder = "#bfdbfe"; }
+      else if (o.status === "Cancelled") { statusColor = "#64748b"; statusBg = "#f1f5f9"; statusBorder = "#e2e8f0"; }
 
       const itemsSummary = Array.isArray(o.items)
         ? o.items.map(i => `${i.quantity}x ${i.name}`).join(", ")
@@ -1559,24 +1565,24 @@ window.views.dashboard = {
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <span style="font-weight: 850; font-size: 13px; color: var(--text-dark);">#${o.orderNumber || "Bill"}</span>
               <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">${timeStr}</span>
-              <span class="dash-tag ${payPillClass}" style="padding: 1.5px 7px; font-size: 10px;">
+              <span class="dash-tag ${payPillClass}" style="padding: 2px 7px; font-size: 10px; border-radius: 6px;">
                 <i class="fa-solid ${payIcon}"></i> ${o.paymentMethod || "UPI"}
               </span>
-              <span style="font-size: 10px; font-weight: 700; color: #475569; background: #e2e8f0; padding: 1.5px 7px; border-radius: 6px;">
+              <span style="font-size: 10px; font-weight: 700; color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 2px 7px; border-radius: 6px;">
                 ${o.type || "Dine-in"}
               </span>
             </div>
-            <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px;" title="${itemsSummary.replace(/"/g, '&quot;')}">
+            <div style="font-size: 11.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px;" title="${itemsSummary.replace(/"/g, '&quot;')}">
               ${itemsSummary}
             </div>
           </div>
-          <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; min-width: 85px;">
+          <div style="text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 90px;">
             <div style="font-weight: 900; font-size: 13.5px; color: var(--text-dark);">${currencySymbol}${Math.round(o.total || 0)}</div>
-            <div style="display: flex; align-items: center; gap: 5px;">
-              <span style="display: inline-block; padding: 2px 7px; border-radius: 7px; font-size: 10px; font-weight: 750; color: ${statusColor}; background: ${statusBg}; white-space: nowrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; padding: 2px 8px; border-radius: 7px; font-size: 10px; font-weight: 750; color: ${statusColor}; background: ${statusBg}; border: 1px solid ${statusBorder}; white-space: nowrap;">
                 ${o.status || "Pending"}
               </span>
-              <button type="button" onclick="views.dashboard.openViewBillModal('${o.id}')" title="View Full Bill Slip" style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 3px 7px; font-size: 10.5px; cursor: pointer; color: #2563eb; display: inline-flex; align-items: center; justify-content: center;">
+              <button type="button" onclick="views.dashboard.openViewBillModal('${o.id}')" title="View Full Bill Slip" style="background: #ffffff; border: 1px solid #dbe4ff; border-radius: 8px; padding: 3px 8px; font-size: 11px; cursor: pointer; color: #ff8a5c; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s ease;">
                 <i class="fa-solid fa-receipt"></i>
               </button>
             </div>
@@ -1695,8 +1701,8 @@ window.views.dashboard = {
       }
 
       const fillGradient = trendsCtx.createLinearGradient(0, 0, 0, 240);
-      fillGradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
-      fillGradient.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
+      fillGradient.addColorStop(0, 'rgba(255, 138, 92, 0.22)');
+      fillGradient.addColorStop(1, 'rgba(255, 138, 92, 0.01)');
 
       this.salesChart = new Chart(trendsCtx, {
         type: "line",
@@ -1705,7 +1711,7 @@ window.views.dashboard = {
           datasets: [{
             label: "Daily Revenue (₹)",
             data: salesData,
-            borderColor: "#10b981",
+            borderColor: "#ff8a5c",
             backgroundColor: fillGradient,
             borderWidth: 2.5,
             tension: 0.35,

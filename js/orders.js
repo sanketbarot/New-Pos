@@ -22,7 +22,7 @@ window.views.orders = {
   typeFilter: "all", // 'all' | 'dine-in' | 'takeaway' | 'delivery'
   dishFilter: null, // null | specific dish name from aggregator
   rushOnlyFilter: false, // boolean: show only overdue / urgent orders
-  layoutMode: "3-lane", // '3-lane' (spacious focused) | '4-lane' (with completed column)
+  layoutMode: "4-lane", // '4-lane' default (with completed column) | '3-lane'
   prioritySort: "fifo", // 'fifo' (oldest first) | 'overdue' | 'newest'
   searchQuery: "",
   checkedItems: {}, // In-memory session checklist: { `${orderId}_${itemIndex}`: true }
@@ -37,51 +37,52 @@ window.views.orders = {
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 12px; width: 100%; min-width: 0;">
         
         <!-- Top Sub-Navigation Header & Controls -->
-        <div style="background: #ffffff; padding: 10px 16px; border-radius: 16px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05); flex-wrap: wrap; gap: 10px;">
+        <div class="kds-top-header-bar">
           
           <!-- View Modes Navigation -->
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <button class="btn ${this.activeSubTab === 'kds' ? 'btn-primary' : 'btn-secondary'}" id="btn-sub-kds" style="border-radius: 12px; padding: 7px 16px; font-weight: 850; font-size: 12.5px;">
+          <div class="kds-subnav-group">
+            <button class="btn ${this.activeSubTab === 'kds' ? 'btn-primary' : 'btn-secondary'} kds-subtab-btn" id="btn-sub-kds">
               <i class="fa-solid fa-kitchen-set"></i> Kitchen Kanban
-              <span id="kds-tab-active-badge" style="background: rgba(255,255,255,0.25); padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span>
+              <span id="kds-tab-active-badge" class="kds-tab-badge">0</span>
             </button>
 
-            <button class="btn ${this.activeSubTab === 'expo' ? 'btn-primary' : 'btn-secondary'}" id="btn-sub-expo" style="border-radius: 12px; padding: 7px 16px; font-weight: 850; font-size: 12.5px;" title="Consolidated Chef Batch Prep View">
+            <button class="btn ${this.activeSubTab === 'expo' ? 'btn-primary' : 'btn-secondary'} kds-subtab-btn" id="btn-sub-expo" title="Consolidated Chef Batch Prep View">
               <i class="fa-solid fa-fire-burner"></i> Chef Expo / Batch Cook
-              <span id="kds-tab-expo-badge" style="background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-left: 4px;">0</span>
+              <span id="kds-tab-expo-badge" class="kds-tab-badge expo">0</span>
             </button>
 
-            <button class="btn ${this.activeSubTab === 'history' ? 'btn-primary' : 'btn-secondary'}" id="btn-sub-history" style="border-radius: 12px; padding: 7px 16px; font-weight: 850; font-size: 12.5px;">
+            <button class="btn ${this.activeSubTab === 'history' ? 'btn-primary' : 'btn-secondary'} kds-subtab-btn" id="btn-sub-history">
               <i class="fa-solid fa-clock-rotate-left"></i> Order Audit & KOT Slips
             </button>
           </div>
           
           <!-- Fast Kitchen Utility Bar -->
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div class="kds-util-group">
+            <!-- Live Search Input -->
+            <div class="kds-search-wrapper">
+              <i class="fa-solid fa-magnifying-glass kds-search-icon"></i>
+              <input type="text" id="kds-quick-search-input" class="dash-search-input kds-search-input" placeholder="Search Token, #, dish..." value="${this.searchQuery}">
+            </div>
+
             <!-- Overdue Quick Filter Button -->
-            <button type="button" id="btn-kds-rush-filter" class="btn ${this.rushOnlyFilter ? 'btn-danger' : 'btn-secondary'}" style="border-radius: 12px; padding: 7px 12px; font-size: 12px; font-weight: 800;" title="Filter Only Delayed / Overdue Orders">
+            <button type="button" id="btn-kds-rush-filter" class="btn ${this.rushOnlyFilter ? 'btn-danger' : 'btn-secondary'} kds-util-btn" title="Filter Only Delayed / Overdue Orders">
               <i class="fa-solid fa-triangle-exclamation"></i>
               <span id="kds-rush-filter-label">Overdue Only</span>
             </button>
 
             <!-- Recall Recently Bumped Modal Trigger -->
-            <button type="button" id="btn-kds-recall-modal" class="btn btn-secondary" style="border-radius: 12px; padding: 7px 12px; font-size: 12px; font-weight: 800;" title="View & Recall Recently Bumped Orders">
-              <i class="fa-solid fa-arrow-rotate-left" style="color: #2563eb;"></i> Recall Bumped
+            <button type="button" id="btn-kds-recall-modal" class="btn btn-secondary kds-util-btn" title="View & Recall Recently Bumped Orders">
+              <i class="fa-solid fa-arrow-rotate-left" style="color: #4361ee;"></i> Recall Bumped
             </button>
 
             <!-- 3-Lane vs 4-Lane Layout Toggle -->
-            <button type="button" id="btn-kds-layout-toggle" class="btn btn-secondary" style="border-radius: 12px; padding: 7px 11px; font-size: 12px; font-weight: 800;" title="Toggle 3-Lane Focus vs 4-Lane Expanded View">
-              <i class="fa-solid ${this.layoutMode === '3-lane' ? 'fa-table-columns' : 'fa-columns'}"></i>
-              <span>${this.layoutMode === '3-lane' ? '3 Lanes (Focus)' : '4 Lanes (+Closed)'}</span>
+            <button type="button" id="btn-kds-layout-toggle" class="btn btn-secondary kds-util-btn" title="Toggle 4-Lane Expanded vs 3-Lane Focus View">
+              <i class="fa-solid ${this.layoutMode === '4-lane' ? 'fa-table-columns' : 'fa-columns'}"></i>
+              <span>${this.layoutMode === '4-lane' ? '4 Lanes (+Closed)' : '3 Lanes (Focus)'}</span>
             </button>
 
-            <!-- Live Search Input -->
-            <div style="width: 220px;">
-              <input type="text" id="kds-quick-search-input" class="dash-search-input" style="width: 100%; height: 34px;" placeholder="🔍 Search Token, #, dish..." value="${this.searchQuery}">
-            </div>
-
             <!-- Fullscreen Mode Toggle -->
-            <button type="button" id="btn-kds-fullscreen" class="kds-btn-fullscreen" title="Toggle Fullscreen Kitchen Screen" style="height: 34px;">
+            <button type="button" id="btn-kds-fullscreen" class="kds-btn-fullscreen" title="Toggle Fullscreen Kitchen Screen">
               <i class="fa-solid fa-expand"></i> Fullscreen
             </button>
           </div>
@@ -143,8 +144,11 @@ window.views.orders = {
 
     if (btnLayout) {
       btnLayout.onclick = () => {
-        this.layoutMode = this.layoutMode === "3-lane" ? "4-lane" : "3-lane";
-        btnLayout.querySelector("span").textContent = this.layoutMode === "3-lane" ? "3 Lanes (Focus)" : "4 Lanes (+Closed)";
+        this.layoutMode = this.layoutMode === "4-lane" ? "3-lane" : "4-lane";
+        const iconEl = btnLayout.querySelector("i");
+        const spanEl = btnLayout.querySelector("span");
+        if (iconEl) iconEl.className = `fa-solid ${this.layoutMode === '4-lane' ? 'fa-table-columns' : 'fa-columns'}`;
+        if (spanEl) spanEl.textContent = this.layoutMode === "4-lane" ? "4 Lanes (+Closed)" : "3 Lanes (Focus)";
         this.renderActiveTab();
       };
     }
@@ -174,9 +178,9 @@ window.views.orders = {
     const btnExpo = document.getElementById("btn-sub-expo");
     const btnHistory = document.getElementById("btn-sub-history");
 
-    if (btnKds) btnKds.className = `btn ${this.activeSubTab === 'kds' ? 'btn-primary' : 'btn-secondary'}`;
-    if (btnExpo) btnExpo.className = `btn ${this.activeSubTab === 'expo' ? 'btn-primary' : 'btn-secondary'}`;
-    if (btnHistory) btnHistory.className = `btn ${this.activeSubTab === 'history' ? 'btn-primary' : 'btn-secondary'}`;
+    if (btnKds) btnKds.className = `btn ${this.activeSubTab === 'kds' ? 'btn-primary' : 'btn-secondary'} kds-subtab-btn`;
+    if (btnExpo) btnExpo.className = `btn ${this.activeSubTab === 'expo' ? 'btn-primary' : 'btn-secondary'} kds-subtab-btn`;
+    if (btnHistory) btnHistory.className = `btn ${this.activeSubTab === 'history' ? 'btn-primary' : 'btn-secondary'} kds-subtab-btn`;
   },
 
   renderActiveTab() {
@@ -388,147 +392,152 @@ window.views.orders = {
       .slice(0, 10);
 
     mount.innerHTML = `
-      <!-- 1. Live Kitchen Command Performance Strip -->
-      <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 16px; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
-        
-        <!-- Metrics / Live SLAs -->
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 11px; font-weight: 750; color: var(--text-muted); text-transform: uppercase;">Active Cooking:</span>
-            <span style="font-size: 13px; font-weight: 900; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 10px; border-radius: 8px;">
-              ${pendingOrders.length + preparingOrders.length} Tickets (${totalItemsCooking} Items)
-            </span>
+      <!-- Consolidated Kitchen Command & Station Console -->
+      <div class="kds-command-console">
+        <!-- Telemetry & Controls Row -->
+        <div class="kds-console-top-row">
+          <!-- Metrics / Live SLAs -->
+          <div class="kds-metric-pill-group">
+            <div class="kds-metric-chip indigo">
+              <span class="kds-metric-dot indigo"></span>
+              <span class="kds-metric-lbl">Active Queue:</span>
+              <span class="kds-metric-num">${pendingOrders.length + preparingOrders.length} Tickets (${totalItemsCooking} Items)</span>
+            </div>
+            
+            <div class="kds-metric-chip emerald">
+              <span class="kds-metric-dot emerald"></span>
+              <span class="kds-metric-lbl">Avg Speed:</span>
+              <span class="kds-metric-num">${avgSpeedText}</span>
+            </div>
+
+            <div class="kds-metric-chip cyan">
+              <span class="kds-metric-dot cyan"></span>
+              <span class="kds-metric-lbl">On-Time SLA:</span>
+              <span class="kds-metric-num">${onTimeRate}%</span>
+            </div>
+
+            ${overdueCount > 0 ? `
+              <div class="kds-metric-chip alert" onclick="views.orders.toggleRushFilter()" title="Click to filter delayed tickets">
+                <span class="kds-metric-dot alert"></span>
+                <span class="kds-metric-lbl">Alert:</span>
+                <span class="kds-metric-num">${overdueCount} Delayed Overtime</span>
+              </div>
+            ` : nearingTargetCount > 0 ? `
+              <div class="kds-metric-chip warning">
+                <span class="kds-metric-dot warning"></span>
+                <span class="kds-metric-lbl">SLA Warning:</span>
+                <span class="kds-metric-num">${nearingTargetCount} Nearing Target</span>
+              </div>
+            ` : activeOrders.length >= 8 ? `
+              <div class="kds-metric-chip rush">
+                <span class="kds-metric-dot rush"></span>
+                <span class="kds-metric-lbl">Rush:</span>
+                <span class="kds-metric-num">High Kitchen Volume</span>
+              </div>
+            ` : `
+              <div class="kds-metric-chip normal">
+                <span class="kds-metric-dot normal"></span>
+                <span class="kds-metric-lbl">Status:</span>
+                <span class="kds-metric-num">Pace Normal</span>
+              </div>
+            `}
           </div>
 
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 11px; font-weight: 750; color: var(--text-muted); text-transform: uppercase;">Avg Turnaround:</span>
-            <span style="font-size: 13px; font-weight: 900; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 10px; border-radius: 8px;">
-              ${avgSpeedText}
-            </span>
-          </div>
+          <!-- Controls: Filters, SLA, Sort -->
+          <div class="kds-console-controls">
+            <!-- Order Type Filter Pills -->
+            <div class="kds-segmented-pills" id="kds-type-filter-pills">
+              <button type="button" class="kds-segment-btn ${this.typeFilter === 'all' ? 'active' : ''}" data-type="all">All</button>
+              <button type="button" class="kds-segment-btn ${this.typeFilter === 'dine-in' ? 'active' : ''}" data-type="dine-in">Dine-in</button>
+              <button type="button" class="kds-segment-btn ${this.typeFilter === 'takeaway' ? 'active' : ''}" data-type="takeaway">Parcel</button>
+              <button type="button" class="kds-segment-btn ${this.typeFilter === 'delivery' ? 'active' : ''}" data-type="delivery">Delivery</button>
+            </div>
 
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 11px; font-weight: 750; color: var(--text-muted); text-transform: uppercase;">On-Time SLA:</span>
-            <span style="font-size: 13px; font-weight: 900; color: #0891b2; background: #ecfeff; border: 1px solid #a5f3fc; padding: 2px 10px; border-radius: 8px;">
-              ${onTimeRate}%
-            </span>
-          </div>
+            <!-- Target SLA Time Select -->
+            <div class="kds-select-pill">
+              <i class="fa-regular fa-clock" style="color: #94a3b8; font-size: 11px;"></i>
+              <span class="kds-select-lbl">SLA:</span>
+              <select id="kds-target-select" class="kds-select-element">
+                <option value="5" ${targetMinutes === 5 ? 'selected' : ''}>5m (Fast)</option>
+                <option value="10" ${targetMinutes === 10 ? 'selected' : ''}>10m</option>
+                <option value="12" ${targetMinutes === 12 ? 'selected' : ''}>12m</option>
+                <option value="15" ${targetMinutes === 15 ? 'selected' : ''}>15m (Std)</option>
+                <option value="20" ${targetMinutes === 20 ? 'selected' : ''}>20m</option>
+              </select>
+            </div>
 
-          <!-- Rush & Visual Overdue Alert -->
-          ${overdueCount > 0 ? `
-            <span style="font-size: 12px; font-weight: 900; color: #dc2626; background: #fef2f2; border: 1.5px solid #fca5a5; padding: 3px 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" onclick="views.orders.toggleRushFilter()" title="Click to filter delayed tickets">
-              <i class="fa-solid fa-triangle-exclamation"></i> ${overdueCount} Delayed Overtime
-            </span>
-          ` : nearingTargetCount > 0 ? `
-            <span style="font-size: 12px; font-weight: 850; color: #d97706; background: #fffbeb; border: 1.5px solid #fde68a; padding: 3px 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px;">
-              <i class="fa-solid fa-hourglass-end"></i> ${nearingTargetCount} Nearing SLA
-            </span>
-          ` : activeOrders.length >= 8 ? `
-            <span style="font-size: 12px; font-weight: 850; color: #ea580c; background: #fff7ed; border: 1px solid #fed7aa; padding: 3px 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px;">
-              <i class="fa-solid fa-fire"></i> High Kitchen Rush
-            </span>
-          ` : `
-            <span style="font-size: 12px; font-weight: 800; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 5px;">
-              <i class="fa-solid fa-circle-check"></i> Kitchen Pace Normal
-            </span>
-          `}
+            <!-- Priority Sort Select -->
+            <div class="kds-select-pill">
+              <i class="fa-solid fa-arrow-down-wide-short" style="color: #94a3b8; font-size: 11px;"></i>
+              <span class="kds-select-lbl">Sort:</span>
+              <select id="kds-priority-select" class="kds-select-element">
+                <option value="fifo" ${this.prioritySort === 'fifo' ? 'selected' : ''}>Oldest First (FIFO)</option>
+                <option value="overdue" ${this.prioritySort === 'overdue' ? 'selected' : ''}>Overdue First</option>
+                <option value="newest" ${this.prioritySort === 'newest' ? 'selected' : ''}>Newest First</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <!-- Controls: Filters, Target, Priority Sort -->
-        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          
-          <!-- Order Type Filter Pills -->
-          <div class="dash-period-pills" id="kds-type-filter-pills">
-            <button type="button" class="dash-period-btn ${this.typeFilter === 'all' ? 'active' : ''}" data-type="all">All</button>
-            <button type="button" class="dash-period-btn ${this.typeFilter === 'dine-in' ? 'active' : ''}" data-type="dine-in">Dine-in</button>
-            <button type="button" class="dash-period-btn ${this.typeFilter === 'takeaway' ? 'active' : ''}" data-type="takeaway">Parcel</button>
-            <button type="button" class="dash-period-btn ${this.typeFilter === 'delivery' ? 'active' : ''}" data-type="delivery">Delivery</button>
-          </div>
-
-          <!-- Target SLA Time Select -->
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <span style="font-size: 11px; font-weight: 750; color: var(--text-muted);">SLA:</span>
-            <select id="kds-target-select" class="form-input" style="height: 32px; font-size: 11.5px; padding: 2px 8px; border-radius: 8px; font-weight: 800; width: 105px;">
-              <option value="5" ${targetMinutes === 5 ? 'selected' : ''}>5m (Fast)</option>
-              <option value="10" ${targetMinutes === 10 ? 'selected' : ''}>10m</option>
-              <option value="12" ${targetMinutes === 12 ? 'selected' : ''}>12m</option>
-              <option value="15" ${targetMinutes === 15 ? 'selected' : ''}>15m (Std)</option>
-              <option value="20" ${targetMinutes === 20 ? 'selected' : ''}>20m</option>
-            </select>
-          </div>
-
-          <!-- Priority Sort Select -->
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <span style="font-size: 11px; font-weight: 750; color: var(--text-muted);">Sort:</span>
-            <select id="kds-priority-select" class="form-input" style="height: 32px; font-size: 11.5px; padding: 2px 8px; border-radius: 8px; font-weight: 800; width: 125px;">
-              <option value="fifo" ${this.prioritySort === 'fifo' ? 'selected' : ''}>Oldest First (FIFO)</option>
-              <option value="overdue" ${this.prioritySort === 'overdue' ? 'selected' : ''}>Overdue First</option>
-              <option value="newest" ${this.prioritySort === 'newest' ? 'selected' : ''}>Newest First</option>
-            </select>
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- 2. Kitchen Station / Category Routing Chips -->
-      <div class="kds-station-filter-bar">
-        <button type="button" class="kds-station-chip ${this.stationFilter === 'all' ? 'active' : ''}" onclick="views.orders.setStationFilter('all')">
-          <i class="fa-solid fa-utensils"></i> All Stations
-          <span class="kds-station-count">${cookingTickets.length}</span>
-        </button>
-        ${categories.map(cat => {
-          const count = stationCounts[cat.id] || 0;
-          return `
-            <button type="button" class="kds-station-chip ${this.stationFilter === cat.id ? 'active' : ''}" onclick="views.orders.setStationFilter('${cat.id}')">
-              <span>${cat.name}</span>
-              ${count > 0 ? `<span class="kds-station-count">${count}</span>` : ''}
+        <!-- Station Routing & Live Batch Cook Matrix Row -->
+        <div class="kds-console-bottom-row">
+          <div class="kds-station-filter-bar">
+            <button type="button" class="kds-station-chip ${this.stationFilter === 'all' ? 'active' : ''}" onclick="views.orders.setStationFilter('all')">
+              <i class="fa-solid fa-utensils"></i> All Stations
+              <span class="kds-station-count">${cookingTickets.length}</span>
             </button>
-          `;
-        }).join("")}
-      </div>
-
-      <!-- 3. Batch Cook Aggregator Strip (Live Dish Matrix) -->
-      ${dishAggregatorList.length > 0 ? `
-        <div class="kds-aggregator-bar">
-          <div class="kds-agg-title">
-            <i class="fa-solid fa-fire-burner" style="color: #2563eb;"></i> Batch Summary:
-          </div>
-          <div class="kds-agg-items">
-            ${dishAggregatorList.map(([dishName, count]) => {
-              const isSelected = this.dishFilter === dishName;
+            ${categories.map(cat => {
+              const count = stationCounts[cat.id] || 0;
               return `
-                <div class="kds-agg-chip ${isSelected ? 'active-dish-filter' : ''}" onclick="views.orders.toggleDishFilter('${dishName.replace(/'/g, "\\'")}')" title="Click to filter tickets containing ${dishName}">
-                  <span>${dishName}</span>
-                  <span class="kds-agg-qty">${count}</span>
-                </div>
+                <button type="button" class="kds-station-chip ${this.stationFilter === cat.id ? 'active' : ''}" onclick="views.orders.setStationFilter('${cat.id}')">
+                  <span>${cat.name}</span>
+                  ${count > 0 ? `<span class="kds-station-count">${count}</span>` : ''}
+                </button>
               `;
             }).join("")}
-            ${this.dishFilter ? `
-              <button type="button" onclick="views.orders.toggleDishFilter(null)" style="background: none; border: none; color: #dc2626; font-size: 11px; font-weight: 800; cursor: pointer; text-decoration: underline; white-space: nowrap;">
-                Clear Filter
-              </button>
-            ` : ''}
           </div>
-        </div>
-      ` : ''}
 
-      <!-- 4. Kanban Board (3-Lane Focus or 4-Lane Expanded) -->
-      <div class="kds-board ${this.layoutMode === '4-lane' ? 'kds-4-lanes' : ''} view-animate" id="kds-kanban-board">
+          ${dishAggregatorList.length > 0 ? `
+            <div class="kds-inline-batch-wrap">
+              <div class="kds-agg-title">
+                <i class="fa-solid fa-fire-burner"></i> Batch:
+              </div>
+              <div class="kds-agg-items">
+                ${dishAggregatorList.map(([dishName, count]) => {
+                  const isSelected = this.dishFilter === dishName;
+                  return `
+                    <div class="kds-agg-chip ${isSelected ? 'active-dish-filter' : ''}" onclick="views.orders.toggleDishFilter('${dishName.replace(/'/g, "\\'")}')" title="Click to filter tickets containing ${dishName}">
+                      <span>${dishName}</span>
+                      <span class="kds-agg-qty">${count}</span>
+                    </div>
+                  `;
+                }).join("")}
+                ${this.dishFilter ? `
+                  <button type="button" onclick="views.orders.toggleDishFilter(null)" class="kds-clear-filter-btn">
+                    Clear
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- Kanban Board (Default: 4-Lane Expanded) -->
+      <div class="kds-board ${this.layoutMode === '4-lane' ? 'kds-4-lanes' : 'kds-3-lanes'} view-animate" id="kds-kanban-board">
         
         <!-- LANE 1: PENDING -->
         <div class="kds-column">
           <div class="kds-column-header pending">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <i class="fa-regular fa-clock" style="color: #f59e0b;"></i>
+            <div class="kds-lane-badge pending">
+              <i class="fa-regular fa-clock"></i>
               <span>New Orders</span>
               <span class="kds-order-count">${pendingOrders.length}</span>
             </div>
             ${pendingOrders.length > 0 ? `
               <div class="kds-col-actions">
                 <button type="button" class="kds-col-action-btn" onclick="views.orders.startAllPending()" title="Start cooking all new orders">
-                  <i class="fa-solid fa-play" style="color: #2563eb;"></i> Start All
+                  <i class="fa-solid fa-play"></i> Start All
                 </button>
               </div>
             ` : ''}
@@ -541,8 +550,8 @@ window.views.orders = {
         <!-- LANE 2: PREPARING (COOKING) -->
         <div class="kds-column">
           <div class="kds-column-header preparing">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-fire-burner" style="color: #2563eb;"></i>
+            <div class="kds-lane-badge preparing">
+              <i class="fa-solid fa-fire-burner"></i>
               <span>Cooking (${targetMinutes}m SLA)</span>
               <span class="kds-order-count">${preparingOrders.length}</span>
             </div>
@@ -555,15 +564,15 @@ window.views.orders = {
         <!-- LANE 3: READY FOR PICKUP -->
         <div class="kds-column">
           <div class="kds-column-header ready">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-bell" style="color: #10b981;"></i>
+            <div class="kds-lane-badge ready">
+              <i class="fa-solid fa-bell"></i>
               <span>Ready for Serve</span>
               <span class="kds-order-count">${readyOrders.length}</span>
             </div>
             ${readyOrders.length > 0 ? `
               <div class="kds-col-actions">
                 <button type="button" class="kds-col-action-btn" onclick="views.orders.bumpAllReady()" title="Complete and bump all ready orders">
-                  <i class="fa-solid fa-check-double" style="color: #059669;"></i> Bump All
+                  <i class="fa-solid fa-check-double"></i> Bump All
                 </button>
               </div>
             ` : ''}
@@ -577,8 +586,8 @@ window.views.orders = {
         ${this.layoutMode === '4-lane' ? `
           <div class="kds-column">
             <div class="kds-column-header completed">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-circle-check" style="color: #6366f1;"></i>
+              <div class="kds-lane-badge completed">
+                <i class="fa-solid fa-circle-check"></i>
                 <span>Recently Closed</span>
                 <span class="kds-order-count">${recentlyClosedOrders.length}</span>
               </div>
@@ -1025,10 +1034,30 @@ window.views.orders = {
   // CARD GENERATOR FOR KANBAN LANES
   generateKdsCards(ordersList, lane, targetSeconds = 900) {
     if (ordersList.length === 0) {
+      let emptyIcon = "fa-clock";
+      let emptyTitle = "Queue Clear";
+      let emptySub = "No incoming orders in this lane";
+      let emptyTheme = "pending";
+
+      if (lane === "Preparing") {
+        emptyIcon = "fa-fire-burner";
+        emptyTitle = "Line is Free";
+        emptySub = "All stations prepped and waiting";
+        emptyTheme = "preparing";
+      } else if (lane === "Ready") {
+        emptyIcon = "fa-bell-concierge";
+        emptyTitle = "Pass is Clear";
+        emptySub = "All ready tickets have been served";
+        emptyTheme = "ready";
+      }
+
       return `
-        <div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 13px; font-weight: 600;">
-          <i class="fa-regular fa-folder-open" style="font-size: 24px; opacity: 0.35; display: block; margin-bottom: 8px; color: #2563eb;"></i>
-          No tickets in this lane.
+        <div class="kds-empty-box ${emptyTheme}">
+          <div class="kds-empty-emblem ${emptyTheme}">
+            <i class="fa-solid ${emptyIcon}"></i>
+          </div>
+          <div class="kds-empty-title">${emptyTitle}</div>
+          <div class="kds-empty-subtitle">${emptySub}</div>
         </div>
       `;
     }
@@ -1050,9 +1079,11 @@ window.views.orders = {
 
         return `
           <li class="kds-order-item-check ${isDone ? 'item-done' : ''}" data-check-key="${checkKey}">
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <i class="fa-regular ${isDone ? 'fa-square-check' : 'fa-square'}" style="font-size: 13px; color: ${isDone ? '#059669' : '#94a3b8'};"></i>
-              <span style="font-weight: 750; color: var(--text-dark);">${item.name}</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div class="kds-check-box ${isDone ? 'checked' : ''}">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <span class="kds-item-name">${item.name}</span>
               ${itemModifiers.map(m => `<span class="kds-mod-pill ${m.class}">${m.label}</span>`).join("")}
             </div>
             <span class="kds-item-qty">x${item.quantity}</span>
@@ -1082,7 +1113,6 @@ window.views.orders = {
       let isOverdue = false;
       let isOneMinLeft = false;
       let delayText = "";
-      let cardBorderClass = "";
       let timerLabelHtml = `<i class="fa-regular fa-clock" style="margin-right: 4px;"></i> Time Left:`;
       let timerText = "--:--";
       let timerClass = "kds-timer-countdown";
@@ -1111,11 +1141,10 @@ window.views.orders = {
           const dm = Math.floor(diffSecs / 60);
           const ds = diffSecs % 60;
           delayText = `+${dm}m ${ds}s Overtime`;
-          timerLabelHtml = `<i class="fa-solid fa-triangle-exclamation" style="margin-right: 4px; color: #ef4444;"></i> Overtime:`;
+          timerLabelHtml = `<i class="fa-solid fa-triangle-exclamation" style="margin-right: 4px; color: #e11d48;"></i> Overtime:`;
           timerText = `Overdue (-${dm.toString().padStart(2, '0')}:${ds.toString().padStart(2, '0')})`;
           timerClass = "kds-timer-countdown overdue";
           containerClass = "kds-timer-container overdue";
-          cardBorderClass = "border: 2px solid #ef4444 !important; background: #fff5f5;";
         } else if (remainingSecs <= 120) {
           isOneMinLeft = true;
           timerLabelHtml = `<i class="fa-solid fa-hourglass-end" style="margin-right: 4px; color: #d97706;"></i> Nearing SLA:`;
@@ -1124,7 +1153,6 @@ window.views.orders = {
           timerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
           timerClass = "kds-timer-countdown warning-blink";
           containerClass = "kds-timer-container one-min-warn";
-          cardBorderClass = "border: 2px solid #f59e0b !important; background: #fffdf5;";
         } else {
           const mins = Math.floor(remainingSecs / 60);
           const secs = remainingSecs % 60;
@@ -1149,25 +1177,25 @@ window.views.orders = {
       const orderNotesModifiers = this.parseModifiers(order.notes);
 
       return `
-        <div class="kds-order-card ${allItemsDone ? 'all-items-done' : ''} ${isOverdue ? 'kds-card-rush' : ''}" style="${cardBorderClass}" data-card-id="${order.id}">
+        <div class="kds-order-card ${allItemsDone ? 'all-items-done' : ''} ${isOverdue ? 'kds-card-overdue' : isOneMinLeft ? 'kds-card-warning' : ''}" data-card-id="${order.id}">
           
           <!-- Overtime Banner -->
           ${isOverdue ? `
-            <div style="background: #dc2626; color: #fff; font-size: 10px; font-weight: 900; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> KITCHEN DELAY</span>
-              <span>${delayText}</span>
+            <div class="kds-overtime-pill">
+              <span class="kds-overtime-tag"><i class="fa-solid fa-triangle-exclamation"></i> KITCHEN DELAY</span>
+              <span class="kds-overtime-val">${delayText}</span>
             </div>
           ` : isOneMinLeft ? `
-            <div style="background: #d97706; color: #fff; font-size: 10px; font-weight: 900; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-hourglass-end"></i> NEARING TARGET</span>
-              <span>2 MINS LEFT</span>
+            <div class="kds-warning-pill">
+              <span class="kds-warning-tag"><i class="fa-solid fa-hourglass-end"></i> NEARING TARGET</span>
+              <span class="kds-warning-val">2 MINS LEFT</span>
             </div>
           ` : ""}
 
           <!-- Header: Token Number & Order Number -->
           <div class="kds-order-top">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 16px; font-weight: 900; color: #2563eb; background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 2px 9px; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="kds-token-badge">
                 TK #${order.tokenNumber || 1}
               </span>
               <span class="kds-order-num">#${order.orderNumber}</span>
@@ -1217,9 +1245,9 @@ window.views.orders = {
           </div>
 
           <!-- Customer details -->
-          <div class="kds-order-cust" style="font-weight: 600; display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-            <span><i class="fa-regular fa-user" style="color: #2563eb; margin-right: 4px;"></i> ${order.customerName || "Walk-in Guest"}</span>
-            <span style="font-size: 11px; color: var(--text-muted);">${order.items ? order.items.length : 0} items</span>
+          <div class="kds-order-cust">
+            <span><i class="fa-regular fa-user" style="color: #94a3b8; margin-right: 5px;"></i> ${order.customerName || "Walk-in Guest"}</span>
+            <span class="kds-order-item-count">${order.items ? order.items.length : 0} items</span>
           </div>
 
           <!-- Timer & Progress Bar (for Pending & Preparing) -->
@@ -1236,8 +1264,8 @@ window.views.orders = {
           ` : ""}
           
           <!-- Actions Row -->
-          <div style="display: flex; gap: 6px; width: 100%; margin-top: 8px; align-items: center;">
-            <button class="${btnClass}" data-id="${order.id}" data-next="${nextStatus}" style="flex-grow: 1;">
+          <div class="kds-card-action-row">
+            <button class="${btnClass}" data-id="${order.id}" data-next="${nextStatus}">
               <i class="fa-solid ${icon}"></i> ${actionBtnText}
             </button>
             
@@ -1252,7 +1280,7 @@ window.views.orders = {
                 <i class="fa-solid fa-arrow-rotate-left"></i> Recall
               </button>
             ` : lane !== "Ready" ? `
-              <button class="btn btn-danger kds-btn-cancel" data-id="${order.id}" title="Void Order" style="padding: 8px 10px; border-radius: 12px;">
+              <button class="kds-btn-cancel" data-id="${order.id}" title="Void Order">
                 <i class="fa-solid fa-ban"></i>
               </button>
             ` : ""}
@@ -1264,28 +1292,40 @@ window.views.orders = {
 
   generateClosedKdsCards(ordersList) {
     if (ordersList.length === 0) {
-      return `<div style="text-align: center; color: var(--text-muted); padding: 40px 10px; font-size: 13px; font-weight: 600;">No recently closed orders.</div>`;
+      return `
+        <div class="kds-empty-box completed">
+          <div class="kds-empty-emblem completed">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div class="kds-empty-title">No Closed Orders</div>
+          <div class="kds-empty-subtitle">Completed or cancelled orders will appear here automatically</div>
+        </div>
+      `;
     }
 
     return ordersList.map(order => {
       const isCompleted = order.status === "Completed";
-      const badgeClass = isCompleted ? "badge-completed" : "badge-cancelled";
       const prepDuration = order.prepDurationSeconds ? `${Math.floor(order.prepDurationSeconds / 60)}m ${order.prepDurationSeconds % 60}s` : "";
 
       return `
-        <div class="kds-order-card" style="opacity: 0.9;">
+        <div class="kds-closed-order-card ${isCompleted ? 'status-completed' : 'status-cancelled'}">
           <div class="kds-order-top">
-            <span class="kds-order-num">TK #${order.tokenNumber || 1} (#${order.orderNumber})</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="kds-token-badge ${isCompleted ? 'completed' : 'cancelled'}">
+                TK #${order.tokenNumber || 1}
+              </span>
+              <span class="kds-order-num">#${order.orderNumber}</span>
+            </div>
             <div style="display: flex; gap: 6px; align-items: center;">
-              ${prepDuration ? `<span style="font-size: 10.5px; font-weight: 700; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1px 6px; border-radius: 6px;"><i class="fa-solid fa-stopwatch"></i> ${prepDuration}</span>` : ""}
-              <span class="badge ${badgeClass}">${order.status.toUpperCase()}</span>
+              ${prepDuration ? `<span class="kds-prep-duration-badge"><i class="fa-solid fa-stopwatch"></i> ${prepDuration}</span>` : ""}
+              <span class="badge ${isCompleted ? 'badge-completed' : 'badge-cancelled'}">${order.status.toUpperCase()}</span>
             </div>
           </div>
-          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px; font-weight: 500;">
-            ${(order.items || []).map(i => `${i.name} (x${i.quantity})`).join(", ")}
+          <div class="kds-closed-dish-wrap">
+            ${(order.items || []).map(i => `<span class="kds-closed-dish-chip">${i.name} <strong class="kds-closed-dish-qty">x${i.quantity}</strong></span>`).join("")}
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px;">
-            <span style="font-weight: 600; color: var(--text-dark);">${order.customerName || 'Walk-in'}</span>
+          <div class="kds-closed-card-footer">
+            <span class="kds-closed-cust"><i class="fa-regular fa-user" style="color: #94a3b8; margin-right: 5px;"></i> ${order.customerName || 'Walk-in'}</span>
             ${isCompleted ? `
               <button class="kds-btn-recall" data-id="${order.id}" data-prev="Preparing" title="Recall order back to kitchen queue">
                 <i class="fa-solid fa-arrow-rotate-left"></i> Re-open

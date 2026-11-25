@@ -99,21 +99,26 @@ window.views.menu = {
     const isAdmin = currentUser.role === "admin";
 
     container.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px; max-width: 100%; width: 100%;">
         
-        <!-- Header & Navigation Bar -->
-        <div class="glass-card" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px;">
+        <!-- Top Command Bar: Navigation & Action Hub -->
+        <div class="glass-card counter-control-bar" style="padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 14px; background: #ffffff; border: 1px solid #f0f3f9;">
           
-          <!-- Sub-Tab Buttons -->
+          <!-- Sub-Tab Navigation Strip -->
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <button class="btn ${this.activeTab === 'products' ? 'btn-primary' : 'btn-secondary'}" id="menu-sub-products" style="height: 38px; border-radius: 12px; padding: 0 16px; font-weight: 800; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-burger"></i> Menu Catalog <span class="badge" style="background: rgba(255,255,255,0.25); color: inherit; padding: 2px 7px; border-radius: 8px; font-size: 11px; margin-left: 2px;">${products.length}</span>
+            <div style="display: flex; align-items: center; gap: 7px; margin-right: 4px;">
+              <span style="font-size: 13.5px; font-weight: 800; color: var(--text-dark); white-space: nowrap; display: flex; align-items: center; gap: 7px;">
+                <i class="fa-solid fa-burger" style="color: #2563eb; font-size: 15px;"></i> Menu Suite:
+              </span>
+            </div>
+            <button class="subtab-rep-btn ${this.activeTab === 'products' ? 'active' : ''}" id="menu-sub-products">
+              <i class="fa-solid fa-utensils"></i> Menu Catalog <span class="badge" style="background: rgba(0,0,0,0.06); color: inherit; padding: 2px 7px; border-radius: 8px; font-size: 11px; margin-left: 3px;">${products.length}</span>
             </button>
-            <button class="btn ${this.activeTab === 'categories' ? 'btn-primary' : 'btn-secondary'}" id="menu-sub-categories" style="height: 38px; border-radius: 12px; padding: 0 16px; font-weight: 800; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-tags"></i> Food Categories <span class="badge" style="background: rgba(255,255,255,0.25); color: inherit; padding: 2px 7px; border-radius: 8px; font-size: 11px; margin-left: 2px;">${categories.length}</span>
+            <button class="subtab-rep-btn ${this.activeTab === 'categories' ? 'active' : ''}" id="menu-sub-categories">
+              <i class="fa-solid fa-tags"></i> Food Categories <span class="badge" style="background: rgba(0,0,0,0.06); color: inherit; padding: 2px 7px; border-radius: 8px; font-size: 11px; margin-left: 3px;">${categories.length}</span>
             </button>
             ${isAdmin ? `
-            <button class="btn ${this.activeTab === 'permissions' ? 'btn-primary' : 'btn-secondary'}" id="menu-sub-permissions" style="height: 38px; border-radius: 12px; padding: 0 16px; font-weight: 800; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="subtab-rep-btn ${this.activeTab === 'permissions' ? 'active' : ''}" id="menu-sub-permissions">
               <i class="fa-solid fa-user-shield"></i> Role Permissions
             </button>
             ` : ""}
@@ -123,21 +128,21 @@ window.views.menu = {
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             ${this.activeTab === 'products' ? `
             <!-- Fast Quick-Add Bar Toggle Button -->
-            <button class="btn ${this.showQuickAddBar ? 'btn-primary' : 'btn-secondary'}" id="btn-toggle-quick-add" title="Toggle 1-Row Fast Item Add Bar" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-bolt" style="color: ${this.showQuickAddBar ? '#fff' : '#2563eb'};"></i> Quick Add
+            <button class="btn btn-secondary" id="btn-toggle-quick-add" title="Toggle 1-Row Fast Item Add Bar" style="height: 36px; border-radius: 10px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; ${this.showQuickAddBar ? 'background: #eff6ff; color: #2563eb; border-color: #bfdbfe;' : ''}">
+              <i class="fa-solid fa-bolt" style="color: #2563eb;"></i> Quick Add
             </button>
-            <button class="btn btn-secondary" id="btn-menu-bulk-tools" title="Bulk Price Modifier & Quick Actions" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="btn btn-secondary" id="btn-menu-bulk-tools" title="Bulk Price Modifier & Quick Actions" style="height: 36px; border-radius: 10px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-wand-magic-sparkles" style="color: #d97706;"></i> Bulk Tools
             </button>
-            <button class="btn btn-secondary" id="btn-menu-export-csv" title="Download Menu Catalog as CSV" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="btn btn-secondary" id="btn-menu-export-csv" title="Download Menu Catalog as CSV" style="height: 36px; border-radius: 10px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-file-csv" style="color: #059669;"></i> Export CSV
             </button>
-            <button class="btn btn-secondary" id="btn-menu-print-sheet" title="Print Official Restaurant Menu & Price List" style="height: 38px; border-radius: 12px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="btn btn-secondary" id="btn-menu-print-sheet" title="Print Official Restaurant Menu & Price List" style="height: 36px; border-radius: 10px; padding: 0 13px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-print" style="color: #2563eb;"></i> Print Menu
             </button>
             ` : ""}
 
-            <button class="btn btn-primary" id="btn-add-menu-entity" style="display: ${this.activeTab === 'permissions' ? 'none' : 'inline-flex'}; height: 38px; border-radius: 12px; padding: 0 18px; font-weight: 800; font-size: 12.5px; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);">
+            <button class="btn btn-primary" id="btn-add-menu-entity" style="display: ${this.activeTab === 'permissions' ? 'none' : 'inline-flex'}; height: 36px; border-radius: 10px; padding: 0 16px; font-weight: 800; font-size: 12px; align-items: center; gap: 7px; background: linear-gradient(135deg, #ff9b73 0%, #ff784b 100%); color: #ffffff; border: none; box-shadow: 0 3px 12px rgba(255, 138, 92, 0.35); cursor: pointer;">
               <i class="fa-solid fa-plus"></i> <span id="btn-add-text">${this.activeTab === 'categories' ? 'Add Category' : 'Add New Dish'}</span>
             </button>
           </div>
@@ -167,9 +172,9 @@ window.views.menu = {
     const btnPrint = document.getElementById("btn-menu-print-sheet");
 
     const updateTabUI = () => {
-      if (btnProd) btnProd.className = this.activeTab === "products" ? "btn btn-primary" : "btn btn-secondary";
-      if (btnCat) btnCat.className = this.activeTab === "categories" ? "btn btn-primary" : "btn btn-secondary";
-      if (btnPerm) btnPerm.className = this.activeTab === "permissions" ? "btn btn-primary" : "btn btn-secondary";
+      if (btnProd) btnProd.className = `subtab-rep-btn ${this.activeTab === "products" ? "active" : ""}`;
+      if (btnCat) btnCat.className = `subtab-rep-btn ${this.activeTab === "categories" ? "active" : ""}`;
+      if (btnPerm) btnPerm.className = `subtab-rep-btn ${this.activeTab === "permissions" ? "active" : ""}`;
 
       if (btnAdd) {
         btnAdd.style.display = this.activeTab === "permissions" ? "none" : "inline-flex";
@@ -420,14 +425,14 @@ window.views.menu = {
         return `
           <tr class="${!isAvail ? 'table-row-dimmed' : ''}">
             <!-- Multi-Select Checkbox -->
-            <td style="width: 40px; text-align: center;">
-              <input type="checkbox" class="menu-item-select-chk" data-id="${p.id}" ${isSelected ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;">
+            <td style="width: 38px; text-align: center;">
+              <input type="checkbox" class="menu-item-select-chk" data-id="${p.id}" ${isSelected ? 'checked' : ''} style="cursor: pointer; width: 15px; height: 15px; accent-color: #2563eb;">
             </td>
 
             <!-- Dish & Category -->
             <td>
               <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="menu-diet-box ${isVeg ? 'veg' : 'non-veg'}" title="${isVeg ? 'Pure Vegetarian' : 'Non-Vegetarian'}">
+                <div class="menu-diet-box ${isVeg ? 'veg' : 'non-veg'}" title="${isVeg ? 'Pure Vegetarian' : 'Non-Vegetarian'}" style="flex-shrink: 0;">
                   <div class="menu-diet-dot"></div>
                 </div>
                 <div>
@@ -438,11 +443,11 @@ window.views.menu = {
                     ${p.special ? `<span class="menu-tag-pill menu-tag-special">Special ⭐</span>` : ''}
                     ${p.bogo ? `<span class="menu-tag-pill menu-tag-bogo">BOGO 🎁</span>` : ''}
                   </div>
-                  <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-                    <code>${p.id}</code>
-                    <span>•</span>
-                    <span style="color: #2563eb; font-weight: 700;">${cat ? cat.name : 'Unassigned'}</span>
-                    ${p.subCategory ? `<span>•</span><span style="color: #475569; font-weight: 600;">${p.subCategory}</span>` : ''}
+                  <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap;">
+                    <code style="background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 700; color: #475569;">${p.id}</code>
+                    <span style="color: #cbd5e1;">•</span>
+                    <span style="color: #2563eb; font-weight: 750;">${cat ? cat.name : 'Unassigned'}</span>
+                    ${p.subCategory ? `<span style="color: #cbd5e1;">•</span><span style="color: #64748b; font-weight: 600;">${p.subCategory}</span>` : ''}
                   </div>
                 </div>
               </div>
@@ -454,7 +459,7 @@ window.views.menu = {
                 <span style="font-weight: 900; color: var(--text-dark); font-size: 14.5px;">
                   ${currency}${Number(p.price || 0).toFixed(0)}
                 </span>
-                <button class="btn btn-secondary btn-quick-price" data-id="${p.id}" data-price="${p.price}" title="Quick Edit Selling Price (₹)" style="padding: 3px 6px; font-size: 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                <button class="btn btn-secondary btn-quick-price" data-id="${p.id}" data-price="${p.price}" title="Quick Edit Selling Price (₹)" style="padding: 2px 6px; font-size: 10px; border-radius: 6px; border: 1px solid #e2e8f0; background: #ffffff; color: #64748b; cursor: pointer;">
                   <i class="fa-solid fa-pen"></i>
                 </button>
               </div>
@@ -463,28 +468,29 @@ window.views.menu = {
             <!-- Food Cost, Profit & Gross Margin -->
             <td>
               <div style="display: flex; flex-direction: column; gap: 3px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
                   <span class="menu-margin-badge ${costInfo.marginTier}">
                     <i class="fa-solid fa-chart-line" style="font-size: 9px;"></i> ${costInfo.marginPct}% Margin
                   </span>
                   ${costInfo.isCustom ? `<span style="font-size: 9px; font-weight: 800; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 1px 5px; border-radius: 5px;">Custom</span>` : ''}
-                  ${costInfo.isFromRecipe ? `<span style="font-size: 9px; font-weight: 800; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; padding: 1px 5px; border-radius: 5px;">Recipe</span>` : ''}
+                  ${costInfo.isFromRecipe ? `<span style="font-size: 9px; font-weight: 800; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 1px 5px; border-radius: 5px;">Recipe</span>` : ''}
                 </div>
-                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                  <span>Cost: <strong>${currency}${costInfo.foodCost.toFixed(0)}</strong></span>
+                <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                  <span>Cost: <strong style="color: var(--text-dark);">${currency}${costInfo.foodCost.toFixed(0)}</strong></span>
                   <button class="btn-quick-cost" data-id="${p.id}" title="Quick Edit Cost Price (₹)" style="border: none; background: transparent; cursor: pointer; color: #64748b; padding: 0 2px; font-size: 10px;">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
-                  <span>| Profit: <strong style="color: #059669;">${currency}${costInfo.grossProfit.toFixed(0)}</strong></span>
+                  <span style="color: #cbd5e1;">|</span>
+                  <span>Profit: <strong style="color: #059669;">${currency}${costInfo.grossProfit.toFixed(0)}</strong></span>
                 </div>
               </div>
             </td>
 
             <!-- Recipe Inventory Tracking -->
-            <td>
-              <button class="btn ${costInfo.hasRecipe ? 'btn-secondary' : 'btn-outline'} btn-recipe-setup" data-id="${p.id}" title="Configure Raw Ingredients Deduction" style="padding: 4px 10px; font-size: 11.5px; border-radius: 8px; font-weight: 750; display: inline-flex; align-items: center; gap: 6px;">
+            <td style="text-align: center;">
+              <button class="btn ${costInfo.hasRecipe ? 'btn-secondary' : 'btn-outline'} btn-recipe-setup" data-id="${p.id}" title="Configure Raw Ingredients Deduction" style="padding: 4px 10px; font-size: 11px; border-radius: 8px; font-weight: 750; display: inline-flex; align-items: center; gap: 6px;">
                 <i class="fa-solid fa-mortar-pestle" style="color: ${costInfo.hasRecipe ? '#2563eb' : '#d97706'};"></i> 
-                ${costInfo.hasRecipe ? `${costInfo.recipeCount} Raw Items` : '<span style="color: #d97706;">+ Inventory Map</span>'}
+                ${costInfo.hasRecipe ? `${costInfo.recipeCount} Items` : '<span style="color: #d97706;">+ Map Stock</span>'}
               </button>
             </td>
 
@@ -504,13 +510,13 @@ window.views.menu = {
             <!-- Actions -->
             <td>
               <div style="display: flex; gap: 5px; align-items: center; justify-content: flex-end;">
-                <button class="btn btn-secondary btn-edit-product" data-id="${p.id}" title="Edit Dish & Pricing" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
-                  <i class="fa-solid fa-pen-to-square" style="color: #2563eb;"></i>
+                <button class="btn btn-secondary btn-edit-product" data-id="${p.id}" title="Edit Dish & Pricing" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
+                  <i class="fa-solid fa-pen-to-square"></i>
                 </button>
-                <button class="btn btn-secondary btn-duplicate-product" data-id="${p.id}" title="Duplicate Dish (Clone)" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
-                  <i class="fa-solid fa-copy" style="color: #059669;"></i>
+                <button class="btn btn-secondary btn-duplicate-product" data-id="${p.id}" title="Duplicate Dish (Clone)" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">
+                  <i class="fa-solid fa-copy"></i>
                 </button>
-                <button class="btn btn-danger btn-delete-product" data-id="${p.id}" title="Delete Dish" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px;">
+                <button class="btn btn-danger btn-delete-product" data-id="${p.id}" title="Delete Dish" style="padding: 5px 8px; font-size: 11.5px; border-radius: 8px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
@@ -538,7 +544,7 @@ window.views.menu = {
         const isSelected = this.selectedProductIds.has(p.id);
 
         return `
-          <div class="menu-item-card ${!isAvail ? 'out-of-stock' : ''}" style="${isSelected ? 'border-color: #2563eb; background: #eff6ff;' : ''}">
+          <div class="menu-item-card ${!isAvail ? 'out-of-stock' : ''}" style="${isSelected ? 'border-color: #2563eb; background: #eff6ff;' : ''} border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
             <!-- Header Row -->
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
               <div style="display: flex; align-items: flex-start; gap: 8px;">
@@ -573,7 +579,7 @@ window.views.menu = {
                   ${costInfo.marginPct}% Margin
                 </span>
                 <span style="color: var(--text-muted); font-weight: 700;">
-                  Cost: ${currency}${costInfo.foodCost.toFixed(0)} (${costInfo.isCustom ? 'Custom' : costInfo.isFromRecipe ? 'Recipe' : `${this.benchmarkCogsPercent}%`})
+                  Cost: ${currency}${costInfo.foodCost.toFixed(0)} (${costInfo.isCustom ? 'Custom Cost' : costInfo.isFromRecipe ? 'Recipe Cost' : 'Dish Cost'})
                 </span>
               </div>
               <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 6px;">
@@ -623,157 +629,182 @@ window.views.menu = {
     }
 
     mount.innerHTML = `
-      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
+      <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px; max-width: 100%; width: 100%; padding-bottom: 60px;">
         
-        <!-- 4-Card Executive Overview Scorecard -->
-        <div class="menu-kpi-grid">
+        <!-- 5-Card Executive Menu Scorecard Grid (Pastel Executive Theme) -->
+        <div class="rep-kpi-grid menu-kpi-grid counter-kpi-grid">
           
-          <!-- Card 1: Catalog Status & 86'd Out-of-Stock -->
-          <div class="menu-kpi-card">
-            <div>
-              <div class="menu-kpi-title">Catalog Inventory</div>
-              <div class="menu-kpi-val">${totalCount} <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Dishes</span></div>
-              <div class="menu-kpi-sub" style="color: #059669;">
-                <i class="fa-solid fa-circle-check"></i> ${availableCount} Live in POS (${inStockPct}%)
-                ${outOfStockCount > 0 ? `<span style="color: #dc2626; margin-left: 4px;">• ${outOfStockCount} 86'd</span>` : ''}
-              </div>
-            </div>
-            <div class="menu-kpi-icon" style="background: #eff6ff; color: #2563eb;">
+          <!-- Card 1: Active Menu Catalog (Coral Ring) -->
+          <div class="rep-kpi-card menu-kpi-card" id="menu-card-catalog">
+            <div class="dash-kpi-icon-wrap rep-ring-coral">
               <i class="fa-solid fa-burger"></i>
             </div>
-          </div>
-
-          <!-- Card 2: Price Valuation & Range -->
-          <div class="menu-kpi-card">
-            <div>
-              <div class="menu-kpi-title">Catalog Valuation</div>
-              <div class="menu-kpi-val">${currency}${avgPrice} <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Avg / Dish</span></div>
-              <div class="menu-kpi-sub" style="color: var(--text-muted);">
-                <i class="fa-solid fa-arrows-left-right"></i> Range: ${currency}${totalCount > 0 ? minPrice : 0} - ${currency}${maxPrice}
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" style="color: #ff8a5c;">${totalCount} <span style="font-size: 13px; color: var(--text-muted); font-weight: 700;">Dishes</span></div>
+              <div class="rep-kpi-label">Active Menu Catalog</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash"><i class="fa-solid fa-circle-check"></i> ${availableCount} Live in POS</span>
+                ${outOfStockCount > 0 ? `<span class="dash-sub-pill pill-neutral" style="color: #dc2626;"><i class="fa-solid fa-ban"></i> ${outOfStockCount} 86'd</span>` : ''}
               </div>
             </div>
-            <div class="menu-kpi-icon" style="background: #ecfdf5; color: #059669;">
+          </div>
+
+          <!-- Card 2: Catalog Price Valuation (Cyan Ring) -->
+          <div class="rep-kpi-card menu-kpi-card" id="menu-card-price">
+            <div class="dash-kpi-icon-wrap rep-ring-cyan">
               <i class="fa-solid fa-indian-rupee-sign"></i>
             </div>
-          </div>
-
-          <!-- Card 3: Food Cost (COGS) & Profit Margin -->
-          <div class="menu-kpi-card">
-            <div>
-              <div class="menu-kpi-title">Gross Profit & Food Cost</div>
-              <div class="menu-kpi-val" style="color: #059669;">${avgMargin}% <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">Avg Profit</span></div>
-              <div class="menu-kpi-sub" style="color: #b45309; display: flex; align-items: center; gap: 4px;">
-                <span>${currency}${avgCost} Avg Cost (${this.benchmarkCogsPercent}% COGS)</span>
-                ${customCostCount > 0 ? `<span style="color: #2563eb;">• ${customCostCount} Custom</span>` : ''}
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" style="color: #0284c7;">${currency}${avgPrice} <span style="font-size: 13px; color: var(--text-muted); font-weight: 700;">Avg Price</span></div>
+              <div class="rep-kpi-label">Catalog Price Valuation</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral"><i class="fa-solid fa-arrows-left-right"></i> ${currency}${totalCount > 0 ? minPrice : 0} – ${currency}${maxPrice}</span>
               </div>
             </div>
-            <div class="menu-kpi-icon" style="background: #f0fdf4; color: #16a34a;">
+          </div>
+
+          <!-- Card 3: Gross Profit Margin (Emerald Green Ring) -->
+          <div class="rep-kpi-card menu-kpi-card" id="menu-card-margin">
+            <div class="dash-kpi-icon-wrap rep-ring-green">
               <i class="fa-solid fa-percent"></i>
             </div>
-          </div>
-
-          <!-- Card 4: Recipe & Dietary Health -->
-          <div class="menu-kpi-card">
-            <div>
-              <div class="menu-kpi-title">Recipe & Dietary Health</div>
-              <div class="menu-kpi-val">${recipesMappedCount} <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">/ ${totalCount} Mapped</span></div>
-              <div class="menu-kpi-sub" style="color: #16a34a;">
-                <i class="fa-solid fa-leaf"></i> ${vegCount} Veg ${nonVegCount > 0 ? `• <span style="color: #dc2626;">${nonVegCount} Non-Veg</span>` : ''}
-                ${unmappedCount > 0 ? `<span style="color: #d97706; margin-left: 4px;">• ${unmappedCount} Unmapped</span>` : ''}
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" style="color: #059669;">${avgMargin}% <span style="font-size: 13px; color: var(--text-muted); font-weight: 700;">Avg Profit</span></div>
+              <div class="rep-kpi-label">Gross Profit & Food Cost</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash"><i class="fa-solid fa-coins"></i> ${currency}${avgCost} Avg Cost</span>
+                ${customCostCount > 0 ? `<span class="dash-sub-pill pill-neutral" style="color: #2563eb;">${customCostCount} Custom</span>` : ''}
               </div>
             </div>
-            <div class="menu-kpi-icon" style="background: #fdf4ff; color: #c026d3;">
+          </div>
+
+          <!-- Card 4: Inventory Recipes Linked (Purple Ring) -->
+          <div class="rep-kpi-card menu-kpi-card" id="menu-card-recipes">
+            <div class="dash-kpi-icon-wrap rep-ring-purple">
               <i class="fa-solid fa-mortar-pestle"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" style="color: #7c3aed;">${recipesMappedCount} <span style="font-size: 13px; color: var(--text-muted); font-weight: 700;">/ ${totalCount}</span></div>
+              <div class="rep-kpi-label">Raw Recipes Stock-Linked</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-upi"><i class="fa-solid fa-link"></i> ${Math.round((recipesMappedCount / (totalCount || 1)) * 100)}% Linked</span>
+                ${unmappedCount > 0 ? `<span class="dash-sub-pill pill-neutral" style="color: #d97706;"><i class="fa-solid fa-triangle-exclamation"></i> ${unmappedCount} Unmapped</span>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 5: Dietary Composition (Amber Ring) -->
+          <div class="rep-kpi-card menu-kpi-card" id="menu-card-diet">
+            <div class="dash-kpi-icon-wrap rep-ring-amber">
+              <i class="fa-solid fa-leaf"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" style="color: #b45309;">${vegCount} <span style="font-size: 13px; color: var(--text-muted); font-weight: 700;">Veg (${totalCount > 0 ? Math.round((vegCount / totalCount) * 100) : 0}%)</span></div>
+              <div class="rep-kpi-label">Dietary Health Balance</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash"><i class="fa-solid fa-seedling"></i> ${vegCount} Veg</span>
+                ${nonVegCount > 0 ? `<span class="dash-sub-pill pill-neutral" style="color: #dc2626;"><i class="fa-solid fa-drumstick-bite"></i> ${nonVegCount} Non-Veg</span>` : ''}
+              </div>
             </div>
           </div>
 
         </div>
 
-        <!-- Profitability Health Gauge Ribbon -->
-        <div class="glass-card" style="padding: 12px 18px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 11.5px; font-weight: 800; color: var(--text-dark); text-transform: uppercase;">
-              <i class="fa-solid fa-gauge-high" style="color: #2563eb; margin-right: 4px;"></i> Profit Health:
-            </span>
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button type="button" class="btn ${this.marginTierFilter === 'high' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('high')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
-                🟢 High Margin (${highMarginCount})
+        <!-- Live Visual Profitability Health Ribbon (Matching Daily Counter Live Split Ribbon) -->
+        <div class="glass-card" style="padding: 12px 18px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 13.5px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-chart-pie" style="color: #2563eb;"></i> Menu Profitability & Target Margin Share
+              </span>
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(Real-time catalog margin tiers)</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn ${this.marginTierFilter === 'high' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('high')" style="padding: 3px 10px; font-size: 11.5px; border-radius: 20px; font-weight: 750; height: 26px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981;"></span>
+                High Margin (&ge;65%): <strong style="color: #059669;">${highMarginCount}</strong>
               </button>
-              <button type="button" class="btn ${this.marginTierFilter === 'med' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('med')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
-                🔵 Standard (${medMarginCount})
+              <button type="button" class="btn ${this.marginTierFilter === 'med' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('med')" style="padding: 3px 10px; font-size: 11.5px; border-radius: 20px; font-weight: 750; height: 26px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #0284c7;"></span>
+                Standard (50-64%): <strong style="color: #0284c7;">${medMarginCount}</strong>
               </button>
-              <button type="button" class="btn ${this.marginTierFilter === 'warn' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('warn')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
-                🟡 Low Margin (${warnMarginCount})
+              <button type="button" class="btn ${this.marginTierFilter === 'warn' ? 'btn-primary' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('warn')" style="padding: 3px 10px; font-size: 11.5px; border-radius: 20px; font-weight: 750; height: 26px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #f59e0b;"></span>
+                Low (35-49%): <strong style="color: #b45309;">${warnMarginCount}</strong>
               </button>
               ${critMarginCount > 0 ? `
-              <button type="button" class="btn ${this.marginTierFilter === 'crit' ? 'btn-danger' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('crit')" style="padding: 3px 10px; font-size: 11px; border-radius: 8px; font-weight: 800;">
-                🔴 Critical (<35%) (${critMarginCount})
+              <button type="button" class="btn ${this.marginTierFilter === 'crit' ? 'btn-danger' : 'btn-secondary'}" onclick="views.menu.filterByMarginTier('crit')" style="padding: 3px 10px; font-size: 11.5px; border-radius: 20px; font-weight: 750; height: 26px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: #ef4444;"></span>
+                Critical (&lt;35%): <strong style="color: #dc2626;">${critMarginCount}</strong>
               </button>
               ` : ''}
               ${this.marginTierFilter ? `
-                <button type="button" onclick="views.menu.filterByMarginTier(null)" style="background: none; border: none; color: #dc2626; font-size: 11px; font-weight: 800; cursor: pointer; text-decoration: underline;">
-                  Clear Tier
+                <button type="button" onclick="views.menu.filterByMarginTier(null)" style="background: none; border: none; color: #dc2626; font-size: 11.5px; font-weight: 800; cursor: pointer; text-decoration: underline;">
+                  Clear Tier Filter
                 </button>
               ` : ''}
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 11px; font-weight: 750; color: var(--text-muted);">COGS Benchmark:</span>
-            <div class="cogs-calibrator-pill" style="display: inline-flex; background: #f1f5f9; border: 1px solid var(--border-color); border-radius: 10px; padding: 2px;">
-              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 28 ? 'active' : ''}" data-rate="28" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 28 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 28 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">28%</button>
-              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 30 ? 'active' : ''}" data-rate="30" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 30 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 30 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">30%</button>
-              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 32 ? 'active' : ''}" data-rate="32" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 32 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 32 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">32%</button>
-              <button type="button" class="menu-cogs-btn ${this.benchmarkCogsPercent === 35 ? 'active' : ''}" data-rate="35" style="padding: 2px 7px; border: none; background: ${this.benchmarkCogsPercent === 35 ? '#2563eb' : 'transparent'}; color: ${this.benchmarkCogsPercent === 35 ? '#fff' : 'var(--text-muted)'}; border-radius: 8px; font-size: 10.5px; font-weight: 800; cursor: pointer;">35%</button>
-            </div>
+          <!-- Segmented distribution progress bar -->
+          <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 8px; overflow: hidden; display: flex; padding: 1.5px; border: 1px solid #e2e8f0;">
+            <div style="width: ${totalCount > 0 ? (highMarginCount / totalCount) * 100 : 0}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 6px; transition: width 0.4s ease;" title="High Margin (>=65%)"></div>
+            <div style="width: ${totalCount > 0 ? (medMarginCount / totalCount) * 100 : 0}%; height: 100%; background: linear-gradient(90deg, #38bdf8, #0284c7); border-radius: 6px; transition: width 0.4s ease;" title="Standard Margin (50-64%)"></div>
+            <div style="width: ${totalCount > 0 ? (warnMarginCount / totalCount) * 100 : 0}%; height: 100%; background: linear-gradient(90deg, #fbbf24, #d97706); border-radius: 6px; transition: width 0.4s ease;" title="Low Margin (35-49%)"></div>
+            <div style="width: ${totalCount > 0 ? (critMarginCount / totalCount) * 100 : 0}%; height: 100%; background: linear-gradient(90deg, #f87171, #dc2626); border-radius: 6px; transition: width 0.4s ease;" title="Critical (<35%)"></div>
           </div>
         </div>
 
         <!-- Fast Inline Quick-Add Dish Bar (When toggled) -->
         ${this.showQuickAddBar ? `
-          <div class="menu-quick-add-bar view-animate" id="menu-quick-add-container">
+          <div class="menu-quick-add-bar view-animate" id="menu-quick-add-container" style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);">
             <div style="font-weight: 850; font-size: 12.5px; color: #2563eb; display: flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-bolt"></i> Quick Add Dish:
             </div>
             
-            <input type="text" id="qa-dish-name" class="form-input" placeholder="Dish Name (e.g. Cheese Sandwich)" style="height: 34px; font-size: 12px; border-radius: 8px; flex: 2; min-width: 160px;" required>
+            <input type="text" id="qa-dish-name" class="form-input" placeholder="Dish Name (e.g. Cheese Sandwich)" style="height: 35px; font-size: 12px; border-radius: 8px; flex: 2; min-width: 160px;" required>
             
-            <select id="qa-dish-cat" class="form-select" style="height: 34px; font-size: 12px; border-radius: 8px; flex: 1; min-width: 130px;">
+            <select id="qa-dish-cat" class="form-select" style="height: 35px; font-size: 12px; border-radius: 8px; flex: 1; min-width: 130px;">
               ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("")}
             </select>
 
-            <input type="number" id="qa-dish-price" class="form-input" placeholder="Price (₹)" min="1" step="any" style="height: 34px; font-size: 12.5px; font-weight: 800; border-radius: 8px; width: 100px;" required>
+            <input type="number" id="qa-dish-price" class="form-input" placeholder="Price (₹)" min="1" step="any" style="height: 35px; font-size: 12.5px; font-weight: 800; border-radius: 8px; width: 100px;" required>
 
             <label style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 750; cursor: pointer;">
               <input type="checkbox" id="qa-dish-veg" checked style="accent-color: #16a34a; width: 15px; height: 15px;">
               <span class="menu-diet-box veg"><span class="menu-diet-dot"></span></span> Veg
             </label>
 
-            <button type="button" class="btn btn-primary" id="btn-qa-submit" style="height: 34px; padding: 0 14px; font-size: 12px; border-radius: 8px; font-weight: 800;">
+            <button type="button" class="btn btn-primary" id="btn-qa-submit" style="height: 35px; padding: 0 16px; font-size: 12px; border-radius: 8px; font-weight: 800; background: #2563eb; color: #fff;">
               <i class="fa-solid fa-plus"></i> Save Dish
             </button>
 
-            <button type="button" class="btn btn-secondary" onclick="views.menu.toggleQuickAddBar()" style="height: 34px; padding: 0 10px; font-size: 12px; border-radius: 8px;">
+            <button type="button" class="btn btn-secondary" onclick="views.menu.toggleQuickAddBar()" style="height: 35px; padding: 0 10px; font-size: 12px; border-radius: 8px;">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
         ` : ''}
 
-        <!-- Toolbar & Filter Engine -->
-        <div class="glass-card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
+        <!-- Toolbar & Filter Engine Card (Pastel Executive Theme) -->
+        <div class="glass-card" style="padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
           
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             
-            <!-- Global Search -->
-            <div style="position: relative; width: 260px;">
-              <input type="text" id="menu-search-input" class="form-input" placeholder="Search dish name, ID, or category..." value="${this.searchQuery}" style="padding: 6px 12px 6px 32px; font-size: 12.5px; height: 36px; border-radius: 10px; width: 100%;">
+            <!-- Global Search Box with Clear Button -->
+            <div class="counter-search-box" style="position: relative; width: 280px;">
+              <input type="text" id="menu-search-input" class="form-input" placeholder="Search dish name, ID, category..." value="${this.searchQuery}" style="padding: 6px 30px 6px 32px; font-size: 12px; height: 36px; border-radius: 10px; width: 100%;">
               <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; color: var(--text-muted); font-size: 12px; pointer-events: none;"></i>
+              ${this.searchQuery ? `
+                <button type="button" id="btn-clear-menu-search" style="position: absolute; right: 8px; top: 8px; border: none; background: #e2e8f0; color: var(--text-dark); width: 20px; height: 20px; border-radius: 50%; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              ` : ''}
             </div>
 
             <!-- Sort By Selector -->
             <div style="display: flex; align-items: center; gap: 8px;">
-              <label for="menu-sort-select" style="font-size: 12px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Sort by:</label>
-              <select id="menu-sort-select" class="form-select" style="height: 36px; font-size: 12px; border-radius: 10px; padding: 4px 10px; font-weight: 700;">
+              <label for="menu-sort-select" style="font-size: 12px; font-weight: 750; color: var(--text-muted); white-space: nowrap;">Sort by:</label>
+              <select id="menu-sort-select" class="form-select" style="height: 36px; font-size: 12px; border-radius: 10px; padding: 4px 10px; font-weight: 700; width: 180px;">
                 <option value="name-asc" ${this.sortBy === 'name-asc' ? 'selected' : ''}>Dish Name (A - Z)</option>
                 <option value="name-desc" ${this.sortBy === 'name-desc' ? 'selected' : ''}>Dish Name (Z - A)</option>
                 <option value="price-asc" ${this.sortBy === 'price-asc' ? 'selected' : ''}>Price (Low to High)</option>
@@ -785,11 +816,11 @@ window.views.menu = {
             </div>
 
             <!-- View Switcher (Table vs Grid) -->
-            <div class="menu-view-switcher">
-              <button class="menu-view-btn ${this.viewMode === 'table' ? 'active' : ''}" id="btn-view-table" title="Compact Table View">
+            <div class="menu-view-switcher" style="background: #f1f5f9; padding: 3px; border-radius: 10px; display: inline-flex; gap: 3px;">
+              <button class="menu-view-btn ${this.viewMode === 'table' ? 'active' : ''}" id="btn-view-table" title="Compact Table View" style="padding: 5px 12px; font-size: 11.5px; font-weight: 750; border-radius: 8px; border: none; cursor: pointer;">
                 <i class="fa-solid fa-table-list"></i> Table
               </button>
-              <button class="menu-view-btn ${this.viewMode === 'grid' ? 'active' : ''}" id="btn-view-grid" title="Visual Cards Grid View">
+              <button class="menu-view-btn ${this.viewMode === 'grid' ? 'active' : ''}" id="btn-view-grid" title="Visual Cards Grid View" style="padding: 5px 12px; font-size: 11.5px; font-weight: 750; border-radius: 8px; border: none; cursor: pointer;">
                 <i class="fa-solid fa-border-all"></i> Cards
               </button>
             </div>
@@ -799,56 +830,62 @@ window.views.menu = {
             </div>
           </div>
 
-          <!-- Quick Status Filter Chips -->
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 10px;">
-            <button class="menu-filter-chip ${this.statusFilter === 'all' ? 'active' : ''}" data-filter="all">
-              All (${totalCount})
+          <!-- Quick Status Filter Chips (Tangerine Coral Active Theme) -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'all' ? 'active' : ''}" data-filter="all">
+              All Items <span class="chip-badge">${totalCount}</span>
             </button>
-            <button class="menu-filter-chip ${this.statusFilter === 'in-stock' ? 'active' : ''}" data-filter="in-stock">
-              <i class="fa-solid fa-circle-check" style="color: #059669;"></i> In Stock (${availableCount})
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'in-stock' ? 'active' : ''}" data-filter="in-stock">
+              <i class="fa-solid fa-circle-check" style="color: #059669;"></i> In Stock <span class="chip-badge">${availableCount}</span>
             </button>
-            <button class="menu-filter-chip ${this.statusFilter === 'out-of-stock' ? 'active' : ''}" data-filter="out-of-stock">
-              <i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> 86'd Out (${outOfStockCount})
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'out-of-stock' ? 'active' : ''}" data-filter="out-of-stock">
+              <i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> 86'd Out <span class="chip-badge">${outOfStockCount}</span>
             </button>
-            <button class="menu-filter-chip ${this.statusFilter === 'veg' ? 'active' : ''}" data-filter="veg">
-              <i class="fa-solid fa-leaf" style="color: #16a34a;"></i> Pure Veg (${vegCount})
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'veg' ? 'active' : ''}" data-filter="veg">
+              <i class="fa-solid fa-leaf" style="color: #16a34a;"></i> Pure Veg <span class="chip-badge">${vegCount}</span>
             </button>
             ${nonVegCount > 0 ? `
-            <button class="menu-filter-chip ${this.statusFilter === 'non-veg' ? 'active' : ''}" data-filter="non-veg">
-              <i class="fa-solid fa-drumstick-bite" style="color: #dc2626;"></i> Non-Veg (${nonVegCount})
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'non-veg' ? 'active' : ''}" data-filter="non-veg">
+              <i class="fa-solid fa-drumstick-bite" style="color: #dc2626;"></i> Non-Veg <span class="chip-badge">${nonVegCount}</span>
             </button>
             ` : ''}
-            <button class="menu-filter-chip ${this.statusFilter === 'high-margin' ? 'active' : ''}" data-filter="high-margin">
-              <i class="fa-solid fa-star" style="color: #059669;"></i> High Margin >65% (${highMarginCount})
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'high-margin' ? 'active' : ''}" data-filter="high-margin">
+              <i class="fa-solid fa-star" style="color: #059669;"></i> High Margin >65% <span class="chip-badge">${highMarginCount}</span>
             </button>
-            <button class="menu-filter-chip ${this.statusFilter === 'recipe-set' ? 'active' : ''}" data-filter="recipe-set">
-              <i class="fa-solid fa-mortar-pestle" style="color: #2563eb;"></i> Recipe Mapped (${recipesMappedCount})
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'recipe-set' ? 'active' : ''}" data-filter="recipe-set">
+              <i class="fa-solid fa-mortar-pestle" style="color: #2563eb;"></i> Recipe Mapped <span class="chip-badge">${recipesMappedCount}</span>
             </button>
-            <button class="menu-filter-chip ${this.statusFilter === 'recipe-missing' ? 'active' : ''}" data-filter="recipe-missing">
-              <i class="fa-solid fa-triangle-exclamation" style="color: #d97706;"></i> Unmapped (${unmappedCount})
+            <button class="counter-quick-chip menu-filter-chip ${this.statusFilter === 'recipe-missing' ? 'active' : ''}" data-filter="recipe-missing">
+              <i class="fa-solid fa-triangle-exclamation" style="color: #d97706;"></i> Unmapped <span class="chip-badge">${unmappedCount}</span>
             </button>
           </div>
 
-          <!-- Category filter pills -->
+          <!-- Category filter pills bar -->
           ${catPillsHtml}
+        </div>
+
+        <!-- Matching records summary banner -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 6px 14px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 11.5px; color: var(--text-muted);">
+          <span style="font-weight: 700; color: var(--text-dark);">Showing ${filtered.length} menu dishes (${filtered.filter(p => p.available !== false).length} active in POS)</span>
+          <span style="font-weight: 800; color: #2563eb;">Average Selling Price: ${currency}${avgPrice}</span>
         </div>
 
         <!-- Products View (Table or Cards) -->
         ${this.viewMode === 'table' ? `
-          <div class="glass-card" style="padding: 16px 18px; border-radius: 14px;">
-            <div class="table-container">
+          <div class="glass-card" style="padding: 16px 20px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
+            <div class="table-container" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; border: 1px solid var(--border-color);">
               <table class="premium-table">
                 <thead>
                   <tr>
-                    <th style="width: 40px; text-align: center;">
-                      <input type="checkbox" id="menu-select-all-chk" title="Select All Filtered Dishes" style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563eb;">
+                    <th style="width: 38px; text-align: center;">
+                      <input type="checkbox" id="menu-select-all-chk" title="Select All Filtered Dishes" style="cursor: pointer; width: 15px; height: 15px; accent-color: #2563eb;">
                     </th>
-                    <th style="min-width: 220px;">Dish & Category</th>
-                    <th>Selling Price</th>
-                    <th>Food Cost & Margin</th>
-                    <th>Inventory Recipe</th>
-                    <th>POS Live Status</th>
-                    <th style="text-align: right; min-width: 120px;">Actions</th>
+                    <th style="min-width: 260px;">Dish & Category</th>
+                    <th style="min-width: 120px;">Selling Price</th>
+                    <th style="min-width: 200px;">Food Cost & Margin</th>
+                    <th style="min-width: 140px; text-align: center;">Inventory Recipe</th>
+                    <th style="min-width: 130px;">POS Live Status</th>
+                    <th style="text-align: right; min-width: 140px;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="menu-products-tbody">
@@ -872,25 +909,19 @@ window.views.menu = {
   bindProductViewEvents(mount, products, filtered) {
     // Bind Search Input
     const searchInput = mount.querySelector("#menu-search-input");
+    const btnClearSearch = mount.querySelector("#btn-clear-menu-search");
     if (searchInput) {
       searchInput.oninput = (e) => {
         this.searchQuery = e.target.value.trim();
         this.renderProducts(mount);
       };
     }
-
-    // Bind Food Cost Benchmark Calibrator Buttons
-    mount.querySelectorAll(".menu-cogs-btn").forEach(btn => {
-      btn.onclick = () => {
-        const rate = Number(btn.getAttribute("data-rate")) || 32;
-        this.benchmarkCogsPercent = rate;
-        const settings = (window.db && window.db.get("settings")) || {};
-        settings.cogsPercent = rate;
-        window.db.set("settings", settings);
-        window.showToast(`Food cost benchmark set to ${rate}%.`, "success");
-        this.render();
+    if (btnClearSearch) {
+      btnClearSearch.onclick = () => {
+        this.searchQuery = "";
+        this.renderProducts(mount);
       };
-    });
+    }
 
     // Bind Sort selector
     const sortSelect = mount.querySelector("#menu-sort-select");
@@ -959,10 +990,9 @@ window.views.menu = {
         if (!prod) return;
 
         const currentCost = prod.costPrice !== undefined && prod.costPrice !== null ? prod.costPrice : "";
-        const benchmarkEstimate = (Number(prod.price || 0) * (this.benchmarkCogsPercent / 100)).toFixed(1);
 
         const newCost = prompt(
-          `Enter exact food cost price (₹) for "${prod.name}":\n(Leave empty to use automatic ${this.benchmarkCogsPercent}% benchmark: ₹${benchmarkEstimate})`,
+          `Enter exact food cost price (₹) for "${prod.name}":`,
           currentCost
         );
 
@@ -970,7 +1000,7 @@ window.views.menu = {
           if (newCost.trim() === "") {
             delete prod.costPrice;
             window.db.saveProduct(prod);
-            window.showToast(`Food cost for "${prod.name}" reset to ${this.benchmarkCogsPercent}% benchmark.`, "info");
+            window.showToast(`Food cost for "${prod.name}" cleared.`, "info");
           } else if (!isNaN(newCost) && Number(newCost) >= 0) {
             prod.costPrice = Number(newCost);
             window.db.saveProduct(prod);
@@ -1366,7 +1396,7 @@ window.views.menu = {
 
           <div class="form-group" style="margin-bottom: 0;">
             <label class="form-label" for="prod-modal-cost" style="font-weight: 700; margin-bottom: 5px;">Total Cost Price (₹)</label>
-            <input type="number" id="prod-modal-cost" class="form-input" value="${currentCost}" placeholder="Auto (${this.benchmarkCogsPercent}% benchmark)" min="0" step="any" style="height: 38px; font-size: 13px; font-weight: 700; border-radius: 10px;">
+            <input type="number" id="prod-modal-cost" class="form-input" value="${currentCost}" placeholder="Enter dish cost price (₹)" min="0" step="any" style="height: 38px; font-size: 13px; font-weight: 700; border-radius: 10px;">
           </div>
         </div>
 
@@ -1910,11 +1940,11 @@ window.views.menu = {
     }
 
     mount.innerHTML = `
-      <div class="glass-card view-animate" style="padding: 18px 20px; border-radius: 14px;">
+      <div class="glass-card view-animate" style="padding: 18px 20px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
           <div>
-            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0;">
-              <i class="fa-solid fa-tags" style="color: #2563eb; margin-right: 6px;"></i> Food Categories Directory
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-tags" style="color: #2563eb;"></i> Food Categories Directory
             </h3>
             <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">Organize menu items into navigation groups for fast cashier selection on the POS screen.</p>
           </div>
@@ -1923,7 +1953,7 @@ window.views.menu = {
           </span>
         </div>
 
-        <div class="table-container">
+        <div class="table-container" style="border-radius: 10px; border: 1px solid var(--border-color);">
           <table class="premium-table">
             <thead>
               <tr>
@@ -1950,8 +1980,8 @@ window.views.menu = {
         this.activeTab = "products";
         const btnProd = document.getElementById("menu-sub-products");
         const btnCat = document.getElementById("menu-sub-categories");
-        if (btnProd) btnProd.className = "btn btn-primary";
-        if (btnCat) btnCat.className = "btn btn-secondary";
+        if (btnProd) btnProd.className = "subtab-rep-btn active";
+        if (btnCat) btnCat.className = "subtab-rep-btn";
         const btnBulk = document.getElementById("btn-menu-bulk-tools");
         const btnExport = document.getElementById("btn-menu-export-csv");
         const btnPrint = document.getElementById("btn-menu-print-sheet");
@@ -2075,11 +2105,11 @@ window.views.menu = {
     }).join("");
 
     mount.innerHTML = `
-      <div class="glass-card view-animate" style="padding: 20px; border-radius: 14px;">
+      <div class="glass-card view-animate" style="padding: 20px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 16px;">
           <div>
-            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0;">
-              <i class="fa-solid fa-user-shield" style="color: #2563eb; margin-right: 6px;"></i> Role Access Control Matrix
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-user-shield" style="color: #2563eb;"></i> Role Access Control Matrix
             </h3>
             <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0 0 0;">Manage which POS features each user level is allowed to view.</p>
           </div>
@@ -2088,7 +2118,7 @@ window.views.menu = {
           </span>
         </div>
         
-        <div class="table-container">
+        <div class="table-container" style="border-radius: 10px; border: 1px solid var(--border-color);">
           <table class="premium-table">
             <thead>
               <tr>

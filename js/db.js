@@ -944,16 +944,48 @@ const db = {
   getProductCostMap() {
     const products = this.get("products") || [];
     const map = {};
+    const ingredientCostMap = (window.views && window.views.menu && window.views.menu.ingredientCostMap) || {
+      ing1: 8.0, ing2: 12.0, ing3: 14.0, ing4: 3.0, ing5: 7.0, ing6: 0.04, ing7: 14.0,
+      ing8: 0.08, ing9: 5.0, ing10: 0.03, ing11: 30.0, ing12: 0.40, ing13: 0.15, ing14: 0.15
+    };
+
     products.forEach(p => {
       const price = Number(p.price) || 0;
-      const cost = (p.costPrice !== undefined && p.costPrice !== null && !isNaN(p.costPrice) && Number(p.costPrice) > 0)
-        ? Number(p.costPrice)
-        : ((Number(p.ingredientCost) || 0) + (Number(p.packagingCost) || 0) > 0)
-          ? (Number(p.ingredientCost) || 0) + (Number(p.packagingCost) || 0)
-          : Math.round(price * 0.32 * 10) / 10;
+      let cost = 0;
+      let isCustom = false;
+      let isFromRecipe = false;
+
+      if (p.costPrice !== undefined && p.costPrice !== null && !isNaN(p.costPrice) && Number(p.costPrice) > 0) {
+        cost = Number(p.costPrice);
+        isCustom = true;
+      } else if (p.recipe && Object.keys(p.recipe).length > 0) {
+        let recipeSum = 0;
+        Object.entries(p.recipe).forEach(([ingId, qty]) => {
+          const uCost = ingredientCostMap[ingId] || 5.0;
+          recipeSum += (Number(qty) || 0) * uCost;
+        });
+        recipeSum += Number(p.packagingCost) || 0;
+        cost = Math.round(recipeSum * 100) / 100;
+        isFromRecipe = true;
+      } else if ((Number(p.ingredientCost) || 0) + (Number(p.packagingCost) || 0) > 0) {
+        cost = (Number(p.ingredientCost) || 0) + (Number(p.packagingCost) || 0);
+      } else {
+        cost = Math.round(price * 0.32 * 10) / 10;
+      }
+
       const profit = Math.max(0, price - cost);
       const margin = price > 0 ? Math.round((profit / price) * 100) : 68;
-      const info = { id: p.id, name: p.name, price, costPrice: cost, grossProfit: profit, marginPct: margin, category: p.category };
+      const info = {
+        id: p.id,
+        name: p.name,
+        price,
+        costPrice: cost,
+        grossProfit: profit,
+        marginPct: margin,
+        category: p.category,
+        isCustom,
+        isFromRecipe
+      };
       map[p.id] = info;
       if (p.name) {
         map[p.name.toLowerCase().trim()] = info;
@@ -965,7 +997,9 @@ const db = {
   // Centralized Dynamic Order & Item Cost Calculation Engine
   calculateOrdersFinancials(ordersList, costMapInput = null) {
     const costMap = costMapInput || this.getProductCostMap();
-    let grossSales = 0;
+    let grossBilling = 0;
+    let netSales = 0;
+    let totalDiscounts = 0;
     let totalCOGS = 0;
     let totalItemsCount = 0;
     const itemAggregates = {};
@@ -973,7 +1007,12 @@ const db = {
     (ordersList || []).forEach(o => {
       if (o.status === "Cancelled") return;
       const orderTotal = Number(o.total) || 0;
-      grossSales += orderTotal;
+      const orderDisc = Number(o.discount) || 0;
+      const orderSubtotal = Number(o.subtotal) || (orderTotal + orderDisc);
+
+      grossBilling += orderSubtotal;
+      netSales += orderTotal;
+      totalDiscounts += orderDisc;
 
       if (Array.isArray(o.items)) {
         o.items.forEach(it => {
@@ -981,16 +1020,17 @@ const db = {
           const itPrice = Number(it.price) || 0;
           const itRevenue = Number(it.lineTotal) || (itPrice * qty);
           const name = (it.name || "").trim();
-          const key = it.productId || (name ? name.toLowerCase() : "");
-          
-          const costInfo = costMap[key] || {
+          const cleanKey = name.toLowerCase();
+          const costInfo = (it.productId && costMap[it.productId]) || costMap[cleanKey] || {
             price: itPrice,
             costPrice: (it.costPrice !== undefined && it.costPrice !== null && Number(it.costPrice) > 0) ? Number(it.costPrice) : Math.round(itPrice * 0.32 * 10) / 10,
             grossProfit: 0,
             marginPct: 68
           };
 
-          const unitCost = costInfo.costPrice;
+          const unitCost = (it.costPrice !== undefined && it.costPrice !== null && !isNaN(it.costPrice) && Number(it.costPrice) > 0)
+            ? Number(it.costPrice)
+            : Number(costInfo.costPrice || 0);
           const lineCost = unitCost * qty;
           const lineProfit = Math.max(0, itRevenue - lineCost);
 
@@ -998,16 +1038,22 @@ const db = {
           totalItemsCount += qty;
 
           if (!itemAggregates[name]) {
+            const unitMargin = Math.max(0, itPrice - unitCost);
+            const marginPct = itPrice > 0 ? Math.round((unitMargin / itPrice) * 100) : 68;
             itemAggregates[name] = {
               name,
               productId: it.productId,
               category: costInfo.category || it.category,
               price: itPrice,
               unitCost,
+              unitMargin,
+              marginPct,
               unitsSold: 0,
               grossSales: 0,
               totalCost: 0,
-              profitContributed: 0
+              profitContributed: 0,
+              isFromRecipe: costInfo.isFromRecipe,
+              isCustom: costInfo.isCustom
             };
           }
           itemAggregates[name].unitsSold += qty;
@@ -1018,15 +1064,17 @@ const db = {
       }
     });
 
-    if (totalCOGS === 0 && grossSales > 0) {
-      totalCOGS = Math.round(grossSales * 0.32 * 100) / 100;
+    if (totalCOGS === 0 && netSales > 0) {
+      totalCOGS = Math.round(netSales * 0.32 * 100) / 100;
     }
 
-    const grossProfit = Math.max(0, grossSales - totalCOGS);
-    const grossMarginPct = grossSales > 0 ? Math.round((grossProfit / grossSales) * 100) : 68;
+    const grossProfit = Math.max(0, netSales - totalCOGS);
+    const grossMarginPct = netSales > 0 ? Math.round((grossProfit / netSales) * 100) : 68;
 
     return {
-      grossSales,
+      grossSales: grossBilling,
+      netSales,
+      totalDiscounts,
       totalCOGS: Math.round(totalCOGS * 100) / 100,
       grossProfit: Math.round(grossProfit * 100) / 100,
       grossMarginPct,

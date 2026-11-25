@@ -120,7 +120,7 @@ window.views.pos = {
   saveHeldOrders(list) {
     try {
       localStorage.setItem("cc_pos_held_orders", JSON.stringify(list));
-    } catch (e) {}
+    } catch (e) { }
   },
 
   getOccupiedTables() {
@@ -176,7 +176,7 @@ window.views.pos = {
       const latest = custOrders[0];
       const visitCount = custOrders.length;
       const custName = latest.customerName && latest.customerName.toLowerCase() !== "walk-in customer" ? latest.customerName : "Regular Guest";
-      
+
       crmBanner.innerHTML = `
         <div class="pos-cust-crm-text">
           <i class="fa-solid fa-crown" style="color: #eab308; font-size: 11px;"></i>
@@ -350,8 +350,8 @@ window.views.pos = {
 
             <!-- Table Input & Quick Selector Chips -->
             <div id="header-table-box" style="display: ${this.orderType === 'Dine-in' ? 'flex' : 'none'}; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 14px; padding: 4px 10px; height: 38px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-chair" style="color: #2563eb;"></i> Table:</span>
-              <input type="text" id="pos-table-input" placeholder="T-1" value="${this.orderType === 'Dine-in' ? 'T-1' : ''}" style="border: none; outline: none; font-size: 12px; font-weight: 800; width: 44px; color: #2563eb; background: transparent;">
+              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 4px;"><i class="fa-solid fa-chair" style="color: #ff8a5c;"></i> Table:</span>
+              <input type="text" id="pos-table-input" placeholder="T-1" value="${this.orderType === 'Dine-in' ? 'T-1' : ''}" style="border: none; outline: none; font-size: 12px; font-weight: 800; width: 44px; color: #ff8a5c; background: transparent;">
               <div class="pos-table-chips" id="pos-table-chips-list">
                 <!-- Populated dynamically by renderTableChips() -->
               </div>
@@ -362,7 +362,7 @@ window.views.pos = {
           <div class="pos-header-actions-area">
             <!-- Shift Live Stats Pill (Orders & Revenue) -->
             <div class="pos-shift-stats" style="display: inline-flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 700;">
-              <span style="color: #2563eb; display: flex; align-items: center; gap: 4px;" title="Orders completed today">
+              <span style="color: #ff8a5c; display: flex; align-items: center; gap: 4px;" title="Orders completed today">
                 <i class="fa-solid fa-clipboard-check"></i> <span id="pos-today-orders-count">${stats.count} Bills</span>
               </span>
               <span style="color: #cbd5e1;">|</span>
@@ -419,7 +419,7 @@ window.views.pos = {
             <!-- Cart Header -->
             <div class="cart-header">
               <div class="cart-title">
-                <i class="fa-solid fa-cart-shopping" style="color: #2563eb; font-size: 14px;"></i> Current Order 
+                <i class="fa-solid fa-cart-shopping" style="color: #ff8a5c; font-size: 14px;"></i> Current Order 
                 <span class="cart-item-count-badge" id="cart-qty-badge">0 Items</span>
               </div>
               <div style="display: flex; align-items: center; gap: 6px;">
@@ -475,26 +475,6 @@ window.views.pos = {
 
             <!-- Cart billing summary & checkout panel -->
             <div class="cart-billing-details" style="flex-shrink: 0; background: transparent; padding: 0; border: none;">
-              
-              <!-- Special Cooking Note & 1-Click Preset Chips -->
-              <div style="margin-bottom: 6px;">
-                <div class="pos-kitchen-note-box">
-                  <i class="fa-solid fa-pencil note-icon"></i>
-                  <input type="text" id="order-kitchen-note" placeholder="Kitchen instructions (e.g. Jain, Less Spicy)..." oninput="views.pos.updateKitchenNoteChips()">
-                </div>
-                <!-- 1-Click Preset Chips -->
-                <div class="pos-preset-notes">
-                  <span class="pos-preset-chip" data-text="Jain" onclick="views.pos.toggleKitchenNotePreset('Jain')">🌱 Jain</span>
-                  <span class="pos-preset-chip" data-text="Less Spicy" onclick="views.pos.toggleKitchenNotePreset('Less Spicy')">🌶️ Less Spicy</span>
-                  <span class="pos-preset-chip" data-text="Extra Spicy" onclick="views.pos.toggleKitchenNotePreset('Extra Spicy')">🔥 Extra Spicy</span>
-                  <span class="pos-preset-chip" data-text="No Onion/Garlic" onclick="views.pos.toggleKitchenNotePreset('No Onion/Garlic')">🧅 No Onion</span>
-                  <span class="pos-preset-chip" data-text="Extra Cheese" onclick="views.pos.toggleKitchenNotePreset('Extra Cheese')">🧀 Extra Cheese</span>
-                  <span class="pos-preset-chip" data-text="Parcel Pack" onclick="views.pos.toggleKitchenNotePreset('Parcel Pack')">📦 Parcel</span>
-                  <span class="pos-preset-chip" data-text="Urgent" onclick="views.pos.toggleKitchenNotePreset('Urgent')">⚡ Urgent</span>
-                </div>
-              </div>
-
-
 
               <!-- Invoice billing summary calculations -->
               <div class="pos-billing-card">
@@ -693,7 +673,7 @@ window.views.pos = {
   toggleViewMode() {
     this.tileViewMode = this.tileViewMode === "cards" ? "tiles" : "cards";
     localStorage.setItem("cc_pos_view_mode", this.tileViewMode);
-    
+
     const btn = document.getElementById("pos-view-mode-toggle");
     if (btn) {
       btn.innerHTML = `<i class="fa-solid ${this.tileViewMode === 'tiles' ? 'fa-image' : 'fa-table-cells-large'}" style="color: #2563eb;"></i> <span>${this.tileViewMode === 'tiles' ? 'Photo Cards' : 'Speed Tiles'}</span>`;
@@ -729,11 +709,11 @@ window.views.pos = {
 
   toggleFullscreen() {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => { });
       window.showToast("POS Fullscreen Mode Enabled", "info");
     } else {
       if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
         window.showToast("Exited Fullscreen", "info");
       }
     }
@@ -779,7 +759,7 @@ window.views.pos = {
         this.selectedCategory = tab.getAttribute("data-id");
         try {
           tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        } catch (e) {}
+        } catch (e) { }
         this.renderProducts();
       };
     });
@@ -926,7 +906,7 @@ window.views.pos = {
     this.gridDensity = this.gridDensity === "dense" ? "compact" : "dense";
     try {
       localStorage.setItem("cc_pos_density", this.gridDensity);
-    } catch (e) {}
+    } catch (e) { }
 
     const grid = document.getElementById("pos-grid");
     if (grid) {
@@ -946,7 +926,7 @@ window.views.pos = {
 
   getCategoryMeta(catId, prodName) {
     const name = (prodName || "").toLowerCase();
-    
+
     // 1. BURGERS (cat1)
     if (catId === "cat1" || (!catId && name.includes("burger"))) {
       return {
@@ -1019,10 +999,10 @@ window.views.pos = {
         emoji: "🍜",
         icon: "fa-bowl-food",
         shortName: "Maggi",
-        color: "#ea580c",
-        bgColor: "#fff7ed",
-        borderColor: "#fed7aa",
-        accent: "#f97316"
+        color: "#ff7343",
+        bgColor: "#fff8f5",
+        borderColor: "#ffe0d2",
+        accent: "#ff8a5c"
       };
     }
     // 7. SLICE (cat7)
@@ -1177,8 +1157,12 @@ window.views.pos = {
       return;
     }
 
+    const cats = window.db ? (window.db.get("categories") || []) : [];
+    const catMap = new Map(cats.map(c => [c.id, c.name]));
+
     grid.innerHTML = filtered.map((p) => {
       const isVeg = p.veg !== false;
+      const catLabel = catMap.get(p.category) || "Menu";
 
       // Check current cart quantity of this item
       const cartItem = this.cart.find(item => item.productId === p.id);
@@ -1211,11 +1195,12 @@ window.views.pos = {
              data-id="${p.id}" 
              onclick="views.pos.addToCart('${p.id}')">
           
-          <!-- Top Row: Veg indicator on left, BOGO badge on right (if applicable) -->
+          <!-- Top Row: Veg indicator on left, Category tag on right -->
           <div class="card-top-row">
             <span class="pos-veg-dot-box ${isVeg ? 'veg' : 'nonveg'}" title="${isVeg ? 'Pure Veg' : 'Non-Veg'}">
               <span class="pos-veg-inner-dot"></span>
             </span>
+            <span class="pos-card-cat-badge">${catLabel}</span>
           </div>
 
           <!-- Middle: Crisp High-Contrast Product Name -->
@@ -1225,7 +1210,7 @@ window.views.pos = {
             </h4>
           </div>
 
-          <!-- Bottom Row: Warm Price Pill on left, Add Button on right -->
+          <!-- Bottom Row: Price on left, Add Button on right -->
           <div class="card-bottom-row" onclick="event.stopPropagation();">
             <span class="product-price">₹${p.price}</span>
             <div class="pos-card-action-wrap">
@@ -1541,15 +1526,15 @@ window.views.pos = {
           </div>
           <div class="combo-cards-grid" id="combo-slot1-grid">
             ${slot1.options.map(opt => {
-              const isSel = opt.name === selectedMain;
-              return `
+      const isSel = opt.name === selectedMain;
+      return `
                 <div class="combo-choice-card ${isSel ? 'selected' : ''}" data-slot="mainItem" data-name="${opt.name}">
                   <div class="combo-card-radio"></div>
                   <span class="combo-choice-icon">${opt.icon}</span>
                   <span class="combo-choice-name">${opt.name}</span>
                 </div>
               `;
-            }).join("")}
+    }).join("")}
           </div>
         </div>
 
@@ -1561,15 +1546,15 @@ window.views.pos = {
           </div>
           <div class="combo-cards-grid" id="combo-slot2-grid">
             ${slot2.options.map(opt => {
-              const isSel = opt.name === selectedBeverage;
-              return `
+      const isSel = opt.name === selectedBeverage;
+      return `
                 <div class="combo-choice-card ${isSel ? 'selected' : ''}" data-slot="beverage" data-name="${opt.name}">
                   <div class="combo-card-radio"></div>
                   <span class="combo-choice-icon">${opt.icon}</span>
                   <span class="combo-choice-name">${opt.name}</span>
                 </div>
               `;
-            }).join("")}
+    }).join("")}
           </div>
         </div>
 
@@ -1593,8 +1578,8 @@ window.views.pos = {
           </div>
           <div style="display: flex; flex-direction: column; gap: 6px;">
             ${availableAddons.map(add => {
-              const isChecked = selectedAddons.some(a => a.id === add.id);
-              return `
+      const isChecked = selectedAddons.some(a => a.id === add.id);
+      return `
                 <label style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid var(--border-color); padding: 7px 12px; border-radius: 10px; cursor: pointer; font-size: 12px;">
                   <span style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text-dark);">
                     <input type="checkbox" class="combo-addon-chk" data-id="${add.id}" data-name="${add.name}" data-price="${add.price}" ${isChecked ? 'checked' : ''}>
@@ -1603,7 +1588,7 @@ window.views.pos = {
                   <span style="font-weight: 800; color: #2563eb;">${add.price > 0 ? `+₹${add.price}` : 'Free'}</span>
                 </label>
               `;
-            }).join("")}
+    }).join("")}
           </div>
         </div>
 
@@ -1843,7 +1828,7 @@ window.views.pos = {
       ` : "";
 
       return `
-        <div class="cart-item-row" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 10px 12px; margin-bottom: 7px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; width: 100%; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03); transition: all 0.2s ease;">
+        <div class="cart-item-row" style="background: #ffffff; border: 1px solid #f0f3f9; border-radius: 14px; padding: 10px 12px; margin-bottom: 7px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; width: 100%; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02); transition: all 0.2s ease;">
           
           <!-- Top Row: Veg Icon + Full Item Name + Remove Button -->
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
@@ -1867,9 +1852,9 @@ window.views.pos = {
           </div>
 
           <!-- Bottom Row: Addons / Note button & Controls + Line Total -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed #e2e8f0; padding-top: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; border-top: 1px dashed #f1f5f9; padding-top: 6px;">
             <div style="display: flex; gap: 6px; align-items: center;">
-              <button class="btn-add-note" onclick="views.pos.openItemAddonModal('${itemId}')" style="background: transparent; border: none; color: #2563eb; font-size: 10.5px; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 3px;" title="${item.comboChoices ? 'Change Combo Selections' : 'Add Cheese, Extra Patty or Toppings'}">
+              <button class="btn-add-note" onclick="views.pos.openItemAddonModal('${itemId}')" style="background: transparent; border: none; color: #ff8a5c; font-size: 10.5px; font-weight: 700; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 3px;" title="${item.comboChoices ? 'Change Combo Selections' : 'Add Cheese, Extra Patty or Toppings'}">
                 <i class="fa-solid ${item.comboChoices ? 'fa-layer-group' : 'fa-sliders'}"></i> ${item.comboChoices ? 'Change Combo' : 'Customize'}
               </button>
               <button class="btn-add-note" onclick="views.pos.addItemNotePrompt('${itemId}')" style="background: transparent; border: none; color: #64748b; font-size: 10.5px; font-weight: 700; cursor: pointer; padding: 0; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -1880,17 +1865,17 @@ window.views.pos = {
             <div style="display: flex; align-items: center; gap: 7px; flex-shrink: 0;">
               <span style="font-size: 11.5px; color: #64748b; font-weight: 600;">₹${unitPriceWithAddons}</span>
               <!-- Qty Stepper Pill -->
-              <div style="display: flex; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; height: 26px; padding: 0 4px;" onclick="event.stopPropagation();">
-                <button onclick="views.pos.modifyQty('${itemId}', -1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 11px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-minus"></i></button>
+              <div style="display: flex; align-items: center; background: #fff8f5; border: 1.5px solid #ffe0d2; border-radius: 9999px; height: 26px; padding: 0 4px;" onclick="event.stopPropagation();">
+                <button onclick="views.pos.modifyQty('${itemId}', -1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 11px; color: #ff7343; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-minus"></i></button>
                 <input type="number" class="cart-qty-input" value="${item.quantity}" 
                        onchange="views.pos.setQty('${itemId}', parseInt(this.value) || 0)"
                        onclick="this.select();" 
                        onkeydown="if(event.key==='Enter') { event.preventDefault(); this.blur(); }"
-                       style="background: transparent; border: none; font-size: 12px; font-weight: 800; width: 28px; text-align: center; color: #1e40af; outline: none; padding: 0;">
-                <button onclick="views.pos.modifyQty('${itemId}', 1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 11px; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-plus"></i></button>
+                       style="background: transparent; border: none; font-size: 12px; font-weight: 850; width: 28px; text-align: center; color: #0f172a; outline: none; padding: 0;">
+                <button onclick="views.pos.modifyQty('${itemId}', 1)" style="background: transparent; border: none; width: 20px; height: 100%; cursor: pointer; font-size: 11px; color: #ff7343; display: flex; align-items: center; justify-content: center; font-weight: bold;"><i class="fa-solid fa-plus"></i></button>
               </div>
               <!-- Line Total -->
-              <span style="font-size: 13.5px; font-weight: 850; color: #d97706; min-width: 44px; text-align: right;">₹${lineTotal}</span>
+              <span style="font-size: 13.5px; font-weight: 850; color: #0f172a; min-width: 44px; text-align: right;">₹${lineTotal}</span>
             </div>
           </div>
         </div>
@@ -2319,7 +2304,7 @@ window.views.pos = {
       });
       if (btn) btn.classList.add("active");
       this.selectedPayment = mode;
-      
+
       if (cashDrawer) {
         cashDrawer.style.display = mode === "Cash" ? "block" : "none";
         if (mode === "Cash") this.calcChangeReturn();
@@ -2546,8 +2531,8 @@ window.views.pos = {
         </div>
         <div style="display: flex; flex-direction: column; gap: 8px;">
           ${availableAddons.map(add => {
-            const isChecked = item.addons.some(a => a.id === add.id);
-            return `
+      const isChecked = item.addons.some(a => a.id === add.id);
+      return `
               <label style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; cursor: pointer;">
                 <span style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text-dark);">
                   <input type="checkbox" class="addon-chk" data-id="${add.id}" data-name="${add.name}" data-price="${add.price}" ${isChecked ? 'checked' : ''}>
@@ -2556,7 +2541,7 @@ window.views.pos = {
                 <span style="font-weight: 800; color: #2563eb;">${add.price > 0 ? `+₹${add.price}` : 'Free'}</span>
               </label>
             `;
-          }).join("")}
+    }).join("")}
         </div>
       </div>
     `;
@@ -2651,13 +2636,13 @@ window.views.pos = {
           </thead>
           <tbody>
             ${this.cart.map(item => {
-              const addonsStr = (item.addons && item.addons.length > 0) ? ` (+ ${item.addons.map(a => a.name).join(", ")})` : "";
-              const comboSubStr = item.comboChoices ? `
+      const addonsStr = (item.addons && item.addons.length > 0) ? ` (+ ${item.addons.map(a => a.name).join(", ")})` : "";
+      const comboSubStr = item.comboChoices ? `
                 <div style="font-size: 11px; font-weight: normal; margin-left: 4px; color: #333;">
                   ↳ <strong>${item.comboChoices.mainItem}</strong> + <strong>${item.comboChoices.beverage}</strong> + <strong>${item.comboChoices.side || 'Fries'}</strong>
                 </div>
               ` : "";
-              return `
+      return `
                 <tr style="border-bottom: 1px dotted #ccc;">
                   <td style="padding: 5px 0; font-weight: bold;">
                     ${item.name}${addonsStr}
@@ -2667,7 +2652,7 @@ window.views.pos = {
                   <td style="text-align: right; padding: 5px 0; font-size: 14px; font-weight: 900;">${item.quantity}</td>
                 </tr>
               `;
-            }).join("")}
+    }).join("")}
           </tbody>
         </table>
         ${kitchenNote ? `
@@ -2899,7 +2884,7 @@ window.views.pos = {
             secondPrintCompleted = true;
             clearTimeout(safetyTimer);
             this.isPrintingSequence = false;
-            
+
             // Revert tab and automatically close the receipt modal (image 3)
             setTimeout(() => {
               this.switchReceiptTab("bill");
@@ -3119,9 +3104,9 @@ window.views.pos = {
             </thead>
             <tbody>
               ${(order.items || []).map(item => {
-                const linePrice = Number(item.price || 0).toFixed(2);
-                const lineAmt = Number(item.lineTotal || (item.price * item.quantity)).toFixed(2);
-                return `
+      const linePrice = Number(item.price || 0).toFixed(2);
+      const lineAmt = Number(item.lineTotal || (item.price * item.quantity)).toFixed(2);
+      return `
                   <tr>
                     <td>
                       <span class="receipt-item-name">${item.name}</span>
@@ -3131,7 +3116,7 @@ window.views.pos = {
                     <td style="text-align: right;">${lineAmt}</td>
                   </tr>
                 `;
-              }).join("")}
+    }).join("")}
             </tbody>
           </table>
           
@@ -3221,8 +3206,8 @@ window.views.pos = {
             </thead>
             <tbody>
               ${(order.items || []).map(item => {
-                let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ea580c;">* Note: ${item.note}</span>` : "";
-                return `
+      let noteLabel = item.note ? `<br><span class="receipt-item-note" style="font-size: 10px; font-weight: bold; color: #ff7343;">* Note: ${item.note}</span>` : "";
+      return `
                   <tr>
                     <td>
                       <span class="receipt-item-name" style="font-size: 13px; font-weight: bold;">${item.name}</span>
@@ -3231,7 +3216,7 @@ window.views.pos = {
                     <td style="text-align: right; font-size: 14px; font-weight: 900;">${item.quantity}</td>
                   </tr>
                 `;
-              }).join("")}
+    }).join("")}
             </tbody>
           </table>
 
@@ -3447,7 +3432,7 @@ window.views.pos = {
     if (!input) return;
     let current = input.value.trim();
     let parts = current ? current.split(",").map(s => s.trim()).filter(Boolean) : [];
-    
+
     const existingIndex = parts.findIndex(p => p.toLowerCase() === noteText.toLowerCase());
     if (existingIndex > -1) {
       parts.splice(existingIndex, 1);

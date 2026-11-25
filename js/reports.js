@@ -96,143 +96,128 @@ window.views.reports = {
         <!-- 5-Card Executive Financial Scorecard Grid with Growth Comparison -->
         <div class="rep-kpi-grid">
           
-          <!-- Card 1: Gross Sales -->
-          <div class="rep-kpi-card accent-blue">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Gross Sales Revenue</span>
-              <div class="rep-kpi-icon icon-blue">
-                <i class="fa-solid fa-coins"></i>
+          <!-- Card 1: Gross Sales Revenue -->
+          <div class="rep-kpi-card" id="rep-card-gross">
+            <div class="dash-kpi-icon-wrap rep-ring-coral">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="rep-gross-sales" style="color: #ff8a5c;">₹0</div>
+              <div class="rep-kpi-label">Gross Sales Revenue</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="rep-gross-orders-badge"><i class="fa-solid fa-receipt"></i> 0 Bills</span>
+                <span id="rep-growth-gross-badge" class="growth-tag growth-up"><i class="fa-solid fa-arrow-trend-up"></i> +0% vs prev</span>
               </div>
-            </div>
-            <div>
-              <div class="rep-kpi-val" id="rep-gross-sales" style="color: #2563eb;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-orders-sub">0 completed orders</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="rep-gross-orders-badge"><i class="fa-solid fa-receipt"></i> 0 Bills</span>
-              <span id="rep-growth-gross-badge" class="growth-tag growth-up"><i class="fa-solid fa-arrow-trend-up"></i> +0% vs prev</span>
             </div>
           </div>
 
           <!-- Card 2: Net Realized Revenue -->
-          <div class="rep-kpi-card accent-indigo">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Net Sales Realized</span>
-              <div class="rep-kpi-icon icon-indigo">
-                <i class="fa-solid fa-wallet"></i>
+          <div class="rep-kpi-card" id="rep-card-net">
+            <div class="dash-kpi-icon-wrap rep-ring-cyan">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="rep-net-sales" style="color: #0284c7;">₹0</div>
+              <div class="rep-kpi-label">Net Sales Realized</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash" id="rep-discounts-badge"><i class="fa-solid fa-tag"></i> Discounts: -₹0</span>
+                <span id="rep-growth-aov-badge" class="dash-sub-pill pill-neutral">AOV: ₹0</span>
               </div>
-            </div>
-            <div>
-              <div class="rep-kpi-val" id="rep-net-sales" style="color: #4f46e5;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-net-sub">Customer billing realized</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-cash" id="rep-discounts-badge"><i class="fa-solid fa-tag"></i> Discounts: -₹0</span>
-              <span id="rep-growth-aov-badge" class="dash-sub-pill pill-neutral">AOV: ₹0</span>
             </div>
           </div>
 
-          <!-- Card 3: Food Cost / COGS Benchmarking -->
-          <div class="rep-kpi-card accent-amber">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Food Cost (COGS)</span>
-              <div class="rep-kpi-icon icon-amber">
-                <i class="fa-solid fa-boxes-stacked"></i>
-              </div>
+          <!-- Card 3: Food Cost / Recipe COGS Benchmarking -->
+          <div class="rep-kpi-card" id="rep-card-cogs">
+            <div class="dash-kpi-icon-wrap rep-ring-amber">
+              <i class="fa-solid fa-boxes-stacked"></i>
             </div>
-            <div>
+            <div class="rep-kpi-info">
               <div class="rep-kpi-val" id="rep-cogs-val" style="color: #b45309;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-cogs-sub">Benchmarked ingredient cost</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="rep-gross-margin-badge"><i class="fa-solid fa-percent"></i> 68% Gross Margin</span>
+              <div class="rep-kpi-label">Food Cost (COGS)</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="rep-gross-margin-badge"><i class="fa-solid fa-percent"></i> 68% Margin</span>
+              </div>
             </div>
           </div>
 
           <!-- Card 4: Operating Expenses -->
-          <div class="rep-kpi-card accent-rose">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label">Overhead Operating Expenses</span>
-              <div class="rep-kpi-icon icon-rose">
-                <i class="fa-solid fa-receipt"></i>
+          <div class="rep-kpi-card" id="rep-card-expense">
+            <div class="dash-kpi-icon-wrap rep-ring-rose">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="rep-expense-val" style="color: #e11d48;">₹0</div>
+              <div class="rep-kpi-label">Operating Overheads</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="rep-expense-entries-badge"><i class="fa-solid fa-list-check"></i> 0 Expenses</span>
               </div>
-            </div>
-            <div>
-              <div class="rep-kpi-val" id="rep-expense-val" style="color: #dc2626;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-expense-sub">Salaries, utilities & till payouts</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="dash-sub-pill pill-neutral" id="rep-expense-entries-badge"><i class="fa-solid fa-list-check"></i> 0 Expenses</span>
             </div>
           </div>
 
           <!-- Card 5: Net Operating Profit -->
           <div class="rep-kpi-card accent-green" id="rep-profit-card">
-            <div class="rep-kpi-header">
-              <span class="rep-kpi-label" style="font-weight: 800; color: #059669;">NET OPERATING PROFIT</span>
-              <div class="rep-kpi-icon icon-green" id="rep-profit-icon">
-                <i class="fa-solid fa-sack-dollar"></i>
-              </div>
+            <div class="dash-kpi-icon-wrap rep-ring-green" id="rep-profit-icon">
+              <i class="fa-solid fa-sack-dollar"></i>
             </div>
-            <div>
+            <div class="rep-kpi-info">
               <div class="rep-kpi-val" id="rep-net-profit-val" style="color: #059669; font-size: 26px;">₹0</div>
-              <div class="rep-kpi-sub" id="rep-profit-sub">Net Sales (-) COGS (-) Overheads</div>
-            </div>
-            <div class="rep-kpi-badges">
-              <span class="growth-tag growth-up" id="rep-profit-margin-badge"><i class="fa-solid fa-arrow-trend-up"></i> 0% Net Margin</span>
-              <span class="dash-sub-pill pill-cash" id="rep-health-status-badge">Healthy Profit</span>
+              <div class="rep-kpi-label" style="font-weight: 800; color: #059669;">NET OPERATING PROFIT</div>
+              <div class="rep-kpi-badges">
+                <span class="growth-tag growth-up" id="rep-profit-margin-badge"><i class="fa-solid fa-arrow-trend-up"></i> 0% Net Margin</span>
+                <span class="dash-sub-pill pill-cash" id="rep-health-status-badge">Healthy Profit</span>
+              </div>
             </div>
           </div>
 
         </div>
 
         <!-- Store Health & Breakeven Analytics Ribbon -->
-        <div class="glass-card" style="padding: 10px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div class="glass-card" style="padding: 10px 18px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #ffffff; border: 1px solid #f0f3f9;">
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px;">
                 <i class="fa-solid fa-shield-heart" style="color: #059669;"></i> Store Health Score:
               </span>
-              <span id="rep-store-health-pill" style="font-size: 11.5px; font-weight: 900; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 8px;">
+              <span id="rep-store-health-pill" style="font-size: 11.5px; font-weight: 900; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 10px; border-radius: 8px;">
                 92/100 · Strong
               </span>
             </div>
 
-            <div style="height: 16px; width: 1px; background: var(--border-color);" class="hide-mobile"></div>
+            <div style="height: 16px; width: 1px; background: #e2e8f0;" class="hide-mobile"></div>
 
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">
-                <i class="fa-solid fa-scale-balanced" style="color: #2563eb;"></i> Daily Breakeven Target:
+              <span style="font-size: 12px; font-weight: 700; color: #64748b;">
+                <i class="fa-solid fa-scale-balanced" style="color: #0284c7;"></i> Daily Breakeven Target:
               </span>
-              <strong id="rep-breakeven-pill" style="font-size: 12px; color: #2563eb;">₹0 / day (0 orders)</strong>
+              <strong id="rep-breakeven-pill" style="font-size: 12px; color: #0284c7;">₹0 / day (0 orders)</strong>
             </div>
           </div>
 
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);" id="rep-period-comparison-label">
+            <span style="font-size: 11.5px; font-weight: 700; color: #64748b;" id="rep-period-comparison-label">
               Comparing vs previous equivalent period
             </span>
           </div>
         </div>
 
         <!-- Sub-Tabs Navigation Strip -->
-        <div class="glass-card" style="padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-radius: 12px;">
-          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-            <button class="btn ${this.activeTab === 'financial' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-financial" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+        <div class="glass-card" style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="subtab-rep-btn ${this.activeTab === 'financial' ? 'active' : ''}" id="subtab-rep-financial">
               <i class="fa-solid fa-chart-line"></i> Financial P&L & Charts
             </button>
-            <button class="btn ${this.activeTab === 'menu' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-menu" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="subtab-rep-btn ${this.activeTab === 'menu' ? 'active' : ''}" id="subtab-rep-menu">
               <i class="fa-solid fa-burger"></i> Menu Item Margins
             </button>
-            <button class="btn ${this.activeTab === 'insights' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-insights" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="subtab-rep-btn ${this.activeTab === 'insights' ? 'active' : ''}" id="subtab-rep-insights">
               <i class="fa-solid fa-fire"></i> Traffic & Customers
             </button>
-            <button class="btn ${this.activeTab === 'simulator' ? 'btn-primary' : 'btn-secondary'}" id="subtab-rep-simulator" style="height: 35px; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+            <button class="subtab-rep-btn ${this.activeTab === 'simulator' ? 'active' : ''}" id="subtab-rep-simulator">
               <i class="fa-solid fa-sliders"></i> What-If Profit Simulator
             </button>
           </div>
 
-          <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); padding-right: 8px;" id="rep-subtab-indicator">
+          <div style="font-size: 11.5px; font-weight: 700; color: #64748b; padding-right: 8px;" id="rep-subtab-indicator">
             <!-- Dynamic context indicator -->
           </div>
         </div>
@@ -264,10 +249,10 @@ window.views.reports = {
 
     const switchSubTab = (tab) => {
       this.activeTab = tab;
-      if (tabFinancial) tabFinancial.className = this.activeTab === "financial" ? "btn btn-primary" : "btn btn-secondary";
-      if (tabMenu) tabMenu.className = this.activeTab === "menu" ? "btn btn-primary" : "btn btn-secondary";
-      if (tabInsights) tabInsights.className = this.activeTab === "insights" ? "btn btn-primary" : "btn btn-secondary";
-      if (tabSimulator) tabSimulator.className = this.activeTab === "simulator" ? "btn btn-primary" : "btn btn-secondary";
+      if (tabFinancial) tabFinancial.className = `subtab-rep-btn ${this.activeTab === "financial" ? "active" : ""}`;
+      if (tabMenu) tabMenu.className = `subtab-rep-btn ${this.activeTab === "menu" ? "active" : ""}`;
+      if (tabInsights) tabInsights.className = `subtab-rep-btn ${this.activeTab === "insights" ? "active" : ""}`;
+      if (tabSimulator) tabSimulator.className = `subtab-rep-btn ${this.activeTab === "simulator" ? "active" : ""}`;
       this.renderSubTab();
     };
 
@@ -426,43 +411,51 @@ window.views.reports = {
     let cashTotal = 0;
     let upiTotal = 0;
     let cardTotal = 0;
-    let grossSales = 0;
+    let grossBilling = 0;
+    let netSalesRealized = 0;
+    let totalDiscounts = 0;
     let totalItemsCount = 0;
 
     validOrders.forEach(o => {
-      const amt = Number(o.total) || 0;
-      grossSales += amt;
+      const netAmt = Number(o.total) || 0;
+      const discAmt = Number(o.discount) || 0;
+      const subtotalAmt = Number(o.subtotal) || (netAmt + discAmt);
+
+      grossBilling += subtotalAmt;
+      netSalesRealized += netAmt;
+      totalDiscounts += discAmt;
+
       const pm = (o.paymentMethod || "UPI").toLowerCase();
-      if (pm === "cash") cashTotal += amt;
-      else if (pm === "card") cardTotal += amt;
-      else upiTotal += amt;
+      if (pm === "cash") cashTotal += netAmt;
+      else if (pm === "card") cardTotal += netAmt;
+      else upiTotal += netAmt;
 
       if (Array.isArray(o.items)) {
         o.items.forEach(it => { totalItemsCount += (Number(it.quantity) || 1); });
       }
     });
 
-    const flatDiscounts = validOrders.reduce((sum, o) => sum + (Number(o.discount) || 0), 0);
-    const totalDiscounts = flatDiscounts;
-    const netSales = grossSales;
+    const grossSales = grossBilling;
+    const netSales = netSalesRealized;
     const totalOperatingExpenses = periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     
-    // Dynamic item-level COGS based on exact dish cost prices from Menu Management
+    // Dynamic item-level COGS based on exact dish cost prices & recipes from Menu Management
     const financials = (window.db && typeof window.db.calculateOrdersFinancials === "function")
       ? window.db.calculateOrdersFinancials(validOrders)
       : null;
 
-    const estimatedCOGS = financials ? financials.totalCOGS : (grossSales * (this.cogsPercent / 100));
-    const grossProfit = financials ? financials.grossProfit : Math.max(0, grossSales - estimatedCOGS);
-    const grossMarginPct = grossSales > 0 ? Math.round((grossProfit / grossSales) * 100) : (100 - this.cogsPercent);
+    const estimatedCOGS = financials ? financials.totalCOGS : (netSalesRealized * (this.cogsPercent / 100));
+    const grossProfit = Math.max(0, netSalesRealized - estimatedCOGS);
+    const grossMarginPct = netSalesRealized > 0 ? Math.round((grossProfit / netSalesRealized) * 100) : (100 - this.cogsPercent);
+    const foodCostPct = netSalesRealized > 0 ? Math.round((estimatedCOGS / netSalesRealized) * 100) : this.cogsPercent;
     
     const netProfit = grossProfit - totalOperatingExpenses;
-    const netMarginPct = grossSales > 0 ? ((netProfit / grossSales) * 100).toFixed(1) : "0.0";
-    const aov = validOrders.length > 0 ? (grossSales / validOrders.length) : 0;
+    const netMarginPct = netSalesRealized > 0 ? ((netProfit / netSalesRealized) * 100).toFixed(1) : "0.0";
+    const aov = validOrders.length > 0 ? (netSalesRealized / validOrders.length) : 0;
     const itemsPerOrder = validOrders.length > 0 ? (totalItemsCount / validOrders.length).toFixed(1) : "0";
 
     // Growth deltas vs previous period
-    const grossGrowthPct = prevGrossSales > 0 ? (((grossSales - prevGrossSales) / prevGrossSales) * 100).toFixed(1) : null;
+    const grossGrowthPct = prevGrossSales > 0 ? (((netSalesRealized - prevGrossSales) / prevGrossSales) * 100).toFixed(1) : null;
     const aovGrowthPct = prevAov > 0 ? (((aov - prevAov) / prevAov) * 100).toFixed(1) : null;
 
     // Daily breakeven target calculation
@@ -474,11 +467,11 @@ window.views.reports = {
 
     // Store Health Score (0 to 100)
     let healthScore = 75;
-    if (netProfit > (grossSales * 0.25)) healthScore += 15;
+    if (netProfit > (netSalesRealized * 0.25)) healthScore += 15;
     else if (netProfit > 0) healthScore += 8;
     else healthScore -= 20;
 
-    if (grossSales > 0 && (upiTotal + cardTotal) / grossSales >= 0.5) healthScore += 5; // cashless adoption
+    if (netSalesRealized > 0 && (upiTotal + cardTotal) / netSalesRealized >= 0.5) healthScore += 5; // cashless adoption
     if (aov >= 200) healthScore += 5;
     healthScore = Math.max(10, Math.min(99, healthScore));
 
@@ -489,13 +482,14 @@ window.views.reports = {
       categories,
       products,
       currency,
-      grossSales,
-      netSales,
+      grossSales: grossBilling,
+      netSales: netSalesRealized,
       totalDiscounts,
-      flatDiscounts,
+      flatDiscounts: totalDiscounts,
       estimatedCOGS,
       grossProfit,
       grossMarginPct,
+      foodCostPct,
       totalOperatingExpenses,
       netProfit,
       netMarginPct,
@@ -539,7 +533,7 @@ window.views.reports = {
     const breakevenPill = document.getElementById("rep-breakeven-pill");
     const compLabel = document.getElementById("rep-period-comparison-label");
 
-    if (grossSalesEl) grossSalesEl.textContent = `${currency}${Math.round(grossSales).toLocaleString("en-IN")}`;
+    if (grossSalesEl) grossSalesEl.textContent = `${currency}${Math.round(grossBilling).toLocaleString("en-IN")}`;
     if (ordersSubEl) ordersSubEl.textContent = `${validOrders.length} completed transactions`;
     if (grossOrdersBadge) grossOrdersBadge.innerHTML = `<i class="fa-solid fa-receipt"></i> ${validOrders.length} Bills`;
     
@@ -554,13 +548,13 @@ window.views.reports = {
       }
     }
 
-    if (netSalesEl) netSalesEl.textContent = `${currency}${Math.round(netSales).toLocaleString("en-IN")}`;
+    if (netSalesEl) netSalesEl.textContent = `${currency}${Math.round(netSalesRealized).toLocaleString("en-IN")}`;
     if (discountsBadge) discountsBadge.innerHTML = `<i class="fa-solid fa-tag"></i> Discounts: -${currency}${Math.round(totalDiscounts).toLocaleString("en-IN")}`;
     if (aovBadge) aovBadge.textContent = `AOV: ${currency}${Math.round(aov)}`;
 
     if (cogsValEl) cogsValEl.textContent = `${currency}${Math.round(estimatedCOGS).toLocaleString("en-IN")}`;
-    if (cogsSubEl) cogsSubEl.textContent = financials ? `Exact menu dish ingredients cost (${Math.round(100 - grossMarginPct)}% COGS)` : `Benchmarked at ${this.cogsPercent}% food cost`;
-    if (grossMarginBadge) grossMarginBadge.innerHTML = `<i class="fa-solid fa-percent"></i> ${grossMarginPct}% Gross Margin`;
+    if (cogsSubEl) cogsSubEl.textContent = `Exact menu dish cost (${foodCostPct}% COGS)`;
+    if (grossMarginBadge) grossMarginBadge.innerHTML = `<i class="fa-solid fa-percent"></i> ${grossMarginPct}% Margin`;
 
     if (expenseValEl) expenseValEl.textContent = `${currency}${Math.round(totalOperatingExpenses).toLocaleString("en-IN")}`;
     if (expenseEntriesBadge) expenseEntriesBadge.innerHTML = `<i class="fa-solid fa-receipt"></i> ${periodExpenses.length} Expense Entries`;
@@ -580,7 +574,7 @@ window.views.reports = {
       }
 
       if (healthStatusBadge) {
-        if (netProfit > (grossSales * 0.25)) {
+        if (netProfit > (netSalesRealized * 0.25)) {
           healthStatusBadge.className = "dash-sub-pill pill-cash";
           healthStatusBadge.textContent = "High Profitability";
         } else if (netProfit > 0) {
@@ -609,34 +603,42 @@ window.views.reports = {
     }
 
     // 5. Render Active Sub-Tab
-    this.renderSubTab();
+    try {
+      this.renderSubTab();
+    } catch (subTabErr) {
+      console.error("Error in renderSubTab:", subTabErr);
+    }
   },
 
   renderSubTab() {
     const mount = document.getElementById("rep-subtab-mount");
     if (!mount) return;
 
-    const ind = document.getElementById("rep-subtab-indicator");
-    if (ind) {
-      if (this.activeTab === "financial") {
-        ind.innerHTML = `<i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> P&L & Trajectory Charts`;
-      } else if (this.activeTab === "menu") {
-        ind.innerHTML = `<i class="fa-solid fa-trophy" style="color: #eab308;"></i> Unit margins & sales role`;
-      } else if (this.activeTab === "insights") {
-        ind.innerHTML = `<i class="fa-solid fa-fire" style="color: #d97706;"></i> Rush, channels & loyalty`;
-      } else if (this.activeTab === "simulator") {
-        ind.innerHTML = `<i class="fa-solid fa-sliders" style="color: #7c3aed;"></i> What-if profit & target simulator`;
+    try {
+      const ind = document.getElementById("rep-subtab-indicator");
+      if (ind) {
+        if (this.activeTab === "financial") {
+          ind.innerHTML = `<i class="fa-solid fa-chart-line" style="color: #2563eb;"></i> P&L & Trajectory Charts`;
+        } else if (this.activeTab === "menu") {
+          ind.innerHTML = `<i class="fa-solid fa-trophy" style="color: #eab308;"></i> Unit margins & sales role`;
+        } else if (this.activeTab === "insights") {
+          ind.innerHTML = `<i class="fa-solid fa-fire" style="color: #d97706;"></i> Rush, channels & loyalty`;
+        } else if (this.activeTab === "simulator") {
+          ind.innerHTML = `<i class="fa-solid fa-sliders" style="color: #7c3aed;"></i> What-if profit & target simulator`;
+        }
       }
-    }
 
-    if (this.activeTab === "financial") {
-      this.renderFinancialTab(mount);
-    } else if (this.activeTab === "menu") {
-      this.renderMenuTab(mount);
-    } else if (this.activeTab === "insights") {
-      this.renderInsightsTab(mount);
-    } else if (this.activeTab === "simulator") {
-      this.renderSimulatorTab(mount);
+      if (this.activeTab === "financial") {
+        this.renderFinancialTab(mount);
+      } else if (this.activeTab === "menu") {
+        this.renderMenuTab(mount);
+      } else if (this.activeTab === "insights") {
+        this.renderInsightsTab(mount);
+      } else if (this.activeTab === "simulator") {
+        this.renderSimulatorTab(mount);
+      }
+    } catch (e) {
+      console.error("Error rendering reports subtab content:", e);
     }
   },
 
@@ -657,15 +659,11 @@ window.views.reports = {
               <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">(Real-time cashflow realization)</span>
             </div>
 
-            <!-- Interactive Food Cost COGS Benchmark Calibrator -->
+            <!-- Real Dish Costing & Margin Realized Status Tag -->
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted);">COGS Benchmark:</span>
-              <div class="cogs-calibrator-pill" id="rep-cogs-calibrator">
-                <button type="button" class="cogs-btn ${this.cogsPercent === 28 ? 'active' : ''}" data-cogs="28">28%</button>
-                <button type="button" class="cogs-btn ${this.cogsPercent === 30 ? 'active' : ''}" data-cogs="30">30%</button>
-                <button type="button" class="cogs-btn ${this.cogsPercent === 32 ? 'active' : ''}" data-cogs="32">32%</button>
-                <button type="button" class="cogs-btn ${this.cogsPercent === 35 ? 'active' : ''}" data-cogs="35">35%</button>
-              </div>
+              <span style="font-size: 11.5px; font-weight: 750; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 11px; border-radius: 12px; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-calculator"></i> Real Dish Costing & Margin
+              </span>
             </div>
           </div>
 
@@ -732,17 +730,6 @@ window.views.reports = {
       </div>
     `;
 
-    // Bind COGS buttons
-    mount.querySelectorAll(".cogs-btn").forEach(btn => {
-      btn.onclick = () => {
-        mount.querySelectorAll(".cogs-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        this.cogsPercent = Number(btn.getAttribute("data-cogs")) || 32;
-        this.processDataAndRender();
-        window.showToast(`Food cost benchmark calibrated to ${this.cogsPercent}%`, "success");
-      };
-    });
-
     // Bind Trend Toggle
     mount.querySelectorAll("#rep-trend-mode-toggle button").forEach(btn => {
       btn.onclick = () => {
@@ -783,44 +770,99 @@ window.views.reports = {
     mount.innerHTML = `
       <div class="view-animate" style="display: flex; flex-direction: column; gap: 14px;">
         
+        <!-- Menu Item Profitability Executive KPI Cards -->
+        <div class="rep-kpi-grid" style="margin-bottom: 0px !important;">
+          <div class="rep-kpi-card">
+            <div class="dash-kpi-icon-wrap rep-ring-cyan">
+              <i class="fa-solid fa-utensils"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="rep-menu-kpi-units">0</div>
+              <div class="rep-kpi-label">Units Sold</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral"><i class="fa-solid fa-receipt"></i> Items Served</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rep-kpi-card">
+            <div class="dash-kpi-icon-wrap rep-ring-coral">
+              <i class="fa-solid fa-coins"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="rep-menu-kpi-revenue" style="color: #ff8a5c;">₹0</div>
+              <div class="rep-kpi-label">Gross Menu Sales</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-cash">Customer Billing</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rep-kpi-card">
+            <div class="dash-kpi-icon-wrap rep-ring-amber">
+              <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="rep-menu-kpi-cogs" style="color: #b45309;">₹0</div>
+              <div class="rep-kpi-label">Ingredient Cost (COGS)</div>
+              <div class="rep-kpi-badges">
+                <span class="dash-sub-pill pill-neutral" id="rep-menu-kpi-cogs-pct">0% Cost Ratio</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rep-kpi-card">
+            <div class="dash-kpi-icon-wrap rep-ring-green">
+              <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+            <div class="rep-kpi-info">
+              <div class="rep-kpi-val" id="rep-menu-kpi-profit" style="color: #059669;">₹0</div>
+              <div class="rep-kpi-label">Profit Made After Selling</div>
+              <div class="rep-kpi-badges">
+                <span class="growth-tag growth-up" id="rep-menu-kpi-margin-pct">0% Margin</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Menu Item Margin & Profitability Engineering Matrix -->
-        <div class="glass-card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; border-radius: 14px;">
+        <div class="glass-card" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
-              <h3 style="font-size: 15px; font-weight: 900; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-trophy" style="color: #eab308;"></i> Menu Item Profitability & Margin Engineering Matrix
+              <h3 style="font-size: 15px; font-weight: 900; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-trophy" style="color: #f59e0b;"></i> Menu Item Costing, Margins & Profit Realization Matrix
               </h3>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px;">
-                Analyze unit sales, gross revenue, food cost (COGS), and net profit contribution per dish
+              <div style="font-size: 11px; color: #64748b; font-weight: 600; margin-top: 2px;">
+                Calculated from actual recipe costs & dish pricing: selling price, recipe COGS, unit margin, and total profit earned after selling
               </div>
             </div>
 
             <!-- Search & Sort Controls -->
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
               <div style="position: relative; width: 220px;">
-                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; font-size: 11px; color: var(--text-muted);"></i>
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 10px; top: 11px; font-size: 11px; color: #94a3b8;"></i>
                 <input type="text" id="rep-item-search-input" class="form-input" placeholder="Search dish / category..." value="${this.itemSearchQuery}" style="height: 35px; font-size: 12px; padding-left: 28px; border-radius: 10px; width: 100%;">
               </div>
               <select id="rep-item-sort-select" class="form-input" style="height: 35px; font-size: 11.5px; border-radius: 10px; padding: 2px 8px; font-weight: 700; width: 180px;">
                 <option value="profit" ${this.itemSortKey === 'profit' ? 'selected' : ''}>Sort: Highest Profit First</option>
+                <option value="margin" ${this.itemSortKey === 'margin' ? 'selected' : ''}>Sort: Highest Margin %</option>
                 <option value="gross" ${this.itemSortKey === 'gross' ? 'selected' : ''}>Sort: Highest Revenue</option>
                 <option value="qty" ${this.itemSortKey === 'qty' ? 'selected' : ''}>Sort: Most Units Sold</option>
-                <option value="margin" ${this.itemSortKey === 'margin' ? 'selected' : ''}>Sort: Highest Margin %</option>
               </select>
             </div>
           </div>
 
           <!-- 1-Tap Category Filter Pills Strip -->
-          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: #f8fafc; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border-color);">
-            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Category:</span>
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: #f8fafc; padding: 6px 10px; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Category:</span>
             <button type="button" class="rep-quick-chip ${this.menuCategoryFilter === 'all' ? 'active' : ''}" data-cat="all">All</button>
             ${categories.map(c => `
               <button type="button" class="rep-quick-chip ${this.menuCategoryFilter === c.id ? 'active' : ''}" data-cat="${c.id}">${c.name}</button>
             `).join("")}
 
-            <div style="height: 18px; width: 1px; background: var(--border-color); margin: 0 4px;"></div>
+            <div style="height: 18px; width: 1px; background: #e2e8f0; margin: 0 4px;"></div>
 
-            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Role:</span>
+            <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Role:</span>
             <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'all' ? 'active' : ''}" data-role="all">All Roles</button>
             <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'star' ? 'active' : ''}" data-role="star">🌟 Stars</button>
             <button type="button" class="rep-quick-chip ${this.menuRoleFilter === 'horse' ? 'active' : ''}" data-role="horse">🐎 Volume</button>
@@ -829,18 +871,20 @@ window.views.reports = {
           </div>
 
           <!-- Item Profitability Table -->
-          <div class="table-container" style="max-height: 480px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 10px;">
-            <table class="premium-table" style="font-size: 12.5px;">
+          <div class="table-container" style="max-height: 520px; overflow-y: auto; overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; border-radius: 12px; border: 1px solid #f0f3f9;">
+            <table class="premium-table" style="font-size: 12px; width: 100%;">
               <thead>
                 <tr>
+                  <th style="width: 30px;">#</th>
                   <th>Menu Item Description</th>
                   <th>Category</th>
-                  <th>Menu Price</th>
-                  <th>Units Sold</th>
-                  <th style="text-align: right;">Gross Sales</th>
-                  <th style="text-align: right;">Food Cost</th>
-                  <th style="text-align: right;">Profit Contributed</th>
-                  <th style="text-align: right;">Margin %</th>
+                  <th style="text-align: right;">Selling Price</th>
+                  <th style="text-align: right;">Recipe Cost (COGS)</th>
+                  <th style="text-align: right;">Unit Margin</th>
+                  <th style="text-align: center;">Units Sold</th>
+                  <th style="text-align: right;">Total Sales</th>
+                  <th style="text-align: right;">Total Food Cost</th>
+                  <th style="text-align: right;">Net Profit Made</th>
                   <th style="text-align: center;">Sales Role</th>
                 </tr>
               </thead>
@@ -856,7 +900,7 @@ window.views.reports = {
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <div>
               <h4 style="margin: 0; font-size: 14px; font-weight: 800; color: var(--text-dark);">
-                <i class="fa-solid fa-triangle-exclamation" style="color: #ea580c; margin-right: 6px;"></i> Zero Velocity Menu Watchlist
+                <i class="fa-solid fa-triangle-exclamation" style="color: #ff7343; margin-right: 6px;"></i> Zero Velocity Menu Watchlist
               </h4>
               <p style="margin: 2px 0 0 0; font-size: 11.5px; color: var(--text-muted);">Active dishes with 0 sales in the selected period to optimize inventory.</p>
             </div>
@@ -1285,70 +1329,73 @@ window.views.reports = {
     if (!container) return;
 
     const isProfitable = netProf >= 0;
+    const grossMarginPct = net > 0 ? ((grossProf / net) * 100).toFixed(1) : "0.0";
+    const netMarginPct = net > 0 ? ((netProf / net) * 100).toFixed(1) : "0.0";
+    const cogsPct = net > 0 ? ((cogs / net) * 100).toFixed(1) : this.cogsPercent;
 
     container.innerHTML = `
       <!-- Step 1: Gross Sales -->
       <div class="rep-pnl-step">
         <div class="rep-pnl-step-title">1. Gross Sales</div>
-        <div class="rep-pnl-step-amt" style="color: #2563eb;">${currency}${Math.round(gross).toLocaleString("en-IN")}</div>
-        <div class="rep-pnl-step-tag" style="color: var(--text-muted);">100% Billing</div>
+        <div class="rep-pnl-step-amt" style="color: #ff8a5c;">${currency}${Math.round(gross).toLocaleString("en-IN")}</div>
+        <div class="rep-pnl-step-tag" style="color: #64748b;">100% Billing</div>
       </div>
 
       <div class="rep-pnl-arrow"><i class="fa-solid fa-minus"></i></div>
 
       <!-- Step 2: Discounts -->
-      <div class="rep-pnl-step">
-        <div class="rep-pnl-step-title">2. Discounts</div>
-        <div class="rep-pnl-step-amt" style="color: #ea580c;">-${currency}${Math.round(discounts).toLocaleString("en-IN")}</div>
-        <div class="rep-pnl-step-tag" style="color: #ea580c;">Discount Deductions</div>
+      <div class="rep-pnl-step" style="background: #fff8f5; border-color: #ffe0d2;">
+        <div class="rep-pnl-step-title" style="color: #c2410c;">2. Discounts</div>
+        <div class="rep-pnl-step-amt" style="color: #ff7343;">-${currency}${Math.round(discounts).toLocaleString("en-IN")}</div>
+        <div class="rep-pnl-step-tag" style="color: #ff7343;">Discount Deductions</div>
       </div>
 
       <div class="rep-pnl-arrow"><i class="fa-solid fa-equals"></i></div>
 
       <!-- Step 3: Net Revenue -->
-      <div class="rep-pnl-step">
-        <div class="rep-pnl-step-title">3. Net Revenue</div>
-        <div class="rep-pnl-step-amt" style="color: #4f46e5;">${currency}${Math.round(net).toLocaleString("en-IN")}</div>
-        <div class="rep-pnl-step-tag" style="color: #4f46e5;">Realized Cashflow</div>
+      <div class="rep-pnl-step" style="background: #f0f9ff; border-color: #bae6fd;">
+        <div class="rep-pnl-step-title" style="color: #0369a1;">3. Net Revenue</div>
+        <div class="rep-pnl-step-amt" style="color: #0284c7;">${currency}${Math.round(net).toLocaleString("en-IN")}</div>
+        <div class="rep-pnl-step-tag" style="color: #0284c7;">Realized Cashflow</div>
       </div>
 
       <div class="rep-pnl-arrow"><i class="fa-solid fa-minus"></i></div>
 
       <!-- Step 4: Food Cost COGS -->
-      <div class="rep-pnl-step">
-        <div class="rep-pnl-step-title">4. Food Cost (COGS)</div>
+      <div class="rep-pnl-step" style="background: #fffbeb; border-color: #fde68a;">
+        <div class="rep-pnl-step-title" style="color: #b45309;">4. Food Cost (COGS)</div>
         <div class="rep-pnl-step-amt" style="color: #b45309;">-${currency}${Math.round(cogs).toLocaleString("en-IN")}</div>
-        <div class="rep-pnl-step-tag" style="color: #b45309;">${this.cogsPercent}% Ingredients</div>
+        <div class="rep-pnl-step-tag" style="color: #b45309;">${cogsPct}% Dish Cost</div>
       </div>
 
       <div class="rep-pnl-arrow"><i class="fa-solid fa-equals"></i></div>
 
       <!-- Step 5: Gross Profit -->
-      <div class="rep-pnl-step">
-        <div class="rep-pnl-step-title">5. Gross Profit</div>
+      <div class="rep-pnl-step" style="background: #f0fdfa; border-color: #99f6e4;">
+        <div class="rep-pnl-step-title" style="color: #0f766e;">5. Gross Profit</div>
         <div class="rep-pnl-step-amt" style="color: #0d9488;">${currency}${Math.round(grossProf).toLocaleString("en-IN")}</div>
-        <div class="rep-pnl-step-tag" style="color: #0d9488;">${100 - this.cogsPercent}% Gross Margin</div>
+        <div class="rep-pnl-step-tag" style="color: #0d9488;">${grossMarginPct}% Gross Margin</div>
       </div>
 
       <div class="rep-pnl-arrow"><i class="fa-solid fa-minus"></i></div>
 
       <!-- Step 6: Operating Overheads -->
-      <div class="rep-pnl-step">
-        <div class="rep-pnl-step-title">6. Overhead Expenses</div>
-        <div class="rep-pnl-step-amt" style="color: #dc2626;">-${currency}${Math.round(expenses).toLocaleString("en-IN")}</div>
-        <div class="rep-pnl-step-tag" style="color: #dc2626;">Salaries & Bills</div>
+      <div class="rep-pnl-step" style="background: #fff1f2; border-color: #fecdd3;">
+        <div class="rep-pnl-step-title" style="color: #be123c;">6. Overhead Expenses</div>
+        <div class="rep-pnl-step-amt" style="color: #e11d48;">-${currency}${Math.round(expenses).toLocaleString("en-IN")}</div>
+        <div class="rep-pnl-step-tag" style="color: #e11d48;">Salaries & Bills</div>
       </div>
 
       <div class="rep-pnl-arrow"><i class="fa-solid fa-equals"></i></div>
 
       <!-- Step 7: Net Operating Profit -->
-      <div class="rep-pnl-step step-highlight" style="background: ${isProfitable ? '#ecfdf5' : '#fef2f2'}; border-color: ${isProfitable ? '#a7f3d0' : '#fecaca'};">
+      <div class="rep-pnl-step step-highlight" style="background: ${isProfitable ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' : '#fef2f2'}; border-color: ${isProfitable ? '#10b981' : '#fecaca'};">
         <div class="rep-pnl-step-title" style="color: ${isProfitable ? '#059669' : '#dc2626'}; font-weight: 900;">7. NET OPERATING PROFIT</div>
         <div class="rep-pnl-step-amt" style="color: ${isProfitable ? '#059669' : '#dc2626'}; font-size: 18px;">
           ${isProfitable ? '' : '-'}${currency}${Math.abs(Math.round(netProf)).toLocaleString("en-IN")}
         </div>
         <div class="rep-pnl-step-tag" style="color: ${isProfitable ? '#047857' : '#991b1b'}; font-weight: 800;">
-          ${gross > 0 ? ((netProf / gross) * 100).toFixed(1) : '0'}% Final Margin
+          ${netMarginPct}% Net Margin
         </div>
       </div>
     `;
@@ -1377,7 +1424,8 @@ window.views.reports = {
               categoryName: cat ? cat.name : "General",
               price: Number(it.price || 0),
               unitsSold: 0,
-              grossSales: 0
+              grossSales: 0,
+              veg: prod ? prod.veg : true
             };
           }
           itemMap[name].unitsSold += (Number(it.quantity) || 1);
@@ -1392,20 +1440,51 @@ window.views.reports = {
       const prod = products.find(p => p.id === i.productId || p.name === i.name);
       const cleanKey = String(i.name).trim().toLowerCase();
       const costInfo = (i.productId && costMap[i.productId]) || costMap[cleanKey];
+      
       const unitCost = (prod && prod.costPrice !== undefined && prod.costPrice !== null && !isNaN(prod.costPrice) && Number(prod.costPrice) > 0)
         ? Number(prod.costPrice)
         : (costInfo ? Number(costInfo.costPrice) : (i.price * cogsRate));
+      
+      const unitMargin = Math.max(0, i.price - unitCost);
+      const marginPct = i.price > 0 ? Math.round((unitMargin / i.price) * 100) : (100 - this.cogsPercent);
       const estimatedCost = unitCost * i.unitsSold;
       const profitContributed = Math.max(0, i.grossSales - estimatedCost);
-      const marginPct = i.grossSales > 0 ? Math.round((profitContributed / i.grossSales) * 100) : (100 - this.cogsPercent);
+      const isFromRecipe = costInfo ? costInfo.isFromRecipe : false;
+      const isCustom = costInfo ? costInfo.isCustom : false;
+
       return {
         ...i,
         unitCost,
+        unitMargin,
         estimatedCost,
         profitContributed,
-        marginPct
+        marginPct,
+        isFromRecipe,
+        isCustom
       };
     });
+
+    // Update Top Summary KPI Banner in Menu Margins tab
+    const totalUnitsSold = itemList.reduce((sum, it) => sum + it.unitsSold, 0);
+    const totalMenuRevenue = itemList.reduce((sum, it) => sum + it.grossSales, 0);
+    const totalMenuCost = itemList.reduce((sum, it) => sum + it.estimatedCost, 0);
+    const totalMenuProfit = itemList.reduce((sum, it) => sum + it.profitContributed, 0);
+    const overallMarginPct = totalMenuRevenue > 0 ? Math.round((totalMenuProfit / totalMenuRevenue) * 100) : 0;
+    const overallCostPct = totalMenuRevenue > 0 ? Math.round((totalMenuCost / totalMenuRevenue) * 100) : 0;
+
+    const kpiUnits = document.getElementById("rep-menu-kpi-units");
+    const kpiRevenue = document.getElementById("rep-menu-kpi-revenue");
+    const kpiCogs = document.getElementById("rep-menu-kpi-cogs");
+    const kpiCogsPct = document.getElementById("rep-menu-kpi-cogs-pct");
+    const kpiProfit = document.getElementById("rep-menu-kpi-profit");
+    const kpiMarginPct = document.getElementById("rep-menu-kpi-margin-pct");
+
+    if (kpiUnits) kpiUnits.textContent = `${totalUnitsSold} Dishes`;
+    if (kpiRevenue) kpiRevenue.textContent = `${currency}${Math.round(totalMenuRevenue).toLocaleString("en-IN")}`;
+    if (kpiCogs) kpiCogs.textContent = `${currency}${Math.round(totalMenuCost).toLocaleString("en-IN")}`;
+    if (kpiCogsPct) kpiCogsPct.textContent = `${overallCostPct}% Cost Ratio`;
+    if (kpiProfit) kpiProfit.textContent = `+${currency}${Math.round(totalMenuProfit).toLocaleString("en-IN")}`;
+    if (kpiMarginPct) kpiMarginPct.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${overallMarginPct}% Margin`;
 
     // 1. Filter by Category Pill
     if (this.menuCategoryFilter !== "all") {
@@ -1429,7 +1508,7 @@ window.views.reports = {
       itemList = itemList.filter(i => {
         const isStar = i.unitsSold >= maxQty * 0.4 && i.profitContributed >= maxProfit * 0.4;
         const isHorse = !isStar && i.unitsSold >= maxQty * 0.35;
-        const isPuzzle = i.profitContributed >= maxProfit * 0.35 && i.unitsSold < maxQty * 0.4;
+        const isPuzzle = i.marginPct >= 65;
         const isSlow = i.unitsSold <= 2;
 
         if (this.menuRoleFilter === "star") return isStar;
@@ -1453,7 +1532,7 @@ window.views.reports = {
     }
 
     if (itemList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 35px; color: var(--text-muted); font-weight: 600;">No matching items sold during this period.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 35px; color: #64748b; font-weight: 600;">No matching items sold during this period.</td></tr>`;
       return;
     }
 
@@ -1461,36 +1540,54 @@ window.views.reports = {
       let roleHtml = `<span class="badge-menu-horse">🐎 Volume Driver</span>`;
       if (item.unitsSold >= maxQty * 0.4 && item.profitContributed >= maxProfit * 0.4) {
         roleHtml = `<span class="badge-menu-star">🌟 Star Item</span>`;
-      } else if (item.profitContributed >= maxProfit * 0.35 && item.unitsSold < maxQty * 0.4) {
+      } else if (item.marginPct >= 65) {
         roleHtml = `<span class="badge-menu-puzzle">💡 High Margin</span>`;
       } else if (item.unitsSold <= 2) {
         roleHtml = `<span class="badge-menu-slow">⚠️ Low Velocity</span>`;
       }
 
+      const costTypeTag = item.isFromRecipe 
+        ? `<span style="font-size: 9.5px; font-weight: 800; background: #fef3c7; color: #b45309; padding: 1px 5px; border-radius: 4px; border: 1px solid #fde68a;">Recipe</span>` 
+        : item.isCustom 
+          ? `<span style="font-size: 9.5px; font-weight: 800; background: #e0f2fe; color: #0284c7; padding: 1px 5px; border-radius: 4px; border: 1px solid #bae6fd;">Custom</span>` 
+          : `<span style="font-size: 9.5px; font-weight: 800; background: #f1f5f9; color: #64748b; padding: 1px 5px; border-radius: 4px;">Std 32%</span>`;
+
       return `
         <tr>
+          <td style="font-size: 11px; color: #64748b; width: 20px; font-weight: 700;">#${idx + 1}</td>
           <td>
-            <div style="font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 11px; color: var(--text-muted); width: 16px;">#${idx + 1}</span>
+            <div style="font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 7px;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${item.veg !== false ? '#10b981' : '#ef4444'}; flex-shrink: 0;" title="${item.veg !== false ? 'Veg' : 'Non-Veg'}"></span>
               ${item.name}
             </div>
           </td>
           <td>
-            <span style="font-size: 11px; font-weight: 700; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 2px 7px; border-radius: 6px;">
+            <span style="font-size: 11px; font-weight: 700; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 6px;">
               ${item.categoryName}
             </span>
           </td>
-          <td style="font-weight: 700; color: var(--text-dark);">${currency}${item.price.toFixed(0)}</td>
-          <td>
-            <span style="font-weight: 800; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 8px; font-size: 11.5px;">
+          <td style="text-align: right; font-weight: 700; color: #1e293b;">${currency}${item.price.toFixed(0)}</td>
+          <td style="text-align: right; font-weight: 700; color: #b45309;">
+            <div style="display: inline-flex; align-items: center; gap: 5px; justify-content: flex-end;">
+              ${currency}${item.unitCost.toFixed(1)}
+              ${costTypeTag}
+            </div>
+          </td>
+          <td style="text-align: right;">
+            <div style="font-weight: 800; color: #059669; font-size: 12.5px;">+${currency}${item.unitMargin.toFixed(1)}</div>
+            <div style="font-size: 10px; font-weight: 700; color: #64748b;">${item.marginPct}% margin</div>
+          </td>
+          <td style="text-align: center;">
+            <span style="font-weight: 800; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 2px 9px; border-radius: 8px; font-size: 11.5px;">
               ${item.unitsSold} sold
             </span>
           </td>
-          <td style="text-align: right; font-weight: 800; color: var(--text-dark);">${currency}${Math.round(item.grossSales).toLocaleString("en-IN")}</td>
+          <td style="text-align: right; font-weight: 800; color: #1e293b;">${currency}${Math.round(item.grossSales).toLocaleString("en-IN")}</td>
           <td style="text-align: right; font-weight: 700; color: #b45309;">${currency}${Math.round(item.estimatedCost).toLocaleString("en-IN")}</td>
-          <td style="text-align: right; font-weight: 900; color: #059669; font-size: 13.5px;">+${currency}${Math.round(item.profitContributed).toLocaleString("en-IN")}</td>
           <td style="text-align: right;">
-            <span style="font-weight: 800; color: #059669; font-size: 11.5px;">${item.marginPct}%</span>
+            <span style="font-weight: 900; color: #059669; font-size: 13px; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 8px; display: inline-block;">
+              +${currency}${Math.round(item.profitContributed).toLocaleString("en-IN")}
+            </span>
           </td>
           <td style="text-align: center;">
             ${roleHtml}
@@ -1502,12 +1599,13 @@ window.views.reports = {
 
   renderTrendChartOnly() {
     const canvas = document.getElementById("repMainTrendCanvas");
-    if (!canvas || !this.currentData) return;
+    if (!canvas || !this.currentData || typeof Chart === "undefined") return;
 
-    const ctx = canvas.getContext("2d");
-    if (this.mainTrendChart) {
-      this.mainTrendChart.destroy();
-    }
+    try {
+      const ctx = canvas.getContext("2d");
+      if (this.mainTrendChart) {
+        this.mainTrendChart.destroy();
+      }
 
     const { validOrders, periodExpenses } = this.currentData;
     const cogsRate = this.cogsPercent / 100;
@@ -1687,16 +1785,20 @@ window.views.reports = {
         }
       }
     });
+    } catch (trendErr) {
+      console.error("Error creating trend chart:", trendErr);
+    }
   },
 
   renderDonutChartOnly() {
     const canvas = document.getElementById("repDonutCanvas");
-    if (!canvas || !this.currentData) return;
+    if (!canvas || !this.currentData || typeof Chart === "undefined") return;
 
-    const ctx = canvas.getContext("2d");
-    if (this.donutBreakdownChart) {
-      this.donutBreakdownChart.destroy();
-    }
+    try {
+      const ctx = canvas.getContext("2d");
+      if (this.donutBreakdownChart) {
+        this.donutBreakdownChart.destroy();
+      }
 
     const { validOrders, periodExpenses, categories, products, cashTotal, upiTotal, cardTotal } = this.currentData;
     const textMuted = '#64748b';
@@ -1790,6 +1892,9 @@ window.views.reports = {
         cutout: "68%"
       }
     });
+    } catch (donutErr) {
+      console.error("Error creating donut chart:", donutErr);
+    }
   },
 
   renderHourlyRushChartOnly() {
@@ -1812,7 +1917,7 @@ window.views.reports = {
 
     const barColors = opHours.map(h => {
       if (h >= 14 && h < 17) return "#f59e0b"; // Afternoon
-      if (h >= 17 && h < 19) return "#ea580c"; // Evening
+      if (h >= 17 && h < 19) return "#ff7343"; // Evening
       if (h >= 19 && h < 22) return "#7c3aed"; // Dinner Rush
       return "#4f46e5"; // Late Night
     });
