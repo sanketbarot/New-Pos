@@ -219,7 +219,12 @@ const app = {
           i.style.color = "#10b981"; // Emerald green
           i.className = "fa-solid fa-circle";
           t.textContent = "Cloud Synced";
-          p.title = "Cloud sync active. All devices (Laptop & PC) are real-time connected.";
+          p.title = "Cloud sync active on live domain. All devices (Laptop & PC) are real-time connected.";
+        } else if (status === "local-only") {
+          i.style.color = "#3b82f6"; // Blue
+          i.className = "fa-solid fa-laptop-code";
+          t.textContent = "Local Only (Cloud Off)";
+          p.title = "Local test environment. Live Firebase sync is isolated so local test data never touches production database.";
         } else if (status === "permission-denied") {
           i.style.color = "#ef4444"; // Red
           i.className = "fa-solid fa-triangle-exclamation";

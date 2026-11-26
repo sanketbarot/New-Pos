@@ -340,6 +340,19 @@ const db = {
       }
     }
 
+    // Environment Isolation:
+    // When running locally on 127.0.0.1 or localhost, keep Cloud Sync completely OFF so local test data never pollutes live Firebase!
+    // Live Cloud Sync to Firebase ONLY activates on the real live production site (sanketbusiness.aitoolcor.com).
+    const isLocalhost = window.location.hostname === "localhost" || 
+                        window.location.hostname === "127.0.0.1" || 
+                        window.location.protocol === "file:";
+
+    if (isLocalhost) {
+      updateSyncStatus("local-only", "Local Sandbox (Live Cloud Sync Disabled on Localhost)");
+      console.log("Crust & Chilly POS: Local environment (" + window.location.hostname + ") detected. Live Firebase sync is isolated so local testing never touches production data.");
+      return;
+    }
+
     // Initialize Firebase
     try {
       const firebaseConfig = {
@@ -474,10 +487,16 @@ const db = {
                   }
                 }
               } else {
-                // If document does NOT exist in cloud, upload local copy only if non-empty
-                const localData = this.get(key);
-                if (localData !== null) {
-                  if (!["orders", "expenses", "purchases"].includes(key) || (Array.isArray(localData) && localData.length > 0)) {
+                // If document does NOT exist in cloud:
+                // For live business orders, expenses, and purchases: start with a clean slate ([]) in new cloud!
+                // Never push old local test orders to a clean live cloud database!
+                if (["orders", "expenses", "purchases"].includes(key)) {
+                  this.syncToFirebase(key, []);
+                } else if (key === "orderCounter") {
+                  this.syncToFirebase(key, 1000);
+                } else {
+                  const localData = this.get(key);
+                  if (localData !== null) {
                     this.syncToFirebase(key, localData);
                   }
                 }
@@ -505,6 +524,10 @@ const db = {
   // Asynchronous backup sync to Cloud Firestore
   syncToFirebase(key, val) {
     if (!this.fs) return;
+    const isLocalhost = window.location.hostname === "localhost" || 
+                        window.location.hostname === "127.0.0.1" || 
+                        window.location.protocol === "file:";
+    if (isLocalhost) return; // Hard-prevent any local data from ever saving to live Firebase!
     try {
       // Clean undefined values so Firestore does not throw serialization error
       const cleanVal = JSON.parse(JSON.stringify(val !== undefined ? val : null));
