@@ -10064,8 +10064,7 @@ input.pos-card-qty-val {
 /* 3. Product Cards: Uniform 2-Line Height & Zero Price Collision */
 .pos-products-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)) !important;
-  gap: 14px !important;
+  gap: 12px !important;
   width: 100% !important;
 }
 
@@ -11151,12 +11150,44 @@ table td,
   color: #ffffff !important;
 }
 
-/* Product Cards Grid */
+/* Product Cards Grid Scroll & Gutter - Prevents layout jump between short & long lists */
+.pos-products-grid-scroll {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  scrollbar-gutter: stable !important;
+  padding: 4px 6px 12px 2px !important;
+}
+
+/* Product Cards Grid: Consistent 5 items per row across All Items and Category tabs */
 .pos-products-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)) !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: 12px !important;
-  padding: 0 14px 14px 14px !important;
+  padding: 0 12px 14px 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 1200px) {
+  .pos-products-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .pos-products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .pos-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
 }
 
 /* Modern Product Card */
