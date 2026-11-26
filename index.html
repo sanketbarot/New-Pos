@@ -22,7 +22,7 @@
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=57.0">
+  <link rel="stylesheet" href="style.css?v=65.0">
 </head>
 
 <body>
@@ -176,7 +176,10 @@
           <h2 id="current-view-title">Executive Dashboard</h2>
           <span class="header-view-badge" id="header-view-badge">Real-Time Operations</span>
         </div>
-        <div class="header-actions" style="display: flex; align-items: center; gap: 12px;">
+        <div class="header-actions" style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" id="btn-business-360" class="btn-header-360" onclick="window.businessIntel && window.businessIntel.openBusiness360Modal('today')" title="Complete 360° Business Health, Profit & Backup">
+            <i class="fa-solid fa-chart-pie"></i> <span>Business 360°</span>
+          </button>
           <button id="btn-pwa-install" class="btn-pwa-install" title="Install as Desktop or Mobile App">
             <i class="fa-solid fa-download"></i> <span>Install POS App</span>
           </button>
@@ -243,15 +246,16 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <!-- App JS & DB files -->
-  <script src="js/qrcode.min.js?v=57.0"></script>
-  <script src="js/db.js?v=57.0"></script>
-  <script src="js/dashboard.js?v=57.0"></script>
-  <script src="js/counter.js?v=57.0"></script>
-  <script src="js/pos.js?v=57.0"></script>
-  <script src="js/orders.js?v=57.0"></script>
-  <script src="js/menu.js?v=57.0"></script>
-  <script src="js/reports.js?v=57.0"></script>
-  <script src="app.js?v=57.0"></script>
+  <script src="js/qrcode.min.js?v=65.0"></script>
+  <script src="js/db.js?v=65.0"></script>
+  <script src="js/business-intel.js?v=65.0"></script>
+  <script src="js/dashboard.js?v=65.0"></script>
+  <script src="js/counter.js?v=65.0"></script>
+  <script src="js/pos.js?v=65.0"></script>
+  <script src="js/orders.js?v=65.0"></script>
+  <script src="js/menu.js?v=65.0"></script>
+  <script src="js/reports.js?v=65.0"></script>
+  <script src="app.js?v=65.0"></script>
 </body>
 
 </html>

@@ -1244,10 +1244,15 @@ window.views.orders = {
             <i class="fa-solid fa-circle-check"></i> All Items Prepared! Ready to Bump
           </div>
 
-          <!-- Customer details -->
+          <!-- Customer details & Bill Amount -->
           <div class="kds-order-cust">
             <span><i class="fa-regular fa-user" style="color: #94a3b8; margin-right: 5px;"></i> ${order.customerName || "Walk-in Guest"}</span>
-            <span class="kds-order-item-count">${order.items ? order.items.length : 0} items</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <span class="kds-order-item-count">${order.items ? order.items.length : 0} items</span>
+              <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 8px; font-weight: 850; font-size: 12px; font-variant-numeric: tabular-nums;">
+                ₹${Math.round(Number(order.total) || 0).toLocaleString("en-IN")}
+              </span>
+            </span>
           </div>
 
           <!-- Timer & Progress Bar (for Pending & Preparing) -->

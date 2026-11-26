@@ -7704,15 +7704,27 @@ input.cart-qty-input:focus,
 
 /* KDS Utilities */
 .kds-btn-cancel {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  border-radius: 8px;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 750;
+  background: #fff1f2;
+  border: 1.5px solid #fecdd3;
+  color: #e11d48;
+  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   cursor: pointer;
   transition: var(--transition-smooth);
+}
+
+.kds-btn-kot,
+.kds-btn-advance,
+.kds-btn-recall {
+  height: 40px !important;
+  box-sizing: border-box !important;
 }
 
 .kds-timer-label {
@@ -8049,24 +8061,15 @@ input.cart-qty-input:focus,
   background: #f8fafc !important;
 }
 
-/* Print Overrides */
+/* Print Overrides: Ensure receipt modal (.receipt-wrapper) prints cleanly without hiding it */
 @media print {
-  body * {
-    visibility: hidden !important;
+  body.printing-z-report #modal-container .receipt-wrapper {
+    display: none !important;
   }
 
-  #receipt-print-area,
-  #receipt-print-area * {
+  .receipt-wrapper,
+  .receipt-wrapper * {
     visibility: visible !important;
-  }
-
-  #receipt-print-area {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
 }
 
@@ -11643,4 +11646,574 @@ table td,
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
+}
+
+
+/* ==========================================================================
+   BUSINESS 360 & SMART INSIGHTS (v60.0)
+   ========================================================================== */
+.btn-header-360 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #fed7aa;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  color: #ea580c;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.btn-header-360:hover {
+  background: linear-gradient(135deg, #ff7a45 0%, #ea580c 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.22);
+  transform: translateY(-1px);
+}
+
+/* Dashboard Smart Insights Strip */
+.dash-smart-insights-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1280px) {
+  .dash-smart-insights-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-smart-insights-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-intel-card {
+  background: #ffffff;
+  border: 1px solid #f0f3f9;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -2px rgba(22, 27, 46, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dash-intel-card:hover {
+  transform: translateY(-2px);
+  border-color: #fed7aa;
+  box-shadow: 0 8px 20px -4px rgba(255, 122, 69, 0.12);
+}
+
+.dash-intel-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.dash-intel-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.dash-intel-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dash-intel-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 1px 0;
+}
+
+.dash-intel-sub {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Business 360 Modal */
+.b360-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.b360-period-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.b360-pills {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.b360-pill {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.b360-pill.active {
+  background: #ffffff;
+  color: #ea580c;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.b360-live-pills {
+  display: flex;
+  gap: 8px;
+}
+
+.b360-chip {
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 5px 10px;
+  border-radius: 9px;
+  color: #334155;
+}
+
+.b360-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .b360-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.b360-kpi-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.b360-kpi-card.highlight {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.b360-kpi-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.b360-kpi-val {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.b360-kpi-card small {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.b360-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .b360-grid-2 { grid-template-columns: 1fr; }
+}
+
+.b360-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.b360-box h4 {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.b360-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.b360-list-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #334155;
+}
+
+.b360-empty {
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 14px 0;
+  text-align: center;
+}
+
+.b360-actions-footer {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+
+.btn-b360 {
+  flex: 1;
+  min-width: 150px;
+  height: 38px;
+  border-radius: 11px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+}
+
+.btn-b360.whatsapp {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.btn-b360.whatsapp:hover {
+  background: #059669;
+}
+
+.btn-b360.backup {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.btn-b360.backup:hover {
+  background: #dbeafe;
+}
+
+.btn-b360.restore {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-b360.restore:hover {
+  background: #f1f5f9;
+}
+
+
+/* ==========================================================================
+   BUSINESS 360 v61.0 UPGRADES: TABS, TABLES, PROGRESS BARS & TABULAR NUMS
+   ========================================================================== */
+.num-tabular,
+.rep-kpi-val,
+.product-price,
+.summary-hero-val,
+.stat-box-val {
+  font-variant-numeric: tabular-nums;
+}
+
+.b360-tabs-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.b360-tab-btn {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.b360-tab-btn:hover {
+  background: #fff7ed;
+  color: #ea580c;
+  border-color: #fed7aa;
+}
+
+.b360-tab-btn.active {
+  background: linear-gradient(135deg, #ff7a45 0%, #ea580c 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.22);
+}
+
+.b360-tab-content {
+  animation: b360FadeSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes b360FadeSlide {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.b360-goal-wrap {
+  background: #fffaf5;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  padding: 11px 14px;
+  margin-bottom: 12px;
+}
+
+.b360-goal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #334155;
+  margin-bottom: 7px;
+}
+
+.b360-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #ffedd5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.b360-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff7a45 0%, #10b981 100%);
+  border-radius: 999px;
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.b360-table-wrap {
+  max-height: 290px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
+}
+
+.b360-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.b360-table th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 1;
+}
+
+.b360-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.b360-table tr:last-child td {
+  border-bottom: none;
+}
+
+.b360-mini-bar {
+  width: 100%;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.b360-mini-bar > div {
+  height: 100%;
+  background: linear-gradient(90deg, #ff7a45, #fb923c);
+  border-radius: 4px;
+}
+
+.btn-b360-wa-mini {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-b360-wa-mini:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.btn-b360.csv {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.btn-b360.csv:hover {
+  background: #dcfce7;
+}
+
+
+/* ==========================================================================
+   EXECUTIVE DASHBOARD LIVE FLOOR TABLE MATRIX (v62.0)
+   ========================================================================== */
+.dash-floor-table-matrix {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 1200px) {
+  .dash-floor-table-matrix {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-floor-table-matrix {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.dash-table-tile {
+  border-radius: 13px;
+  padding: 9px 11px;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-table-tile.free:hover {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  transform: translateY(-2px);
+}
+
+.dash-table-tile.occupied {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: #fdba74;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.12);
+}
+
+.dash-table-tile.occupied:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(234, 88, 12, 0.18);
+}
+
+.dash-table-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dash-table-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.dash-table-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dash-table-dot.free {
+  background: #10b981;
+}
+
+.dash-table-dot.busy {
+  background: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.2);
+}
+
+.dash-table-amt {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  color: #ea580c;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-table-sub {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748b;
 }

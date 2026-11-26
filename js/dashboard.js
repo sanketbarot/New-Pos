@@ -56,6 +56,65 @@ window.views.dashboard = {
     return isNaN(d.getTime()) ? "--:--" : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   },
 
+  animateCounter(el, targetVal, prefix = "", duration = 380) {
+    if (!el) return;
+    const end = Math.round(Number(targetVal) || 0);
+    const startRaw = parseInt((el.textContent || "0").replace(/[^\d-]/g, ""), 10);
+    const start = isNaN(startRaw) ? 0 : startRaw;
+    if (start === end) {
+      el.textContent = `${prefix}${end.toLocaleString("en-IN")}`;
+      return;
+    }
+    const startTime = performance.now();
+    const step = (now) => {
+      const progress = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(start + (end - start) * eased);
+      el.textContent = `${prefix}${current.toLocaleString("en-IN")}`;
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  },
+
+  renderFloorTableMatrix(orders) {
+    const container = document.getElementById("dash-floor-table-matrix");
+    if (!container) return;
+    const tables = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"];
+    const activeMap = new Map();
+    orders.forEach(o => {
+      if (o.type === "Dine-in" && o.status !== "Completed" && o.status !== "Cancelled" && o.tableNumber) {
+        const key = o.tableNumber.trim().toUpperCase().replace("-", "");
+        if (!activeMap.has(key)) activeMap.set(key, o);
+      }
+    });
+
+    container.innerHTML = tables.map(t => {
+      const ord = activeMap.get(t);
+      if (ord) {
+        return `
+          <div class="dash-table-tile occupied" onclick="app.switchView('orders')" title="Active Order #${ord.orderNumber || ord.id} (${ord.status}) — Click to view in KDS">
+            <div class="dash-table-top">
+              <span class="dash-table-num">${t}</span>
+              <span class="dash-table-dot busy"></span>
+            </div>
+            <div class="dash-table-amt">₹${Math.round(Number(ord.total) || 0)}</div>
+            <div class="dash-table-sub">${ord.status}</div>
+          </div>
+        `;
+      }
+      return `
+        <div class="dash-table-tile free" onclick="app.switchView('pos')" title="Table ${t} Available — Click to start Dine-in order">
+          <div class="dash-table-top">
+            <span class="dash-table-num">${t}</span>
+            <span class="dash-table-dot free"></span>
+          </div>
+          <div class="dash-table-amt" style="color:#059669;">Free</div>
+          <div class="dash-table-sub">Ready</div>
+        </div>
+      `;
+    }).join("");
+  },
+
   getTimeframeDates() {
     const today = new Date();
     const todayStr = this.getLocalDateStr(today);
@@ -291,6 +350,9 @@ window.views.dashboard = {
 
         </div>
 
+        <!-- 2B. Dynamic Live Business Intelligence Insights Strip -->
+        <div id="dash-smart-insights-strip" class="dash-smart-insights-strip"></div>
+
         <!-- 3. Smart Store Pulse & Revenue Target Pacing Ribbon (Executive Pastel Suite) -->
         <div class="glass-card" style="padding: 14px 20px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9; box-shadow: 0 4px 16px -2px rgba(22, 27, 46, 0.04); display: flex; flex-direction: column; gap: 12px;">
           
@@ -331,6 +393,11 @@ window.views.dashboard = {
                 <i class="fa-solid fa-bullseye" style="color: #ff8a5c;"></i> Set Goal
               </button>
 
+              <!-- 1-Click Share Today's WhatsApp Summary -->
+              <button type="button" onclick="window.businessIntel && window.businessIntel.shareWhatsAppSummary('today')" title="Share Today's Business Summary on WhatsApp" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 20px; padding: 4px 12px; font-size: 11.5px; font-weight: 750; color: #059669; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease;">
+                <i class="fa-brands fa-whatsapp"></i> Share Report
+              </button>
+
               <!-- Open POS Button -->
               <a href="#pos" class="btn btn-primary" style="height: 30px; padding: 0 13px; font-size: 11.5px; font-weight: 800; border-radius: 9px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #ff9b73 0%, #ff784b 100%); color: #ffffff; border: none; box-shadow: 0 2px 8px rgba(255, 138, 92, 0.3);">
                 <i class="fa-solid fa-receipt"></i> Open POS
@@ -353,6 +420,17 @@ window.views.dashboard = {
             </div>
           </div>
 
+        </div>
+
+        <!-- 3B. Live Floor Table Occupancy Matrix (T1 - T8) -->
+        <div class="glass-card" style="padding: 13px 18px; border-radius: 16px; background: #ffffff; border: 1px solid #f0f3f9; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 7px;">
+              <i class="fa-solid fa-chair" style="color: #10b981;"></i> Live Floor Table Matrix (T1 – T8)
+            </span>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Click any free table to bill or occupied table to track in KDS</span>
+          </div>
+          <div id="dash-floor-table-matrix" class="dash-floor-table-matrix"></div>
         </div>
 
         <!-- 4. Performance & Collections Row (2-Column Grid: 62% / 38%) -->
@@ -656,6 +734,24 @@ window.views.dashboard = {
     const validOrders = filteredOrders.filter(o => o.status !== "Cancelled");
     const cancelledOrders = filteredOrders.filter(o => o.status === "Cancelled");
 
+    // Populate Dynamic Smart Insights Strip
+    const insightsStrip = document.getElementById("dash-smart-insights-strip");
+    if (insightsStrip && window.businessIntel && typeof window.businessIntel.getSmartInsightCards === "function") {
+      const cards = window.businessIntel.getSmartInsightCards();
+      insightsStrip.innerHTML = cards.map(c => `
+        <div class="dash-intel-card" onclick="window.businessIntel.openBusiness360Modal('today', '${c.tab || 'overview'}')" title="Click to open ${c.title} in Business 360°">
+          <div class="dash-intel-icon" style="color: ${c.color}; background: ${c.bg};">
+            <i class="fa-solid ${c.icon}"></i>
+          </div>
+          <div class="dash-intel-body">
+            <div class="dash-intel-title">${c.title}</div>
+            <div class="dash-intel-val">${c.value}</div>
+            <div class="dash-intel-sub">${c.sub}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
     // Dynamic label for Gross Sales
     let periodLabel = "Today's";
     if (this.selectedTimeframe === "yesterday") periodLabel = "Yesterday's";
@@ -696,7 +792,7 @@ window.views.dashboard = {
     });
 
     const salesValEl = document.getElementById("dash-sales-val");
-    if (salesValEl) salesValEl.textContent = `${currencySymbol}${Math.round(grossSales).toLocaleString("en-IN")}`;
+    if (salesValEl) this.animateCounter(salesValEl, grossSales, currencySymbol);
 
     const itemsSoldSub = document.getElementById("dash-items-sold-sub");
     if (itemsSoldSub) itemsSoldSub.textContent = `${totalItemsServed} items served across bills`;
@@ -823,7 +919,7 @@ window.views.dashboard = {
     const profitMargin = grossSales > 0 ? Math.round((netProfit / grossSales) * 100) : 0;
 
     const profitValEl = document.getElementById("dash-profit-val");
-    if (profitValEl) profitValEl.textContent = `${currencySymbol}${Math.round(netProfit).toLocaleString("en-IN")}`;
+    if (profitValEl) this.animateCounter(profitValEl, netProfit, currencySymbol);
 
     const marginPillEl = document.getElementById("dash-margin-pill");
     if (marginPillEl) marginPillEl.innerHTML = `<i class="fa-solid fa-percent"></i> ${profitMargin}% Margin`;
@@ -837,7 +933,9 @@ window.views.dashboard = {
     const aov = validOrders.length > 0 ? Math.round(grossSales / validOrders.length) : 0;
 
     const ordersValEl = document.getElementById("dash-orders-val");
-    if (ordersValEl) ordersValEl.textContent = totalOrdersCount;
+    if (ordersValEl) this.animateCounter(ordersValEl, totalOrdersCount, "");
+
+    this.renderFloorTableMatrix(orders);
 
     const aovPillEl = document.getElementById("dash-aov-pill");
     if (aovPillEl) aovPillEl.innerHTML = `<i class="fa-solid fa-calculator"></i> Avg: ${currencySymbol}${aov}/bill`;
