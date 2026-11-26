@@ -343,12 +343,12 @@ const db = {
     // Initialize Firebase
     try {
       const firebaseConfig = {
-        apiKey: "AIzaSyCsVef4qZTTnzJXWFU_kpLWFYrtJiWEtYE",
-        authDomain: "crust-chilly-business.firebaseapp.com",
-        projectId: "crust-chilly-business",
-        storageBucket: "crust-chilly-business.firebasestorage.app",
-        messagingSenderId: "458423437579",
-        appId: "1:458423437579:web:e3e58c9bf3e2b0cd79fa0e"
+        apiKey: "AIzaSyAwD7GGWEB6D6uC7vHtMqtU2fnYUmSWQZw",
+        authDomain: "crust-chilly-new-pos.firebaseapp.com",
+        projectId: "crust-chilly-new-pos",
+        storageBucket: "crust-chilly-new-pos.firebasestorage.app",
+        messagingSenderId: "233553325945",
+        appId: "1:233553325945:web:33b9f9a9d07e5bdd2489a8"
       };
 
       if (typeof firebase !== "undefined") {
