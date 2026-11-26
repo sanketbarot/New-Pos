@@ -1,19 +1,20 @@
 // Crust & Chilly - Service Worker for PWA Support
-const CACHE_NAME = "cc-pos-v9.0";
+const CACHE_NAME = "cc-pos-v70.0";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
-  "./style.css?v=9.0",
+  "./style.css?v=67.0",
   "./logo.jpg",
-  "./app.js?v=9.0",
-  "./js/db.js?v=9.0",
-  "./js/dashboard.js?v=9.0",
-  "./js/qrcode.min.js?v=9.0",
-  "./js/pos.js?v=9.0",
-  "./js/orders.js?v=9.0",
-  "./js/menu.js?v=9.0",
-  "./js/reports.js?v=9.0",
-  "./js/counter.js?v=9.0",
+  "./app.js?v=67.0",
+  "./js/db.js?v=67.0",
+  "./js/business-intel.js?v=67.0",
+  "./js/dashboard.js?v=67.0",
+  "./js/qrcode.min.js?v=67.0",
+  "./js/pos.js?v=67.0",
+  "./js/orders.js?v=67.0",
+  "./js/menu.js?v=67.0",
+  "./js/reports.js?v=67.0",
+  "./js/counter.js?v=67.0",
   "./manifest.json",
   "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
   "https://cdn.jsdelivr.net/npm/chart.js"
@@ -23,7 +24,6 @@ const ASSETS_TO_CACHE = [
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("[PWA Service Worker] Caching core static assets");
       return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
         console.warn("[PWA Service Worker] Asset pre-cache warning:", err);
       });
@@ -39,7 +39,6 @@ self.addEventListener("activate", (event) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log("[PWA Service Worker] Clearing old cache:", cache);
             return caches.delete(cache);
           }
         })
@@ -53,7 +52,6 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Always use network directly for Firebase, Firestore, live cloud sync APIs, and local development
   if (
     url.hostname.includes("firestore.googleapis.com") ||
     url.hostname.includes("firebase") ||
@@ -67,7 +65,6 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // Network with Cache Fallback / Background Cache Update
       const fetchPromise = fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
@@ -78,9 +75,7 @@ self.addEventListener("fetch", (event) => {
           }
           return networkResponse;
         })
-        .catch(() => {
-          return cachedResponse;
-        });
+        .catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
     })

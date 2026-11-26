@@ -574,6 +574,13 @@ service cloud.firestore {
       return;
     }
 
+    // Mobile PWA App Restriction: Only show Dashboard, Counter & Analytics on mobile screens
+    const mobileAllowedViews = ["dashboard", "counter", "reports"];
+    if (window.innerWidth <= 768 && !mobileAllowedViews.includes(hash)) {
+      window.location.hash = "#dashboard";
+      return;
+    }
+
     if (role !== "admin" && !allowedViews.includes(hash)) {
       window.showToast(`Access Restricted: your role (${role}) does not have permission to access this page.`, "error");
       window.location.hash = `#${defaultHash}`;

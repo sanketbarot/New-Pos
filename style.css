@@ -12217,3 +12217,463 @@ table td,
   font-weight: 600;
   color: #64748b;
 }
+
+
+/* ==========================================================================
+   MOBILE & APK PERFECT RESPONSIVE POLISH (v66.0)
+   Ensures zero horizontal overflow, clean touch targets & bottom-nav spacing
+   ========================================================================== */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+
+  .top-header {
+    height: auto !important;
+    min-height: 54px !important;
+    padding: 8px 12px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .header-title-area h2 {
+    font-size: 15px !important;
+  }
+
+  .header-view-badge,
+  .date-time-widget {
+    display: none !important;
+  }
+
+  .header-actions {
+    gap: 6px !important;
+    margin-left: auto !important;
+  }
+
+  .btn-header-360 {
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    border-radius: 10px !important;
+  }
+
+  .cloud-sync-pill {
+    height: 32px !important;
+    padding: 0 9px !important;
+    font-size: 11px !important;
+  }
+
+  .view-viewport {
+    padding: 10px 10px 84px 10px !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Mobile Bottom Nav safe area */
+  .mobile-bottom-nav {
+    height: 62px !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  /* POS Mobile Layout: Clean stacked Menu + Cart */
+  .pos-layout,
+  .pos-main-split,
+  .pos-workspace {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .pos-category-bar,
+  .pos-categories-wrap {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 4px !important;
+  }
+
+  .pos-category-tab,
+  .category-tab {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .pos-products-grid-scroll {
+    max-height: 54vh !important;
+    overflow-y: auto !important;
+  }
+
+  .pos-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 4px !important;
+  }
+
+  .product-card {
+    min-height: 112px !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .product-card .product-name {
+    font-size: 12.5px !important;
+  }
+
+  /* Dashboard Mobile Grids */
+  .dash-kpi-grid,
+  .rep-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .dash-floor-table-matrix {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .dash-charts-row,
+  .dash-menu-stock-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modals fit phone screen cleanly */
+  #modal-container .modal-content,
+  .modal-content {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 88vh !important;
+    border-radius: 18px !important;
+  }
+
+  #modal-container .modal-body {
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    padding: 12px !important;
+  }
+}
+
+
+/* ==========================================================================
+   PWA MOBILE RESPONSIVE SUITE FOR 4 CORE PAGES (v67.0)
+   Dashboard, Daily Counter & Bills, Sales & Profit Analytics, KDS
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Table & Scroll Containers - Zero horizontal page overflow */
+  .table-container,
+  .glass-card {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* 2. Horizontal Scrollable Pill Bars (Dashboard, Counter, Reports, KDS) */
+  .dash-period-pills,
+  .rep-preset-pills,
+  .subtab-rep-pills,
+  .kds-filter-pills,
+  .counter-tabs-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+    scrollbar-width: none !important;
+  }
+
+  .dash-period-pills::-webkit-scrollbar,
+  .rep-preset-pills::-webkit-scrollbar,
+  .subtab-rep-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .dash-period-btn,
+  .btn-rep-preset,
+  .subtab-rep-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* 3. Counter & Reports Multi-Column Grids -> Clean Mobile Stack */
+  .counter-kpi-grid,
+  .rep-kpi-grid,
+  .dash-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .rep-charts-grid,
+  .rep-charts-row,
+  .rep-insights-grid,
+  .rep-pnl-grid,
+  .rep-sim-grid,
+  .dash-smart-insights-strip {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* 4. Kitchen Display (KDS) -> Vertical Touch Lanes on Mobile */
+  .kds-board,
+  .kds-board.kds-3-lanes,
+  .kds-board.kds-4-lanes {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .kds-column {
+    width: 100% !important;
+    max-height: none !important;
+    min-height: 140px !important;
+  }
+
+  .kds-column-body {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 5. Reports Date Filters & Search Inputs */
+  .report-filter-bar,
+  .report-dates-group,
+  .report-actions-group {
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .dash-search-input {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .counter-kpi-grid,
+  .rep-kpi-grid,
+  .dash-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dash-floor-table-matrix {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+
+/* ==========================================================================
+   FINAL MOBILE OVERRIDE (v68.0) - HIDES SIDEBAR & FIXES 4 CORE PAGES ON PHONE
+   Placed at end of stylesheet so no desktop !important rule can override it
+   ========================================================================== */
+@media (max-width: 768px) {
+  .sidebar,
+  aside.sidebar {
+    display: none !important;
+    width: 0 !important;
+  }
+
+  .app-container,
+  #app-container {
+    display: block !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .main-workspace {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    height: calc(100vh - 62px) !important;
+  }
+
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    z-index: 900 !important;
+    background: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+  }
+
+  /* Compact KPI Cards on Mobile (No "₹..." truncation) */
+  .dash-kpi-grid,
+  .rep-kpi-grid,
+  .counter-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .rep-kpi-card,
+  .dash-kpi-card {
+    padding: 10px 10px !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+    min-width: 0 !important;
+  }
+
+  .dash-kpi-icon-wrap {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .rep-kpi-info {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+  .rep-kpi-val {
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+  }
+
+  .rep-kpi-label {
+    font-size: 10.5px !important;
+  }
+
+  .rep-kpi-badges {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+
+  .dash-sub-pill,
+  .growth-tag {
+    font-size: 9.5px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* KDS Mobile Header & Ticket Cards */
+  .kds-header-bar,
+  .kds-toolbar,
+  .kds-kpi-strip {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .kds-order-card {
+    padding: 12px !important;
+    border-radius: 16px !important;
+  }
+}
+
+
+/* ==========================================================================
+   3-PAGE OWNER MOBILE APP POLISH (v69.0)
+   Executive Dashboard, Daily Counter & Bills, Sales & Profit Analytics
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Hide POS link buttons on mobile owner app */
+  a[href="#pos"] {
+    display: none !important;
+  }
+
+  /* Evenly space 3 bottom nav items */
+  .mobile-bottom-nav {
+    justify-content: space-around !important;
+  }
+
+  .mobile-bottom-nav .mobile-nav-item {
+    flex: 1 !important;
+  }
+
+  /* Dashboard & Analytics Charts clean height on mobile */
+  .dash-chart-canvas-wrap,
+  .rep-chart-canvas-wrap {
+    height: 215px !important;
+  }
+
+  /* Dashboard header controls wrap cleanly */
+  .dash-header-controls,
+  .counter-header-controls {
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+}
+
+
+/* ==========================================================================
+   MOBILE HEADER PILLS & CHART CARD CONTAINMENT FIX (v70.0)
+   Prevents 2-line pill wrapping and chart canvas right-edge clipping
+   ========================================================================== */
+@media (max-width: 768px) {
+  .header-actions {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    margin-left: 0 !important;
+  }
+
+  .header-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .btn-header-360,
+  .btn-pwa-install,
+  .cloud-sync-pill {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    height: 30px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Prevent Chart.js canvas & toggle pills from overflowing card edges */
+  .dash-chart-card,
+  .rep-chart-card,
+  .rep-pnl-card,
+  .glass-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    padding: 14px 12px !important;
+  }
+
+  .dash-chart-canvas-wrap,
+  .rep-chart-canvas-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .dash-chart-canvas-wrap canvas,
+  .rep-chart-canvas-wrap canvas {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .dash-chart-toggle-group,
+  .rep-chart-toggle-group {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+    scrollbar-width: none !important;
+    padding-bottom: 2px !important;
+  }
+
+  .dash-chart-toggle-group::-webkit-scrollbar,
+  .rep-chart-toggle-group::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .dash-chart-toggle-btn,
+  .rep-chart-toggle-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+}
